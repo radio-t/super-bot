@@ -17,7 +17,7 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Test
-      run: cd app && go test -v -mod=vendor .
+      run: cd app && go test -v -mod=vendor ./...
 
     - name: Build
       run: cd app && go build -v -mod=vendor .

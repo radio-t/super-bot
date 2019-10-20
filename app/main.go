@@ -10,9 +10,9 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/sromku/go-gitter"
 
-	"git.umputun.com/radio-t/gitter-rt-bot/app/bot"
-	"git.umputun.com/radio-t/gitter-rt-bot/app/events"
-	"git.umputun.com/radio-t/gitter-rt-bot/app/reporter"
+	"github.com/radio-t/gitter-rt-bot/app/bot"
+	"github.com/radio-t/gitter-rt-bot/app/events"
+	"github.com/radio-t/gitter-rt-bot/app/reporter"
 )
 
 var opts struct {

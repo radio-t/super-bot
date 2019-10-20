@@ -7,8 +7,8 @@ import (
 	log "github.com/go-pkgz/lgr"
 	"github.com/sromku/go-gitter"
 
-	"git.umputun.com/radio-t/gitter-rt-bot/app/bot"
-	"git.umputun.com/radio-t/gitter-rt-bot/app/reporter"
+	"github.com/radio-t/gitter-rt-bot/app/bot"
+	"github.com/radio-t/gitter-rt-bot/app/reporter"
 )
 
 // Listener of gitter events

@@ -1,0 +1,170 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+        <meta charset="UTF-8">
+        <title>Лог Радио-Т #{{.Num}}</title>
+        <style>
+            .filter {
+                position: fixed;
+                top: 0;
+                right: 0;
+                padding: 10px 15px 12px;
+                background: #fff;
+                border-radius: 0 0 0 5px;
+                border: 1px solid rgba(100, 100, 100, .3);
+                border-width: 0 0 1px 1px;
+                font-size: 14px;
+                font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+            }
+
+            .filter__toggle {
+                text-align: center;
+                cursor: pointer;
+            }
+
+            .filter__toggle:hover .filter__title {
+                color: #777;
+            }
+
+            .filter__title {
+                font-weight: 700;
+                border-bottom: 1px dashed;
+            }
+
+            .filter__content {
+                display: none;
+            }
+
+            .filter__label {
+                display: block;
+                font-weight: 400; /* override bootstrap styles */
+            }
+
+            .filter__label:hover {
+                color: #777;
+            }
+
+            .filter_visible .filter__toggle {
+                margin-bottom: 10px;
+            }
+
+            .filter_visible .filter__content {
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="filter" id="filter">
+            <div class="filter__toggle" id="filter__toggle">
+                <span class="filter__title">Фильтры</span>
+            </div>
+            <div class="filter__content">
+                <label class="filter__label"><input type="checkbox" name="host" class="filter__item"> Оставить сообщения ведущих</label>
+                <label class="filter__label"><input type="checkbox" name="link" class="filter__item"> Оставить сообщения со ссылками</label>
+                <label class="filter__label"><input type="checkbox" name="bot" class="filter__item"> Убрать сообщения ботов</label>
+            </div>
+        </div>
+
+        <table class="table table-striped table-hover table-condensed" id="table">
+        {{range .Records}}
+        <tr>
+            {{if .IsHost}}
+                <td class="danger" align="left">{{.Time}}</td>
+                <td class="danger" align="left">{{.Name}}</td>
+            {{else}}
+                <td class="success" align="left">{{.Time}}</td>
+                <td class="success" align="left">{{.Name}}</td>
+            {{end}}
+            <td class="warning" align="left">{{.Msg}}</td>
+        </tr>
+        {{end}}
+
+        </table>
+
+        <script>
+            window.onload = function() {
+                var filter = document.getElementById('filter');
+                var checkboxes = filter.getElementsByClassName('filter__item');
+                var filterToggle = document.getElementById('filter__toggle');
+                var rows = document.querySelectorAll('.table tr');
+                var filters = {
+                    host: {
+                        value: 0,
+                        classname: 'host',
+                        style: '.table tr { display: none; } .table tr.host { display: table-row; }',
+                        detect: function(row) { return row.getElementsByClassName('danger').length > 0; }
+                    },
+                    link: {
+                        value: 0,
+                        classname: 'link',
+                        style: '.table tr { display: none; } .table tr.link { display: table-row; }',
+                        detect: function(row) { return row.getElementsByTagName('a').length > 0; }
+                    },
+                    bot: {
+                        value: 0,
+                        classname: 'bot',
+                        style: '.table tr.bot { display: none; }',
+                        detect: function(row) { return row.children[1].textContent == 'радио-т бот' && row.children[2].textContent.indexOf('==> ') == -1; }
+                    }
+                };
+                var filtersInited = false;
+                var styleNode;
+
+                filterToggle.addEventListener('click', function(e) {
+                    filter.classList.toggle('filter_visible');
+                });
+
+                [].forEach.call(checkboxes, function(item) {
+                    item.addEventListener('change', function(e) {
+                        filters[item.name].value = !!item.checked;
+
+                        if (filtersInited) {
+                            updateFilters();
+                        } {
+                            initFilter(updateFilters);
+                        }
+                    });
+                });
+
+                function initFilter(cb) {
+                    if (filtersInited) return;
+
+                    for (var i = 0; i < rows.length; i++) {
+                        for (var name in filters) {
+                            if (filters[name].detect(rows[i])) {
+                                rows[i].classList.add(name);
+                            }
+                        }
+                    }
+
+                    filtersInited = true;
+
+                    if (typeof cb == "function") cb();
+                }
+
+                function updateFilters() {
+                    var style = '';
+                    var sum = 0;
+
+                    if (styleNode) {
+                        styleNode.remove();
+                    }
+
+                    styleNode = document.createElement('style');
+
+                    for (var name in filters) {
+                        if (filters[name].value) {
+                            style += filters[name].style;
+                            sum += filters[name].value;
+                        }
+                    }
+
+                    if (sum) {
+                        styleNode.appendChild(document.createTextNode(style));
+                        document.body.appendChild(styleNode);
+                    }
+                }
+            };
+        </script>
+    </body>
+</html>

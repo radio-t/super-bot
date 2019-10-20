@@ -1,0 +1,25 @@
+gitter-bot:
+    build: .
+    hostname: gitter-bot
+    restart: always
+    container_name: gitter-bot
+
+    log_driver: "json-file"
+    log_opt:
+        max-size: "10m"
+        max-file: "5"
+
+    environment:
+        - GITTER_TOKEN
+        - GITTER_ROOM
+        - MASHAPE_TOKEN
+        - GITTER_ROOM=5738c079c43b8c6019730ee3
+
+    volumes:
+        - ./logs:/srv/logs
+        - /srv/www/chat.radio-t.com/logs:/srv/html
+
+    ports:
+        - "18001:18001"
+
+    command: /srv/gitter-rt-bot --super=umputun --super=bobuk --super=grayru --super=ksenks

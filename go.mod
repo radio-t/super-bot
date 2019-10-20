@@ -10,6 +10,6 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/smartystreets/goconvey v0.0.0-20190731233626-505e41936337 // indirect
 	github.com/sromku/go-gitter v0.0.0-20170828210750-70f7030a94a6
-	github.com/stretchr/testify v1.4.0 // indirect
+	github.com/stretchr/testify v1.4.0
 	golang.org/x/text v0.3.0
 )

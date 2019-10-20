@@ -1,5 +1,5 @@
 name: Go
-on: [push]
+on: [push, pull_request]
 jobs:
 
   build:
@@ -15,6 +15,9 @@ jobs:
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
+
+    - name: Test
+      run: cd app && go test -v -mod=vendor .
 
     - name: Build
       run: cd app && go build -v -mod=vendor .

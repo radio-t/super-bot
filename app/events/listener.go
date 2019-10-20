@@ -69,7 +69,7 @@ func (l Listener) Do() {
 				}
 			}
 		case *gitter.GitterConnectionClosed:
-			log.Printf("[FATAL] connection closed")
+			log.Fatalf("[ERROR] connection closed")
 		}
 	}
 }
@@ -79,5 +79,5 @@ func (l Listener) Do() {
 func (l Listener) killAfter(killDuration time.Duration) {
 	timer := time.NewTimer(killDuration)
 	<-timer.C
-	log.Printf("[FATAL] internal kill initiated")
+	log.Fatalf("[WARN] internal kill initiated")
 }

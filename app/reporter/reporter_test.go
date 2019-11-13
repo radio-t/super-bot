@@ -2,16 +2,17 @@ package reporter
 
 import (
 	"fmt"
-	"github.com/sromku/go-gitter"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/sromku/go-gitter"
+	"github.com/stretchr/testify/assert"
 )
 
 var logs = "logs"
-var msg = gitter.Message{ Text : "1st" }
+var msg = gitter.Message{Text: "1st"}
 
 func TestNewLogger(t *testing.T) {
 	defer os.RemoveAll(logs)
@@ -20,15 +21,15 @@ func TestNewLogger(t *testing.T) {
 	assert.DirExists(t, logs)
 
 	tbl := []struct {
-		count int
+		count   int
 		timeout time.Duration
-	} {
+	}{
 		{101, 100 * time.Millisecond},
 		{1, 6 * time.Second},
 	}
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			for i = 0; i < tt.count; i++{
+			for i = 0; i < tt.count; i++ {
 				reporter.Save(msg)
 			}
 			time.Sleep(tt.timeout)

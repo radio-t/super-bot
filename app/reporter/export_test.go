@@ -3,21 +3,22 @@ package reporter
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/sromku/go-gitter"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/sromku/go-gitter"
+	"github.com/stretchr/testify/assert"
 )
 
 var testFile = "test.log"
-var msgs = []gitter.Message{ { Text:"1st" }, { Text:"2nd" } }
+var msgs = []gitter.Message{{Text: "1st"}, {Text: "2nd"}}
 var testExportParams = ExporterParams{
 	OutputRoot:   "output",
 	InputRoot:    "input",
 	TemplateFile: "output/template",
-	SuperUsers:   SuperUserMock{ },
+	SuperUsers:   SuperUserMock{},
 }
 
 func TestNewExporter(t *testing.T) {
@@ -37,10 +38,10 @@ func TestExporter_Export(t *testing.T) {
 	tbl := []struct {
 		showNum  int
 		yyyymmdd int
-		output string
+		output   string
 	}{
 		{1, 0, "output/radio-t-1.html"},
-		{2, 20081012,"output/radio-t-2.html"},
+		{2, 20081012, "output/radio-t-2.html"},
 	}
 
 	for i, tt := range tbl {
@@ -60,15 +61,15 @@ func TestExporter_Export(t *testing.T) {
 
 func Test_filter(t *testing.T) {
 	tbl := []struct {
-		input gitter.Message
+		input  gitter.Message
 		output bool
 	}{
-		{gitter.Message{Text:" +1"}, true },
-		{gitter.Message{Text:" -1"}, true },
-		{gitter.Message{Text:":+1:"}, true },
-		{gitter.Message{Text:":-1:"}, true },
-		{gitter.Message{Text:"+1 blah"}, false },
-		{gitter.Message{Text:"blah +1 blah"}, false },
+		{gitter.Message{Text: " +1"}, true},
+		{gitter.Message{Text: " -1"}, true},
+		{gitter.Message{Text: ":+1:"}, true},
+		{gitter.Message{Text: ":-1:"}, true},
+		{gitter.Message{Text: "+1 blah"}, false},
+		{gitter.Message{Text: "blah +1 blah"}, false},
 	}
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
@@ -81,12 +82,12 @@ func Test_filter(t *testing.T) {
 func Test_readMessages(t *testing.T) {
 	tbl := []struct {
 		createFile bool
-		msgs    []gitter.Message
-		fail bool
+		msgs       []gitter.Message
+		fail       bool
 	}{
-		{false, nil, true },
-		{true,[]gitter.Message{}, false },
-		{true, msgs, false },
+		{false, nil, true},
+		{true, []gitter.Message{}, false},
+		{true, msgs, false},
 	}
 
 	for i, tt := range tbl {
@@ -130,7 +131,7 @@ func setup() (*Exporter, error) {
 
 	e := &Exporter{
 		ExporterParams: testExportParams,
-		location: location,
+		location:       location,
 	}
 
 	return e, nil

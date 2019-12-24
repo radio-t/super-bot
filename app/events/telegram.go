@@ -54,6 +54,8 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 				Sent: update.ChannelPost.Time(),
 			}
 
+			l.Save(msg)
+
 			if msg.From.Username == l.BotUserName {
 				log.Printf("[DEBUG] ignore %+v", msg.Text)
 				continue

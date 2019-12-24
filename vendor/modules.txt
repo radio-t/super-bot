@@ -2,6 +2,8 @@
 github.com/davecgh/go-spew/spew
 # github.com/go-pkgz/lgr v0.7.0
 github.com/go-pkgz/lgr
+# github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
+github.com/go-telegram-bot-api/telegram-bot-api
 # github.com/mreiferson/go-httpclient v0.0.0-20160630210159-31f0106b4474
 github.com/mreiferson/go-httpclient
 # github.com/mrexodia/wray v0.0.0-20160318003008-78a2c1f284ff
@@ -15,6 +17,8 @@ github.com/sromku/go-gitter
 # github.com/stretchr/testify v1.4.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
+# github.com/technoweenie/multipartstreamer v1.0.1
+github.com/technoweenie/multipartstreamer
 # github.com/umputun/go-flags v1.5.1
 github.com/umputun/go-flags
 # golang.org/x/text v0.3.2

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/sromku/go-gitter"
+	"github.com/radio-t/gitter-rt-bot/app/bot"
 )
 
 // Reporter collects all messages and saves to plain file
@@ -26,7 +26,7 @@ func NewLogger(logs string) (result Reporter) {
 }
 
 // Save to log channel, non-blocking and skip if needed
-func (l Reporter) Save(msg gitter.Message) {
+func (l Reporter) Save(msg bot.Message) {
 
 	bdata, err := json.Marshal(&msg)
 	if err != nil {

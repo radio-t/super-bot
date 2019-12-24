@@ -9,7 +9,6 @@ import (
 	"time"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/sromku/go-gitter"
 )
 
 // StackOverflow bot, returns from "https://api.stackexchange.com/2.2/questions?order=desc&sort=activity&site=stackoverflow"
@@ -32,7 +31,7 @@ func NewStackOverflow() *StackOverflow {
 }
 
 // OnMessage returns one entry
-func (s StackOverflow) OnMessage(msg gitter.Message) (response string, answer bool) {
+func (s StackOverflow) OnMessage(msg Message) (response string, answer bool) {
 
 	if !contains(s.ReactOn(), msg.Text) {
 		return "", false

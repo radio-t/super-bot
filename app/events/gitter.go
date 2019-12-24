@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -11,19 +12,18 @@ import (
 	"github.com/radio-t/gitter-rt-bot/app/reporter"
 )
 
-// Listener of gitter events
-type Listener struct {
+// GitterListener of gitter events
+type GitterListener struct {
 	Terminator
 	reporter.Reporter
 
-	AutoBan AutoBan
-	API     *gitter.Gitter
-	RoomID  string
-	Bots    bot.Interface
+	API    *gitter.Gitter
+	RoomID string
+	Bots   bot.Interface
 }
 
 // Do process all events, blocked call
-func (l Listener) Do() {
+func (l *GitterListener) Do(ctx context.Context) {
 	log.Printf("[INFO] activated for room=%s", l.RoomID)
 	// l.API.SetDebug(true, nil)
 	// l.API.SendMessage(l.RoomID, "**joined and activated**")
@@ -34,7 +34,14 @@ func (l Listener) Do() {
 	go l.API.Listen(stream)
 
 	for {
-		event := <-stream.Event
+
+		var event gitter.Event
+
+		select {
+		case event = <-stream.Event:
+		case <-ctx.Done():
+			return
+		}
 
 		switch ev := event.Data.(type) {
 
@@ -42,20 +49,26 @@ func (l Listener) Do() {
 			log.Printf(" -> %s: %s: [%s]",
 				ev.Message.From.DisplayName, ev.Message.Sent.Format("2006-01-02 15:04:05"), ev.Message.Text)
 
-			if l.AutoBan.check(ev.Message) {
-				continue
+			m := bot.Message{
+				Text: ev.Message.Text,
+				HTML: ev.Message.HTML,
+				Sent: ev.Message.Sent,
+				From: bot.User{
+					ID:          ev.Message.From.ID,
+					Username:    ev.Message.From.Username,
+					DisplayName: ev.Message.From.DisplayName,
+				},
 			}
-
-			l.Save(ev.Message)
+			l.Save(m)
 
 			if ev.Message.From.DisplayName == "радио-т бот" {
 				log.Printf("[DEBUG] ignore %+v", ev.Message)
 				continue
 			}
 
-			if resp, send := l.Bots.OnMessage(ev.Message); send {
+			if resp, send := l.Bots.OnMessage(m); send {
 				log.Printf("[DEBUG] bot sent - %+v", resp)
-				if ban := l.check(ev.Message.From); ban.active {
+				if ban := l.check(m.From); ban.active {
 					if ban.new {
 						m := fmt.Sprintf("@%s _тебя слишком много, отдохни ..._", ev.Message.From.Username)
 						if _, err := l.API.SendMessage(l.RoomID, m); err != nil {
@@ -76,7 +89,7 @@ func (l Listener) Do() {
 
 // killAfter will close the app after some period. gitter streams doesn't like long sessions.
 // the app expected to be restarted by external watchers, like docker's restart policy.
-func (l Listener) killAfter(killDuration time.Duration) {
+func (l *GitterListener) killAfter(killDuration time.Duration) {
 	timer := time.NewTimer(killDuration)
 	<-timer.C
 	log.Fatalf("[WARN] internal kill initiated")

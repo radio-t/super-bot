@@ -8,7 +8,6 @@ import (
 	"time"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/sromku/go-gitter"
 )
 
 // News bot, returns 5 last articles in MD from https://news.radio-t.com/api/v1/news/lastmd/5
@@ -29,14 +28,14 @@ func NewNews(api string) *News {
 }
 
 // OnMessage returns 5 last news articles
-func (n News) OnMessage(msg gitter.Message) (response string, answer bool) {
+func (n News) OnMessage(msg Message) (response string, answer bool) {
 	if !contains(n.ReactOn(), msg.Text) {
 		return "", false
 	}
 
 	reqURL := fmt.Sprintf("%s/v1/news/last/5", n.newsAPI)
 	log.Printf("[DEBUG] request %s", reqURL)
-	client := http.Client{Timeout: time.Second*5}
+	client := http.Client{Timeout: time.Second * 5}
 	resp, err := client.Get(reqURL)
 	if err != nil {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
@@ -49,7 +48,6 @@ func (n News) OnMessage(msg gitter.Message) (response string, answer bool) {
 		log.Printf("[WARN] failed to parse response, error %v", err)
 		return "", false
 	}
-
 
 	var lines []string
 	for _, a := range articles {

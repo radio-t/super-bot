@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/sromku/go-gitter"
 )
 
 // Sys implements basic bot function to responds on ping and others from basic.data file.
@@ -28,7 +27,7 @@ func NewSys(dataLocation string) *Sys {
 }
 
 // OnMessage implements bot.Interface
-func (p Sys) OnMessage(msg gitter.Message) (response string, answer bool) {
+func (p Sys) OnMessage(msg Message) (response string, answer bool) {
 
 	if !contains(p.ReactOn(), msg.Text) {
 		return "", false

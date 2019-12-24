@@ -11,7 +11,6 @@ import (
 	"time"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/sromku/go-gitter"
 )
 
 // Excerpt bot, returns link's excerpt
@@ -30,7 +29,7 @@ func NewExcerpt(api string, token string) *Excerpt {
 }
 
 // OnMessage pass msg to all bots and collects responses
-func (e *Excerpt) OnMessage(msg gitter.Message) (response string, answered bool) {
+func (e *Excerpt) OnMessage(msg Message) (response string, answered bool) {
 
 	link, err := e.link(msg.Text)
 	if err != nil {

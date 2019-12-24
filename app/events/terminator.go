@@ -4,7 +4,7 @@ import (
 	"time"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/sromku/go-gitter"
+	"github.com/radio-t/gitter-rt-bot/app/bot"
 )
 
 // Terminator helps to block too active users
@@ -13,7 +13,7 @@ type Terminator struct {
 	BanPenalty    int
 	AllowedPeriod time.Duration
 	Exclude       SuperUser
-	users         map[gitter.User]activity
+	users         map[bot.User]activity
 }
 
 type activity struct {
@@ -27,15 +27,15 @@ type ban struct {
 }
 
 // check if user bothered bot too often and ban for BanDuration
-func (t *Terminator) check(user gitter.User) ban {
+func (t *Terminator) check(user bot.User) ban {
 
 	noBan := ban{active: false, new: false}
-	if t.Exclude.IsSuper(user) {
+	if t.Exclude.IsSuper(user.Username) {
 		return noBan
 	}
 
 	if t.users == nil {
-		t.users = make(map[gitter.User]activity)
+		t.users = make(map[bot.User]activity)
 		log.Printf("terminator with BanDuration=%v, BanPenalty=%d, excluded=%v", t.BanDuration, t.BanPenalty, t.Exclude)
 	}
 

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sromku/go-gitter"
+	"github.com/radio-t/gitter-rt-bot/app/bot"
 )
 
 // Exporter performs conversion from log file to html
@@ -29,7 +29,7 @@ type ExporterParams struct {
 }
 
 type SuperUser interface {
-	IsSuper(user gitter.User) bool
+	IsSuper(user string) bool
 }
 
 // NewExporter from params, initializes time.Location
@@ -67,7 +67,7 @@ func (e Exporter) Export(showNum int, yyyymmdd int) {
 
 }
 
-func (e Exporter) toHTML(messages []gitter.Message, num int) string {
+func (e Exporter) toHTML(messages []bot.Message, num int) string {
 
 	type Record struct {
 		Time   string
@@ -88,7 +88,7 @@ func (e Exporter) toHTML(messages []gitter.Message, num int) string {
 			Name: msg.From.DisplayName,
 			Msg:  template.HTML(msg.HTML),
 		}
-		rec.IsHost = e.SuperUsers.IsSuper(msg.From)
+		rec.IsHost = e.SuperUsers.IsSuper(msg.From.Username)
 		data.Records = append(data.Records, rec)
 	}
 
@@ -103,17 +103,17 @@ func (e Exporter) toHTML(messages []gitter.Message, num int) string {
 	return html.String()
 }
 
-func readMessages(path string) ([]gitter.Message, error) {
+func readMessages(path string) ([]bot.Message, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	messages := []gitter.Message{}
+	messages := []bot.Message{}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		msg := gitter.Message{}
+		msg := bot.Message{}
 		line := scanner.Text()
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
 			log.Printf("[ERROR] failed to unmarshal %s, error=%v", line, err)
@@ -126,7 +126,7 @@ func readMessages(path string) ([]gitter.Message, error) {
 	return messages, scanner.Err()
 }
 
-func filter(msg gitter.Message) bool {
+func filter(msg bot.Message) bool {
 	contains := func(s []string, e string) bool {
 		e = strings.TrimSpace(strings.ToLower(e))
 		for _, a := range s {

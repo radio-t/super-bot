@@ -8,7 +8,6 @@ import (
 	"time"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/sromku/go-gitter"
 )
 
 // Duck bot, returns from duckduckgo via mashape
@@ -23,7 +22,7 @@ func NewDuck(key string) *Duck {
 }
 
 // OnMessage pass msg to all bots and collects responses
-func (d *Duck) OnMessage(msg gitter.Message) (response string, answer bool) {
+func (d *Duck) OnMessage(msg Message) (response string, answer bool) {
 	if !strings.HasPrefix(msg.Text, "??") {
 		return "", false
 	}

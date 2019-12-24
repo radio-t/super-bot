@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/sromku/go-gitter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -56,7 +55,7 @@ func TestExcerpt(t *testing.T) {
 
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			r, ok := ex.OnMessage(gitter.Message{Text: tt.link})
+			r, ok := ex.OnMessage(Message{Text: tt.link})
 			require.Equal(t, tt.fail, !ok)
 			if !tt.fail {
 				assert.Equal(t, tt.excerpt, r)

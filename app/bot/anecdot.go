@@ -8,7 +8,6 @@ import (
 	"time"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/sromku/go-gitter"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
 )
@@ -23,7 +22,7 @@ func NewAnecdote() *Anecdote {
 }
 
 // OnMessage returns one entry
-func (a Anecdote) OnMessage(msg gitter.Message) (response string, answer bool) {
+func (a Anecdote) OnMessage(msg Message) (response string, answer bool) {
 
 	if !contains(a.ReactOn(), msg.Text) {
 		return "", false

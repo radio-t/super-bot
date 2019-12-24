@@ -1,14 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
 	"time"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/jessevdk/go-flags"
 	"github.com/sromku/go-gitter"
+	"github.com/umputun/go-flags"
 
 	"github.com/radio-t/gitter-rt-bot/app/bot"
 	"github.com/radio-t/gitter-rt-bot/app/events"
@@ -34,7 +35,7 @@ var opts struct {
 var revision = "local"
 
 func main() {
-	fmt.Printf("Radio-T bot for Gitter, %s\n", revision)
+	fmt.Printf("Radio-T bot - %s\n", revision)
 	if _, err := flags.Parse(&opts); err != nil {
 		os.Exit(1)
 	}
@@ -68,24 +69,15 @@ func main() {
 		Exclude:       opts.SuperUsers,
 	}
 
-	autoban := events.AutoBan{
-		RoomID:      opts.RoomID,
-		GitterToken: opts.GitterToken,
-		MaxMsgSize:  1000,
-		MsgsPerSec:  5,
-		DupsPerSec:  3,
-	}
-
-	eListener := events.Listener{
+	eListener := events.GitterListener{
 		Terminator: term,
-		AutoBan:    autoban,
 		Reporter:   reporter.NewLogger(opts.LogsPath),
 		API:        api,
 		RoomID:     opts.RoomID,
 		Bots:       multiBot,
 	}
 
-	eListener.Do()
+	eListener.Do(context.Background())
 }
 
 func export() {

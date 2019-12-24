@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sromku/go-gitter"
+	"github.com/radio-t/gitter-rt-bot/app/bot"
 	"github.com/stretchr/testify/assert"
 )
 
 var testFile = "test.log"
-var msgs = []gitter.Message{{Text: "1st"}, {Text: "2nd"}}
+var msgs = []bot.Message{{Text: "1st"}, {Text: "2nd"}}
 var testExportParams = ExporterParams{
 	OutputRoot:   "output",
 	InputRoot:    "input",
@@ -61,15 +61,15 @@ func TestExporter_Export(t *testing.T) {
 
 func Test_filter(t *testing.T) {
 	tbl := []struct {
-		input  gitter.Message
+		input  bot.Message
 		output bool
 	}{
-		{gitter.Message{Text: " +1"}, true},
-		{gitter.Message{Text: " -1"}, true},
-		{gitter.Message{Text: ":+1:"}, true},
-		{gitter.Message{Text: ":-1:"}, true},
-		{gitter.Message{Text: "+1 blah"}, false},
-		{gitter.Message{Text: "blah +1 blah"}, false},
+		{bot.Message{Text: " +1"}, true},
+		{bot.Message{Text: " -1"}, true},
+		{bot.Message{Text: ":+1:"}, true},
+		{bot.Message{Text: ":-1:"}, true},
+		{bot.Message{Text: "+1 blah"}, false},
+		{bot.Message{Text: "blah +1 blah"}, false},
 	}
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
@@ -82,11 +82,11 @@ func Test_filter(t *testing.T) {
 func Test_readMessages(t *testing.T) {
 	tbl := []struct {
 		createFile bool
-		msgs       []gitter.Message
+		msgs       []bot.Message
 		fail       bool
 	}{
 		{false, nil, true},
-		{true, []gitter.Message{}, false},
+		{true, []bot.Message{}, false},
 		{true, msgs, false},
 	}
 
@@ -144,7 +144,7 @@ func teardown() {
 }
 
 // setup creates file and fill it with  messages
-func createFile(filepath string, msgs []gitter.Message) error {
+func createFile(filepath string, msgs []bot.Message) error {
 	f, err := os.Create(filepath)
 	if err != nil {
 		return err
@@ -167,7 +167,7 @@ func createFile(filepath string, msgs []gitter.Message) error {
 
 type SuperUserMock map[string]bool
 
-// IsSuper checks if gitter user in su list
-func (s SuperUserMock) IsSuper(user gitter.User) bool {
-	return s[user.Username]
+// IsSuper checks if user in su list
+func (s SuperUserMock) IsSuper(userName string) bool {
+	return s[userName]
 }

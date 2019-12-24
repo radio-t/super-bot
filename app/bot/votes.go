@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/sromku/go-gitter"
 )
 
 // Votes bot
@@ -22,15 +21,15 @@ func NewVotes(superUsers SuperUser) *Votes {
 }
 
 // OnMessage pass msg to all bots and collects responses
-func (v *Votes) OnMessage(msg gitter.Message) (response string, answer bool) {
+func (v *Votes) OnMessage(msg Message) (response string, answer bool) {
 	switch {
-	case strings.HasPrefix(msg.Text, "++") && v.su.IsSuper(msg.From):
+	case strings.HasPrefix(msg.Text, "++") && v.su.IsSuper(msg.From.Username):
 		log.Printf("[INFO] voting started")
 		v.votes = make(map[string]bool)
 		v.started = true
 		v.topic = msg.Text[2:]
 		return fmt.Sprintf("голосование началось! (+1/-1) **%s**", v.topic), true
-	case strings.HasPrefix(msg.Text, "!!") && v.su.IsSuper(msg.From):
+	case strings.HasPrefix(msg.Text, "!!") && v.su.IsSuper(msg.From.Username):
 		log.Printf("[INFO] voting finished")
 		v.started = false
 		positiveNum, negativeNum := v.count(true), v.count(false)

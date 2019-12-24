@@ -11,7 +11,7 @@ import (
 )
 
 // Rtjc for rtjc commands. Publishes whatever it got from socket
-// compatible with legacy rtjc bot, used to push news events from news.radio-t.com
+// compatible with the legacy rtjc bot, used to push news events from news.radio-t.com
 type Rtjc struct {
 	Port   int
 	Gitter *gitter.Gitter

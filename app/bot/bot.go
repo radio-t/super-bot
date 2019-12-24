@@ -4,27 +4,40 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/go-pkgz/lgr"
 	"github.com/pkg/errors"
-	"github.com/sromku/go-gitter"
 )
 
 // Interface is a bot reactive spec. response will be sent if "send" result is true
 type Interface interface {
-	OnMessage(msg gitter.Message) (response string, send bool)
+	OnMessage(msg Message) (response string, send bool)
 	ReactOn() []string
 }
 
 type SuperUser interface {
-	IsSuper(user gitter.User) bool
+	IsSuper(userName string) bool
+}
+
+type Message struct {
+	Text string
+	HTML string
+	From User
+	Sent time.Time
+}
+
+type User struct {
+	ID          string
+	Username    string
+	DisplayName string
 }
 
 // MultiBot combines many bots to one virtual
 type MultiBot []Interface
 
 // OnMessage pass msg to all bots and collects reposnses (combining all of them)
-func (b MultiBot) OnMessage(msg gitter.Message) (response string, send bool) {
+func (b MultiBot) OnMessage(msg Message) (response string, send bool) {
 
 	if contains([]string{"help", "/help", "help!"}, msg.Text) {
 		return "_" + strings.Join(b.ReactOn(), " ") + "_", true

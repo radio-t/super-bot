@@ -7,12 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sromku/go-gitter"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/radio-t/gitter-rt-bot/app/bot"
 )
 
 var logs = "logs"
-var msg = gitter.Message{Text: "1st"}
+var msg = bot.Message{Text: "1st"}
 
 func TestNewLogger(t *testing.T) {
 	defer os.RemoveAll(logs)
@@ -27,6 +28,7 @@ func TestNewLogger(t *testing.T) {
 		{101, 100 * time.Millisecond},
 		{1, 6 * time.Second},
 	}
+
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			for i = 0; i < tt.count; i++ {

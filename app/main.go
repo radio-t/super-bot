@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 	"time"
 
 	log "github.com/go-pkgz/lgr"
@@ -17,9 +18,9 @@ import (
 
 var opts struct {
 	Telegram struct {
-		Token       string `long:"token" env:"TOKEN" description:"telegram bot token room" required:"test"`
-		Channel     string `short:"r" long:"room" env:"CHANNEL" description:"telegram chat room" default:"test"`
-		BotUserName string `long:"name" env:"NAME" description:"telegram bot name" default:"test"`
+		Token       string `long:"token" env:"TOKEN" description:"telegram bot token" required:"test"`
+		Channel     string `long:"channel" env:"CHANNEL" description:"channel name/id" default:"test"`
+		BotUserName string `long:"name" env:"NAME" description:"bot user name" default:"test"`
 	} `group:"telegram" namespace:"telegram" env-namespace:"TELEGRAM"`
 
 	RtjcPort     int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
@@ -69,11 +70,16 @@ func main() {
 		Exclude:       opts.SuperUsers,
 	}
 
+	channelID := opts.Telegram.Channel
+	if _, err := strconv.ParseInt(channelID, 10, 64); err != nil {
+		channelID = "@" + channelID // if channelID not a number enforce @ prefix
+	}
+
 	tgListener := events.TelegramListener{
 		Terminator:  term,
 		Reporter:    reporter.NewLogger(opts.LogsPath),
 		Bots:        multiBot,
-		ChannelID:   opts.Telegram.Channel,
+		ChannelID:   channelID,
 		Token:       opts.Telegram.Token,
 		BotUserName: opts.Telegram.BotUserName,
 		Debug:       opts.Dbg,

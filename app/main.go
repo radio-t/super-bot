@@ -8,7 +8,6 @@ import (
 	"time"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/sromku/go-gitter"
 	"github.com/umputun/go-flags"
 
 	"github.com/radio-t/gitter-rt-bot/app/bot"
@@ -17,8 +16,12 @@ import (
 )
 
 var opts struct {
-	GitterToken  string           `short:"t" long:"token" env:"GITTER_TOKEN" description:"gitter token" required:"true"`
-	RoomID       string           `short:"r" long:"room" env:"GITTER_ROOM" description:"gitter room" default:"57141ba3187bb6f0eadfea6b"`
+	Telegram struct {
+		Token       string `long:"token" env:"TOKEN" description:"telegram bot token room" required:"test"`
+		Channel     string `short:"r" long:"room" env:"CHANNEL" description:"telegram chat room" default:"test"`
+		BotUserName string `long:"name" env:"NAME" description:"telegram bot name" default:"test"`
+	} `group:"telegram" namespace:"telegram" env-namespace:"TELEGRAM"`
+
 	RtjcPort     int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
 	LogsPath     string           `short:"l" long:"logs" env:"GITTER_LOGS" default:"logs" description:"path to logs"`
 	SuperUsers   events.SuperUser `long:"super" description:"super-users"`
@@ -35,7 +38,7 @@ var opts struct {
 var revision = "local"
 
 func main() {
-	fmt.Printf("Radio-T bot - %s\n", revision)
+	fmt.Printf("radio-t bot, %s\n", revision)
 	if _, err := flags.Parse(&opts); err != nil {
 		os.Exit(1)
 	}
@@ -48,9 +51,6 @@ func main() {
 		return
 	}
 	rand.Seed(int64(time.Now().Nanosecond()))
-	api := gitter.New(opts.GitterToken)
-
-	go events.Rtjc{Port: opts.RtjcPort, Gitter: api, RoomID: opts.RoomID}.Listen()
 
 	multiBot := bot.MultiBot{
 		bot.NewSys(opts.SysData),
@@ -69,15 +69,21 @@ func main() {
 		Exclude:       opts.SuperUsers,
 	}
 
-	eListener := events.GitterListener{
-		Terminator: term,
-		Reporter:   reporter.NewLogger(opts.LogsPath),
-		API:        api,
-		RoomID:     opts.RoomID,
-		Bots:       multiBot,
+	tgListener := events.TelegramListener{
+		Terminator:  term,
+		Reporter:    reporter.NewLogger(opts.LogsPath),
+		Bots:        multiBot,
+		ChannelID:   opts.Telegram.Channel,
+		Token:       opts.Telegram.Token,
+		BotUserName: opts.Telegram.BotUserName,
+		Debug:       opts.Dbg,
 	}
 
-	eListener.Do(context.Background())
+	ctx := context.TODO()
+	go events.Rtjc{Port: opts.RtjcPort, Submitter: &tgListener}.Listen(ctx)
+	if err := tgListener.Do(ctx); err != nil {
+		log.Fatalf("[ERROR] telegram listener failed, %v", err)
+	}
 }
 
 func export() {

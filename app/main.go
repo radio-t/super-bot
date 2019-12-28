@@ -18,9 +18,8 @@ import (
 
 var opts struct {
 	Telegram struct {
-		Token       string `long:"token" env:"TOKEN" description:"telegram bot token" required:"test"`
-		Channel     string `long:"channel" env:"CHANNEL" description:"channel name/id" default:"test"`
-		BotUserName string `long:"name" env:"NAME" description:"bot user name" default:"test"`
+		Token       string `long:"token" env:"TOKEN" description:"telegram bot token" default:"test"`
+		Group       string `long:"group" env:"GROUP" description:"group name/id" default:"test"`
 	} `group:"telegram" namespace:"telegram" env-namespace:"TELEGRAM"`
 
 	RtjcPort     int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
@@ -70,18 +69,17 @@ func main() {
 		Exclude:       opts.SuperUsers,
 	}
 
-	channelID := opts.Telegram.Channel
-	if _, err := strconv.ParseInt(channelID, 10, 64); err != nil {
-		channelID = "@" + channelID // if channelID not a number enforce @ prefix
+	groupID := opts.Telegram.Group
+	if _, err := strconv.ParseInt(groupID, 10, 64); err != nil {
+		groupID = "@" + groupID // if channelID not a number enforce @ prefix
 	}
 
 	tgListener := events.TelegramListener{
 		Terminator:  term,
 		Reporter:    reporter.NewLogger(opts.LogsPath),
 		Bots:        multiBot,
-		ChannelID:   channelID,
+		GroupID:     groupID,
 		Token:       opts.Telegram.Token,
-		BotUserName: opts.Telegram.BotUserName,
 		Debug:       opts.Dbg,
 	}
 

@@ -28,7 +28,7 @@ func (v *Votes) OnMessage(msg Message) (response string, answer bool) {
 		v.votes = make(map[string]bool)
 		v.started = true
 		v.topic = msg.Text[2:]
-		return fmt.Sprintf("голосование началось! (+1/-1) **%s**", v.topic), true
+		return fmt.Sprintf("голосование началось! (+1/-1) *%s*", v.topic), true
 	case strings.HasPrefix(msg.Text, "!!") && v.su.IsSuper(msg.From.Username):
 		log.Printf("[INFO] voting finished")
 		v.started = false
@@ -38,7 +38,7 @@ func (v *Votes) OnMessage(msg Message) (response string, answer bool) {
 		}
 		positivePerc := (100 * positiveNum) / (positiveNum + negativeNum)
 		negativePerc := (100 * negativeNum) / (positiveNum + negativeNum)
-		return fmt.Sprintf("голосование завершено - _%s_\n- **за: %d%% (%d)**\n- **против: %d%% (%d) **",
+		return fmt.Sprintf("голосование завершено - _%s_\n- *за: %d%% (%d)*\n- *против: %d%% (%d) *",
 			v.topic, positivePerc, positiveNum, negativePerc, negativeNum), true
 	case (msg.Text == "+1" || strings.Contains(msg.Text, ":+1:")) && v.started:
 		if _, found := v.votes[msg.From.Username]; !found {

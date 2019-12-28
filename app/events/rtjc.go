@@ -22,7 +22,7 @@ type Submitter interface {
 	Submit(ctx context.Context, msg string) error
 }
 
-// Listen on Port accept and forward to gitter
+// Listen on Port accept and forward to telegram
 func (l Rtjc) Listen(ctx context.Context) {
 	log.Printf("[INFO] rtjc listener on port %d", l.Port)
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", l.Port))

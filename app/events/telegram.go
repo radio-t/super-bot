@@ -19,8 +19,7 @@ type TelegramListener struct {
 	Token string
 	reporter.Reporter
 	Bots        bot.Interface
-	ChannelID   string
-	BotUserName string
+	GroupID     string
 	Debug       bool
 
 	botAPI *tbapi.BotAPI
@@ -57,32 +56,38 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			if !ok {
 				return errors.Errorf("telegram update chan closed")
 			}
-			log.Printf("%+v %+v", update.ChannelPost, update)
+			log.Printf("[INFO] receive update: %+v, %+v", update.Message, update)
+
+			if update.Message == nil {
+				log.Printf("[DEBUG] empty message body")
+				continue
+			}
+
+			// TODO multimedia
 			msg := bot.Message{
-				Text: update.ChannelPost.Text,
+				Text: update.Message.Text,
 				From: bot.User{
-					// ID:          strconv.Itoa(update.ChannelPost.Chat.ID),
-					Username:    update.ChannelPost.Chat.UserName,
-					DisplayName: update.ChannelPost.Chat.FirstName + " " + update.ChannelPost.Chat.LastName,
+					// ID:          strconv.Itoa(update.Message.From.ID),
+					Username:    update.Message.From.UserName,
+					DisplayName: update.Message.From.FirstName + " " + update.Message.From.LastName,
 				},
-				Sent: update.ChannelPost.Time(),
+				Sent: update.Message.Time(),
 			}
 
 			l.Save(msg) // save to report
 
-			if msg.From.Username == l.BotUserName {
-				log.Printf("[DEBUG] ignore %+v", msg.Text)
-				continue
-			}
+			log.Printf("[DEBUG] incoming msg: %+v", msg)
 
 			// check for ban
 			if b := l.check(msg.From); b.active {
 				if b.new {
 					m := fmt.Sprintf("@%s _тебя слишком много, отдохни ..._", msg.From.Username)
-					tbMsg := tbapi.NewMessage(update.ChannelPost.Chat.ID, m)
-					tbMsg.ParseMode = "markdown"
-					if _, e := l.botAPI.Send(tbMsg); e != nil {
+					tbMsg := tbapi.NewMessage(update.Message.Chat.ID, m)
+					tbMsg.ParseMode = tbapi.ModeMarkdown
+					if res, e := l.botAPI.Send(tbMsg); e != nil {
 						log.Printf("[WARN] failed to send, %v", e)
+					} else {
+						l.saveBotMessage(&res)
 					}
 				}
 				continue
@@ -90,28 +95,32 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			if resp, send := l.Bots.OnMessage(msg); send {
 				log.Printf("[DEBUG] bot response - %+v", resp)
-				tbMsg := tbapi.NewMessage(update.ChannelPost.Chat.ID, resp)
-				tbMsg.ParseMode = "markdown"
-				if _, e := l.botAPI.Send(tbMsg); e != nil {
+				tbMsg := tbapi.NewMessage(update.Message.Chat.ID, resp)
+				tbMsg.ParseMode = tbapi.ModeMarkdown
+				if res, e := l.botAPI.Send(tbMsg); err != nil {
 					log.Printf("[WARN] can't send tbMsg to telegram, %v", e)
+				} else {
+					l.saveBotMessage(&res)
 				}
 			}
 
 		case msg := <-l.msgs.ch: // publish messages from outside clients
-			chat, e := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: l.ChannelID})
-			if e != nil {
-				return errors.Wrapf(e, "can't get chat for %s", l.ChannelID)
+			chat, e := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: l.GroupID})
+			if err != nil {
+				return errors.Wrapf(err, "can't get chat for %s", l.GroupID)
 			}
 			tbMsg := tbapi.NewMessage(chat.ID, msg)
-			tbMsg.ParseMode = "markdown"
-			if _, e = l.botAPI.Send(tbMsg); e != nil {
+			tbMsg.ParseMode = tbapi.ModeMarkdown
+			if res, err := l.botAPI.Send(tbMsg); err != nil {
 				log.Printf("[WARN] can't send msg to telegram, %v", e)
+			} else {
+				l.saveBotMessage(&res)
 			}
 		}
 	}
 }
 
-// Submit message text to telegram's channel
+// Submit message text to telegram's group
 func (l *TelegramListener) Submit(ctx context.Context, text string) error {
 	l.msgs.once.Do(func() { l.msgs.ch = make(chan string, 100) })
 
@@ -121,4 +130,16 @@ func (l *TelegramListener) Submit(ctx context.Context, text string) error {
 	case l.msgs.ch <- text:
 	}
 	return nil
+}
+
+func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {
+	m := bot.Message{
+		Text: msg.Text,
+		From: bot.User{
+			Username:    msg.From.UserName,
+			DisplayName: msg.From.FirstName + " " + msg.From.LastName,
+		},
+		Sent: msg.Time(),
+	}
+	l.Save(m)
 }

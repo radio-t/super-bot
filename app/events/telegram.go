@@ -76,13 +76,13 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			}
 
 			// check for ban
-			if ban := l.check(msg.From); ban.active {
-				if ban.new {
+			if b := l.check(msg.From); b.active {
+				if b.new {
 					m := fmt.Sprintf("@%s _тебя слишком много, отдохни ..._", msg.From.Username)
 					tbMsg := tbapi.NewMessage(update.ChannelPost.Chat.ID, m)
 					tbMsg.ParseMode = "markdown"
-					if _, err := l.botAPI.Send(tbMsg); err != nil {
-						log.Printf("[WARN] failed to send, %v", err)
+					if _, e := l.botAPI.Send(tbMsg); e != nil {
+						log.Printf("[WARN] failed to send, %v", e)
 					}
 				}
 				continue
@@ -92,20 +92,20 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				log.Printf("[DEBUG] bot response - %+v", resp)
 				tbMsg := tbapi.NewMessage(update.ChannelPost.Chat.ID, resp)
 				tbMsg.ParseMode = "markdown"
-				if _, err := l.botAPI.Send(tbMsg); err != nil {
-					log.Printf("[WARN] can't send tbMsg to telegram, %v", err)
+				if _, e := l.botAPI.Send(tbMsg); e != nil {
+					log.Printf("[WARN] can't send tbMsg to telegram, %v", e)
 				}
 			}
 
 		case msg := <-l.msgs.ch: // publish messages from outside clients
-			chat, err := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: l.ChannelID})
-			if err != nil {
-				return errors.Wrapf(err, "can't get chat for %s", l.ChannelID)
+			chat, e := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: l.ChannelID})
+			if e != nil {
+				return errors.Wrapf(e, "can't get chat for %s", l.ChannelID)
 			}
 			tbMsg := tbapi.NewMessage(chat.ID, msg)
 			tbMsg.ParseMode = "markdown"
-			if _, err := l.botAPI.Send(tbMsg); err != nil {
-				log.Printf("[WARN] can't send msg to telegram, %v", err)
+			if _, e = l.botAPI.Send(tbMsg); e != nil {
+				log.Printf("[WARN] can't send msg to telegram, %v", e)
 			}
 		}
 	}

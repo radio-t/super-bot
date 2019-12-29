@@ -1,12 +1,13 @@
 package bot
 
 import (
+	"context"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	log "github.com/go-pkgz/lgr"
+	"github.com/go-pkgz/syncs"
 	"github.com/pkg/errors"
 )
 
@@ -16,10 +17,12 @@ type Interface interface {
 	ReactOn() []string
 }
 
+// SuperUser defines interface checking ig user name in su list
 type SuperUser interface {
 	IsSuper(userName string) bool
 }
 
+// Message is primary record to pass data from/to bots
 type Message struct {
 	Text string
 	HTML string
@@ -27,6 +30,7 @@ type Message struct {
 	Sent time.Time
 }
 
+// User defines user info of the Message
 type User struct {
 	ID          string
 	Username    string
@@ -37,6 +41,7 @@ type User struct {
 type MultiBot []Interface
 
 // OnMessage pass msg to all bots and collects reposnses (combining all of them)
+//noinspection GoShadowedVar
 func (b MultiBot) OnMessage(msg Message) (response string, send bool) {
 
 	if contains([]string{"help", "/help", "help!"}, msg.Text) {
@@ -44,15 +49,15 @@ func (b MultiBot) OnMessage(msg Message) (response string, send bool) {
 	}
 
 	resps := make(chan string)
-	var wg sync.WaitGroup
-	wg.Add(len(b))
+
+	wg := syncs.NewSizedGroup(4)
 	for _, bot := range b {
-		go func(bot Interface) {
-			defer wg.Done()
+		bot := bot
+		wg.Go(func(ctx context.Context) {
 			if resp, ok := bot.OnMessage(msg); ok {
 				resps <- resp
 			}
-		}(bot)
+		})
 	}
 
 	go func() {

@@ -95,7 +95,7 @@ func (a Anecdote) chuck() (response string, answer bool) {
 	}
 	defer resp.Body.Close()
 
-	if err := json.NewDecoder(resp.Body).Decode(&chuckResp); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&chuckResp); err != nil {
 		log.Printf("[WARN] failed to convert from json, error=%v", err)
 		return "", false
 	}

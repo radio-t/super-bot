@@ -50,7 +50,7 @@ func (d *Duck) OnMessage(msg Message) (response string, answer bool) {
 		AbstractURL    string `json:"AbstractURL"`
 		Image          string `json:"Image"`
 	}{}
-	if err := json.NewDecoder(resp.Body).Decode(&duckResp); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&duckResp); err != nil {
 		log.Printf("[WARN] failed to convert from json, error=%v", err)
 		return "", false
 	}

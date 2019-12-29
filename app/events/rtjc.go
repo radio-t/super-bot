@@ -10,13 +10,14 @@ import (
 	log "github.com/go-pkgz/lgr"
 )
 
-// Rtjc for rtjc commands. Publishes whatever it got from socket
-// compatible with the legacy rtjc bot, used to push news events from news.radio-t.com
+// Rtjc is a listeners for incoming rtjc commands. Publishes whatever it got from the socket
+// compatible with the legacy rtjc bot. Primarily use case is to push news events from news.radio-t.com
 type Rtjc struct {
 	Port      int
 	Submitter Submitter
 }
 
+// Submitter defines interface to submit (usually asynchronously) to the chat
 type Submitter interface {
 	Submit(ctx context.Context, msg string) error
 }
@@ -30,16 +31,18 @@ func (l Rtjc) Listen(ctx context.Context) {
 	}
 
 	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			log.Printf("[WARN] can't accept, %v", err)
+		conn, e := ln.Accept()
+		if e != nil {
+			log.Printf("[WARN] can't accept, %v", e)
 			time.Sleep(time.Second * 1)
 			continue
 		}
-		if message, err := bufio.NewReader(conn).ReadString('\n'); err == nil {
-			if e := l.Submitter.Submit(ctx, message); e != nil {
-				log.Printf("[WARN] can't send message, %v", err)
+		if message, rerr := bufio.NewReader(conn).ReadString('\n'); rerr == nil {
+			if serr := l.Submitter.Submit(ctx, message); serr != nil {
+				log.Printf("[WARN] can't send message, %v", serr)
 			}
+		} else {
+			log.Printf("[WARN] can't read message, %v", rerr)
 		}
 		_ = conn.Close()
 	}

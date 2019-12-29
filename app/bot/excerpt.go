@@ -19,8 +19,10 @@ type Excerpt struct {
 	token string
 }
 
-var rLink = regexp.MustCompile(`(https?://[a-zA-Z0-9\-.]+\.[a-zA-Z]{2,3}(/\S*)?)`)
-var rImg = regexp.MustCompile(`\.gif|\.jpg|\.jpeg|\.png`)
+var (
+	rLink = regexp.MustCompile(`(https?://[a-zA-Z0-9\-.]+\.[a-zA-Z]{2,3}(/\S*)?)`)
+	rImg  = regexp.MustCompile(`\.gif|\.jpg|\.jpeg|\.png`)
+)
 
 // NewExcerpt makes a bot extracting articles excerpt
 func NewExcerpt(api string, token string) *Excerpt {
@@ -75,9 +77,9 @@ func (e *Excerpt) link(input string) (link string, err error) {
 		return "", errors.New("ignore twitter")
 	}
 
-	if link := rLink.FindString(input); link != "" && !rImg.MatchString(link) {
-		log.Printf("found a link %s", link)
-		return link, nil
+	if l := rLink.FindString(input); l != "" && !rImg.MatchString(l) {
+		log.Printf("found a link %s", l)
+		return l, nil
 	}
 	return "", errors.New("no link found")
 }

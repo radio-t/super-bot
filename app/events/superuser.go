@@ -7,7 +7,7 @@ import (
 // SuperUser for moderators
 type SuperUser []string
 
-// IsSuper checks if gitter user in su list
+// IsSuper checks if user name in su list
 func (s SuperUser) IsSuper(userName string) bool {
 	for _, super := range s {
 		if strings.EqualFold(userName, super) || strings.EqualFold("/"+userName, super) {

@@ -63,7 +63,7 @@ func (s StackOverflow) OnMessage(msg Message) (response string, answer bool) {
 	}
 
 	r := soRecs.Items[rand.Intn(len(soRecs.Items))]
-	return fmt.Sprintf("_[%s](%s) %s_", r.Title, r.Link, strings.Join(r.Tags, ",")), true
+	return fmt.Sprintf("[%s](%s) %s", r.Title, r.Link, strings.Join(r.Tags, ",")), true
 }
 
 // ReactOn keys

@@ -62,10 +62,10 @@ func (d *Duck) OnMessage(msg Message) (response string, answer bool) {
 	}
 
 	if duckResp.AbstractText == "" {
-		return fmt.Sprintf("_не в силах. но могу помочь [это поискать](https://duckduckgo.com/?q=%s)_", mdLink(reqText)), true
+		return fmt.Sprintf("_не в силах. но могу помочь_ [это поискать](https://duckduckgo.com/?q=%s)", mdLink(reqText)), true
 	}
 
-	respMD := fmt.Sprintf("- %s\n_[%s](%s)_", duckResp.AbstractText, duckResp.AbstractSource, mdLink(duckResp.AbstractURL))
+	respMD := fmt.Sprintf("- %s\n[%s](%s)", duckResp.AbstractText, duckResp.AbstractSource, mdLink(duckResp.AbstractURL))
 	return respMD, true
 }
 

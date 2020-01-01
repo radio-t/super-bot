@@ -51,9 +51,9 @@ func (n News) OnMessage(msg Message) (response string, answer bool) {
 
 	var lines []string
 	for _, a := range articles {
-		lines = append(lines, fmt.Sprintf("- _[%s](%s) %s_", a.Title, a.Link, a.Ts.Format("2006-01-02")))
+		lines = append(lines, fmt.Sprintf("- [%s](%s) %s", a.Title, a.Link, a.Ts.Format("2006-01-02")))
 	}
-	return strings.Join(lines, "\n") + "\n- **[все новости и темы](https://news.radio-t.com)**", true
+	return strings.Join(lines, "\n") + "\n- [все новости и темы](https://news.radio-t.com)", true
 }
 
 // ReactOn keys

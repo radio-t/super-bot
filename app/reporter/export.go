@@ -86,7 +86,7 @@ func (e Exporter) toHTML(messages []bot.Message, num int) string {
 		rec := Record{
 			Time: msg.Sent.In(e.location).Format("15:04:05"),
 			Name: msg.From.DisplayName,
-			Msg:  template.HTML(msg.HTML),
+			Msg:  template.HTML(msg.Text),
 		}
 		rec.IsHost = e.SuperUsers.IsSuper(msg.From.Username)
 		data.Records = append(data.Records, rec)

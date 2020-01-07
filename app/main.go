@@ -9,21 +9,23 @@ import (
 	"time"
 
 	log "github.com/go-pkgz/lgr"
+	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/umputun/go-flags"
 
 	"github.com/radio-t/gitter-rt-bot/app/bot"
 	"github.com/radio-t/gitter-rt-bot/app/events"
 	"github.com/radio-t/gitter-rt-bot/app/reporter"
+	"github.com/radio-t/gitter-rt-bot/app/storage"
 )
 
 var opts struct {
 	Telegram struct {
-		Token       string `long:"token" env:"TOKEN" description:"telegram bot token" default:"test"`
-		Group       string `long:"group" env:"GROUP" description:"group name/id" default:"test"`
+		Token string `long:"token" env:"TOKEN" description:"telegram bot token" default:"test"`
+		Group string `long:"group" env:"GROUP" description:"group name/id" default:"test"`
 	} `group:"telegram" namespace:"telegram" env-namespace:"TELEGRAM"`
 
 	RtjcPort     int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
-	LogsPath     string           `short:"l" long:"logs" env:"GITTER_LOGS" default:"logs" description:"path to logs"`
+	LogsPath     string           `short:"l" long:"logs" env:"TELEGRAM_LOGS" default:"logs" description:"path to logs"`
 	SuperUsers   events.SuperUser `long:"super" description:"super-users"`
 	MashapeToken string           `long:"mashape" env:"MASHAPE_TOKEN" description:"mashape token"`
 	SysData      string           `long:"sys-data" env:"SYS_DATA" default:"data" description:"location of sys data"`
@@ -33,6 +35,7 @@ var opts struct {
 	TemplateFile string           `long:"export-template" default:"logs.html" description:"path to template file"`
 	ExternalAPI  string           `long:"external-api" default:"https://bot.radio-t.com" description:"external api"`
 	Dbg          bool             `long:"dbg" description:"debug mode"`
+	BucketName   string           `long:"bucket" description:"S3 bucket name"`
 }
 
 var revision = "local"
@@ -75,12 +78,12 @@ func main() {
 	}
 
 	tgListener := events.TelegramListener{
-		Terminator:  term,
-		Reporter:    reporter.NewLogger(opts.LogsPath),
-		Bots:        multiBot,
-		GroupID:     groupID,
-		Token:       opts.Telegram.Token,
-		Debug:       opts.Dbg,
+		Terminator: term,
+		Reporter:   reporter.NewLogger(opts.LogsPath),
+		Bots:       multiBot,
+		GroupID:    groupID,
+		Token:      opts.Telegram.Token,
+		Debug:      opts.Dbg,
 	}
 
 	ctx := context.TODO()
@@ -98,7 +101,15 @@ func export() {
 		TemplateFile: opts.TemplateFile,
 		SuperUsers:   opts.SuperUsers,
 	}
-	reporter.NewExporter(params).Export(opts.ExportNum, opts.ExportDay)
+
+	botAPI, err := tbapi.NewBotAPI(opts.Telegram.Token)
+	if err != nil {
+		log.Fatalf("[ERROR] telegram bot creation failed")
+	}
+
+	s3 := storage.NewS3(opts.BucketName)
+
+	reporter.NewExporter(botAPI, s3, params).Export(opts.ExportNum, opts.ExportDay)
 }
 
 func setupLog(dbg bool) {

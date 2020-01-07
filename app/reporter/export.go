@@ -7,17 +7,25 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/radio-t/gitter-rt-bot/app/bot"
+	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/pkg/errors"
+
+	"github.com/radio-t/gitter-rt-bot/app/storage"
 )
 
 // Exporter performs conversion from log file to html
 type Exporter struct {
 	ExporterParams
 	location *time.Location
+	botAPI   *tbapi.BotAPI
+	s3       *storage.S3
+
+	fileIDToURL map[string]string
 }
 
 // ExporterParams for locations
@@ -33,9 +41,15 @@ type SuperUser interface {
 }
 
 // NewExporter from params, initializes time.Location
-func NewExporter(params ExporterParams) *Exporter {
+func NewExporter(botAPI *tbapi.BotAPI, s3 *storage.S3, params ExporterParams) *Exporter {
 	log.Printf("[INFO] exporter with %v", params)
-	result := Exporter{ExporterParams: params}
+	result := Exporter{
+		ExporterParams: params,
+		botAPI:         botAPI,
+		s3:             s3,
+		fileIDToURL:    map[string]string{},
+	}
+
 	location, err := time.LoadLocation("Europe/Moscow")
 	if err != nil {
 		log.Fatalf("[ERROR] can't load location, error %v", err)
@@ -67,13 +81,12 @@ func (e Exporter) Export(showNum int, yyyymmdd int) {
 
 }
 
-func (e Exporter) toHTML(messages []bot.Message, num int) string {
+func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 
 	type Record struct {
 		Time   string
-		Name   string
 		IsHost bool
-		Msg    template.HTML
+		Msg    tbapi.Message
 	}
 
 	type Data struct {
@@ -83,37 +96,92 @@ func (e Exporter) toHTML(messages []bot.Message, num int) string {
 
 	data := Data{Num: num}
 	for _, msg := range messages {
-		rec := Record{
-			Time: msg.Sent.In(e.location).Format("15:04:05"),
-			Name: msg.From.DisplayName,
-			Msg:  template.HTML(msg.Text),
+		switch {
+		case msg.Photo != nil:
+			for _, photo := range *msg.Photo {
+				fileURL, err := e.getFileURL(photo.FileID)
+				if err != nil {
+					log.Printf("[ERROR] failed to get file URL for %s", photo.FileID)
+					continue
+				}
+				e.fileIDToURL[photo.FileID] = fileURL
+				// hacky: need to pass fileURL to template
+				// using this map in template FuncMap later
+			}
 		}
-		rec.IsHost = e.SuperUsers.IsSuper(msg.From.Username)
+
+		rec := Record{
+			Time:   time.Unix(int64(msg.Date), 0).In(e.location).Format("15:04:05"),
+			IsHost: e.SuperUsers.IsSuper(msg.From.UserName),
+			Msg:    msg,
+		}
 		data.Records = append(data.Records, rec)
 	}
 
-	t, err := template.ParseFiles(e.TemplateFile)
+	funcMap := template.FuncMap{
+		"fileURL": func(fileID string) string {
+			if url, found := e.fileIDToURL[fileID]; found {
+				return url
+			}
+			return ""
+		},
+	}
+	name := e.TemplateFile[strings.LastIndex(e.TemplateFile, "/")+1:]
+	t, err := template.New(name).Funcs(funcMap).ParseFiles(e.TemplateFile)
 	if err != nil {
 		log.Fatalf("failed to parse, %v", err)
 	}
+
 	var html bytes.Buffer
-	if err := t.Execute(&html, data); err != nil {
+	if err := t.ExecuteTemplate(&html, name, data); err != nil {
 		log.Fatalf("[ERROR] failed, error %v", err)
 	}
 	return html.String()
 }
 
-func readMessages(path string) ([]bot.Message, error) {
+func (e Exporter) getFileURL(fileID string) (string, error) {
+	url, err := e.botAPI.GetFileDirectURL(fileID)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get file direct URL: %s", fileID)
+	}
+
+	ext := url[strings.LastIndex(url, "."):]
+	fileName := fileID + ext
+
+	fileExists, err := e.s3.FileExists(fileName)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to check if file exists alredy: %s", fileID)
+	}
+
+	if fileExists {
+		return e.s3.BuildLink(fileName), nil
+	}
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get file by direct URL (fileID: %s)", fileID)
+		// don't expose fileDirectURL – it contains Bot API Token
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", errors.Wrapf(err, "non-200 response from file direct URL (fileID: %s)", fileID)
+	}
+
+	return e.s3.UploadFile(fileName, resp.Body)
+}
+
+func readMessages(path string) ([]tbapi.Message, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	messages := []bot.Message{}
+	messages := []tbapi.Message{}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		msg := bot.Message{}
+		msg := tbapi.Message{}
 		line := scanner.Text()
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
 			log.Printf("[ERROR] failed to unmarshal %s, error=%v", line, err)
@@ -126,7 +194,7 @@ func readMessages(path string) ([]bot.Message, error) {
 	return messages, scanner.Err()
 }
 
-func filter(msg bot.Message) bool {
+func filter(msg tbapi.Message) bool {
 	contains := func(s []string, e string) bool {
 		e = strings.TrimSpace(strings.ToLower(e))
 		for _, a := range s {

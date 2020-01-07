@@ -18,9 +18,9 @@ type TelegramListener struct {
 	Terminator
 	Token string
 	reporter.Reporter
-	Bots        bot.Interface
-	GroupID     string
-	Debug       bool
+	Bots    bot.Interface
+	GroupID string
+	Debug   bool
 
 	botAPI *tbapi.BotAPI
 
@@ -63,7 +63,10 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				continue
 			}
 
-			// TODO multimedia
+			chatID := update.Message.Chat.ID
+			update.Message.Chat = nil // to keep logs cleaner
+			l.Save(update.Message)    // save to report
+
 			msg := bot.Message{
 				Text: update.Message.Text,
 				From: bot.User{
@@ -74,15 +77,13 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				Sent: update.Message.Time(),
 			}
 
-			l.Save(msg) // save to report
-
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
 
 			// check for ban
 			if b := l.check(msg.From); b.active {
 				if b.new {
 					m := fmt.Sprintf("@%s _тебя слишком много, отдохни ..._", msg.From.Username)
-					tbMsg := tbapi.NewMessage(update.Message.Chat.ID, m)
+					tbMsg := tbapi.NewMessage(chatID, m)
 					tbMsg.ParseMode = tbapi.ModeMarkdown
 					if res, e := l.botAPI.Send(tbMsg); e != nil {
 						log.Printf("[WARN] failed to send, %v", e)
@@ -95,7 +96,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			if resp, send := l.Bots.OnMessage(msg); send {
 				log.Printf("[DEBUG] bot response - %+v", resp)
-				tbMsg := tbapi.NewMessage(update.Message.Chat.ID, resp)
+				tbMsg := tbapi.NewMessage(chatID, resp)
 				tbMsg.ParseMode = tbapi.ModeMarkdown
 				if res, e := l.botAPI.Send(tbMsg); err != nil {
 					log.Printf("[WARN] can't send tbMsg to telegram, %v", e)

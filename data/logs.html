@@ -70,12 +70,20 @@
         <tr>
             {{if .IsHost}}
                 <td class="danger" align="left">{{.Time}}</td>
-                <td class="danger" align="left">{{.Name}}</td>
+                <td class="danger" align="left">{{.Msg.From.FirstName}} {{.Msg.From.LastName}}</td>
             {{else}}
                 <td class="success" align="left">{{.Time}}</td>
-                <td class="success" align="left">{{.Name}}</td>
+                <td class="success" align="left">{{.Msg.From.FirstName}} {{.Msg.From.LastName}}</td>
             {{end}}
-            <td class="warning" align="left">{{.Msg}}</td>
+            <td class="warning" align="left">
+                {{.Msg.Text}}
+                {{if .Msg.Photo}}
+                <figure>
+                    {{range .Msg.Photo}}<img src="{{.FileID | fileURL}}" width={{.Height}} width={{.Height}}>{{end}}
+                    <figcaption>{{.Msg.Caption}}</figcaption>
+                </figure>
+                {{end}}
+            </td>
         </tr>
         {{end}}
 

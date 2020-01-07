@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/radio-t/gitter-rt-bot/app/bot"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +27,7 @@ func TestNewExporter(t *testing.T) {
 	assert.NoError(t, err)
 	defer teardown()
 
-	exporter := NewExporter(testExportParams)
+	exporter := NewExporter(nil, nil, testExportParams)
 	assert.Equal(t, exporter, e)
 }
 
@@ -61,15 +62,15 @@ func TestExporter_Export(t *testing.T) {
 
 func Test_filter(t *testing.T) {
 	tbl := []struct {
-		input  bot.Message
+		input  tbapi.Message
 		output bool
 	}{
-		{bot.Message{Text: " +1"}, true},
-		{bot.Message{Text: " -1"}, true},
-		{bot.Message{Text: ":+1:"}, true},
-		{bot.Message{Text: ":-1:"}, true},
-		{bot.Message{Text: "+1 blah"}, false},
-		{bot.Message{Text: "blah +1 blah"}, false},
+		{tbapi.Message{Text: " +1"}, true},
+		{tbapi.Message{Text: " -1"}, true},
+		{tbapi.Message{Text: ":+1:"}, true},
+		{tbapi.Message{Text: ":-1:"}, true},
+		{tbapi.Message{Text: "+1 blah"}, false},
+		{tbapi.Message{Text: "blah +1 blah"}, false},
 	}
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {

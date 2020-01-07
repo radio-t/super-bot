@@ -3,6 +3,7 @@ module github.com/radio-t/gitter-rt-bot
 go 1.13
 
 require (
+	github.com/aws/aws-sdk-go v1.27.0
 	github.com/go-pkgz/lgr v0.7.0
 	github.com/go-pkgz/syncs v1.1.1
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible

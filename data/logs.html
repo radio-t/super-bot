@@ -69,16 +69,18 @@
         {{ range .Records }}
         <tr>
             {{- $fullName := "" -}}
+            {{- $username := "" -}}
             {{- if .Msg.From -}}
                 {{- $fullName = printf "%s %s" .Msg.From.FirstName .Msg.From.LastName -}}
+                {{- $username = .Msg.From.UserName -}}
             {{- end -}}
 
             {{- if .IsHost }}
                 <td class="danger" align="left">{{ .Time }}</td>
-                <td class="danger" align="left">{{ $fullName }}</td>
+                <td class="success" align="left"><span title="{{ $fullName }}>">{{ $username }}</span></td>
             {{ else }}
                 <td class="success" align="left">{{ .Time }}</td>
-                <td class="success" align="left">{{ $fullName }}</td>
+                <td class="success" align="left"><span title="{{ $fullName }}>">{{ $username }}</span></td>
             {{ end -}}
             <td class="warning" align="left">
                 {{- .Msg.Text }}

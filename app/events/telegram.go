@@ -82,7 +82,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			// check for ban
 			if b := l.check(msg.From); b.active {
 				if b.new {
-					m := fmt.Sprintf("@%s _тебя слишком много, отдохни ..._", msg.From.Username)
+					m := fmt.Sprintf("@%s _тебя слишком много, отдохни..._", msg.From.Username)
 					tbMsg := tbapi.NewMessage(chatID, m)
 					tbMsg.ParseMode = tbapi.ModeMarkdown
 					if res, e := l.botAPI.Send(tbMsg); e != nil {
@@ -134,13 +134,5 @@ func (l *TelegramListener) Submit(ctx context.Context, text string) error {
 }
 
 func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {
-	m := bot.Message{
-		Text: msg.Text,
-		From: bot.User{
-			Username:    msg.From.UserName,
-			DisplayName: msg.From.FirstName + " " + msg.From.LastName,
-		},
-		Sent: msg.Time(),
-	}
-	l.Save(m)
+	l.Save(msg)
 }

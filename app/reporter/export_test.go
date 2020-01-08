@@ -9,12 +9,11 @@ import (
 	"time"
 
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/radio-t/gitter-rt-bot/app/bot"
 	"github.com/stretchr/testify/assert"
 )
 
 var testFile = "test.log"
-var msgs = []bot.Message{{Text: "1st"}, {Text: "2nd"}}
+var msgs = []tbapi.Message{{Text: "1st"}, {Text: "2nd"}}
 var testExportParams = ExporterParams{
 	OutputRoot:   "output",
 	InputRoot:    "input",
@@ -83,11 +82,11 @@ func Test_filter(t *testing.T) {
 func Test_readMessages(t *testing.T) {
 	tbl := []struct {
 		createFile bool
-		msgs       []bot.Message
+		msgs       []tbapi.Message
 		fail       bool
 	}{
 		{false, nil, true},
-		{true, []bot.Message{}, false},
+		{true, []tbapi.Message{}, false},
 		{true, msgs, false},
 	}
 
@@ -133,6 +132,7 @@ func setup() (*Exporter, error) {
 	e := &Exporter{
 		ExporterParams: testExportParams,
 		location:       location,
+		fileIDToURL:    map[string]string{},
 	}
 
 	return e, nil
@@ -145,7 +145,7 @@ func teardown() {
 }
 
 // setup creates file and fill it with  messages
-func createFile(filepath string, msgs []bot.Message) error {
+func createFile(filepath string, msgs []tbapi.Message) error {
 	f, err := os.Create(filepath)
 	if err != nil {
 		return err

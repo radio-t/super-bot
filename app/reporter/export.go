@@ -110,9 +110,14 @@ func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 			}
 		}
 
+		username := ""
+		if msg.From != nil {
+			username = msg.From.UserName
+		}
+
 		rec := Record{
 			Time:   time.Unix(int64(msg.Date), 0).In(e.location).Format("15:04:05"),
-			IsHost: e.SuperUsers.IsSuper(msg.From.UserName),
+			IsHost: e.SuperUsers.IsSuper(username),
 			Msg:    msg,
 		}
 		data.Records = append(data.Records, rec)

@@ -57,7 +57,11 @@ func (s3 *S3) UploadFile(fileName string, reader io.Reader) (string, error) {
 		},
 	)
 
-	return output.Location, err
+	if err != nil {
+		return "", err
+	}
+
+	return output.Location, nil
 }
 
 func (s3 *S3) BuildLink(fileName string) string {

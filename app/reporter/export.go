@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -195,7 +196,13 @@ func (e Exporter) maybeUploadFile(fileID string, doConvertWebPToJpg bool) (strin
 	}
 
 	if strings.HasSuffix(fileName, ".webp") && doConvertWebPToJpg {
-		jpgBody, err := convertWebPToJpg(resp.Body)
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to read response body for file direct URL (fileID: %s)", fileID)
+		}
+		resp.Body.Close()
+
+		jpgBody, err := convertWebPToJpg(bytes.NewBuffer(bodyBytes))
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to convert WebP to JPG (fileID: %s)", fileID)
 		}
@@ -204,6 +211,8 @@ func (e Exporter) maybeUploadFile(fileID string, doConvertWebPToJpg bool) (strin
 		if err != nil {
 			return "", err
 		}
+
+		resp.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 	}
 
 	return e.s3.UploadFile(fileName, resp.Body)

@@ -72,7 +72,7 @@
             {{- $username := "" -}}
             {{- if .Msg.From -}}
                 {{- $fullName = printf "%s %s" .Msg.From.FirstName .Msg.From.LastName -}}
-                {{- $username = .fullName -}}
+                {{- $username = $fullName -}}
                 {{- if .Msg.From.UserName -}}
                     {{- $username = .Msg.From.UserName -}}
                 {{- end -}}

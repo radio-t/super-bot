@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -99,7 +101,7 @@ func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 		switch {
 		case msg.Photo != nil:
 			for _, photo := range *msg.Photo {
-				fileURL, err := e.getFileURL(photo.FileID)
+				fileURL, err := e.maybeUploadFile(photo.FileID, false)
 				if err != nil {
 					log.Printf("[ERROR] failed to get file URL for %s", photo.FileID)
 					continue
@@ -108,6 +110,13 @@ func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 				// hacky: need to pass fileURL to template
 				// using this map in template FuncMap later
 			}
+		case msg.Sticker != nil:
+			fileURL, err := e.maybeUploadFile(msg.Sticker.Thumbnail.FileID, true)
+			if err != nil {
+				log.Printf("[ERROR] failed to get file URL for %s", msg.Sticker.Thumbnail.FileID)
+				continue
+			}
+			e.fileIDToURL[msg.Sticker.Thumbnail.FileID] = fileURL
 		}
 
 		username := ""
@@ -137,6 +146,7 @@ func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 				return i
 			}
 		},
+		"jpg": jpg,
 	}
 	name := e.TemplateFile[strings.LastIndex(e.TemplateFile, "/")+1:]
 	t, err := template.New(name).Funcs(funcMap).ParseFiles(e.TemplateFile)
@@ -151,10 +161,14 @@ func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 	return html.String()
 }
 
-func (e Exporter) getFileURL(fileID string) (string, error) {
+func (e Exporter) maybeUploadFile(fileID string, doConvertWebPToJpg bool) (string, error) {
 	url, err := e.botAPI.GetFileDirectURL(fileID)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get file direct URL: %s", fileID)
+	}
+
+	if !strings.Contains(url, ".") {
+		return "", errors.New("FileDirectURL has no extension")
 	}
 
 	ext := url[strings.LastIndex(url, "."):]
@@ -172,7 +186,7 @@ func (e Exporter) getFileURL(fileID string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get file by direct URL (fileID: %s)", fileID)
-		// don't expose fileDirectURL – it contains Bot API Token
+		// don't expose url – it contains Bot API Token
 	}
 	defer resp.Body.Close()
 
@@ -180,7 +194,44 @@ func (e Exporter) getFileURL(fileID string) (string, error) {
 		return "", errors.Wrapf(err, "non-200 response from file direct URL (fileID: %s)", fileID)
 	}
 
+	if strings.HasSuffix(fileName, ".webp") && doConvertWebPToJpg {
+		jpgBody, err := convertWebPToJpg(resp.Body)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to convert WebP to JPG (fileID: %s)", fileID)
+		}
+
+		_, err = e.s3.UploadFile(jpg(fileName), jpgBody)
+		if err != nil {
+			return "", err
+		}
+	}
+
 	return e.s3.UploadFile(fileName, resp.Body)
+}
+
+func convertWebPToJpg(reader io.Reader) (io.Reader, error) {
+	var b bytes.Buffer
+
+	cmd := exec.Command("dwebp", "-o", "-", "--", "-")
+	cmd.Stdin = reader
+	cmd.Stdout = &b
+	err := cmd.Start()
+
+	err = cmd.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	return &b, nil
+}
+
+func jpg(fileURL string) string {
+	if !strings.Contains(fileURL, ".") {
+		log.Printf("[ERROR] fileURL has no extension: %s", fileURL)
+		return ""
+	}
+
+	return fileURL[0:strings.LastIndex(fileURL, ".")] + ".jpg"
 }
 
 func readMessages(path string) ([]tbapi.Message, error) {

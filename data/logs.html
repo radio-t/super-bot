@@ -72,15 +72,18 @@
             {{- $username := "" -}}
             {{- if .Msg.From -}}
                 {{- $fullName = printf "%s %s" .Msg.From.FirstName .Msg.From.LastName -}}
-                {{- $username = .Msg.From.UserName -}}
+                {{- $username = .fullName -}}
+                {{- if .Msg.From.UserName -}}
+                    {{- $username = .Msg.From.UserName -}}
+                {{- end -}}
             {{- end -}}
 
             {{- if .IsHost }}
                 <td class="danger" align="left">{{ .Time }}</td>
-                <td class="success" align="left"><span title="{{ $fullName }}>">{{ $username }}</span></td>
+                <td class="success" align="left"><span title="{{ $fullName }}">{{ $username }}</span></td>
             {{ else }}
                 <td class="success" align="left">{{ .Time }}</td>
-                <td class="success" align="left"><span title="{{ $fullName }}>">{{ $username }}</span></td>
+                <td class="success" align="left"><span title="{{ $fullName }}">{{ $username }}</span></td>
             {{ end -}}
             <td class="warning" align="left">
                 {{- .Msg.Text }}
@@ -98,6 +101,18 @@
                         >
                     <figcaption>{{ .Msg.Caption }}</figcaption>
                 </figure>
+                {{ end -}}
+                {{- if .Msg.Sticker }}
+                <picture title="{{ .Msg.Sticker.Emoji }}">
+                    <source srcset="{{ .Msg.Sticker.Thumbnail.FileID | fileURL }}" type="image/webp">
+                    <source srcset="{{ .Msg.Sticker.Thumbnail.FileID | fileURL | jpg }}" type="image/jpeg"> 
+                    <img 
+                        src="{{ .Msg.Sticker.Thumbnail.FileID | fileURL | jpg }}"
+                        alt="{{ .Msg.Sticker.Emoji }}"
+                        width={{ .Msg.Sticker.Thumbnail.Width }}
+                        height={{ .Msg.Sticker.Thumbnail.Height }}
+                        >
+                </picture>
                 {{ end -}}
             </td>
         </tr>

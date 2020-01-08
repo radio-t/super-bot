@@ -66,26 +66,40 @@
         </div>
 
         <table class="table table-striped table-hover table-condensed" id="table">
-        {{range .Records}}
+        {{ range .Records }}
         <tr>
-            {{if .IsHost}}
-                <td class="danger" align="left">{{.Time}}</td>
-                <td class="danger" align="left">{{.Msg.From.FirstName}} {{.Msg.From.LastName}}</td>
-            {{else}}
-                <td class="success" align="left">{{.Time}}</td>
-                <td class="success" align="left">{{.Msg.From.FirstName}} {{.Msg.From.LastName}}</td>
-            {{end}}
+            {{- $fullName := "" -}}
+            {{- if .Msg.From -}}
+                {{- $fullName = printf "%s %s" .Msg.From.FirstName .Msg.From.LastName -}}
+            {{- end -}}
+
+            {{- if .IsHost }}
+                <td class="danger" align="left">{{ .Time }}</td>
+                <td class="danger" align="left">{{ $fullName }}</td>
+            {{ else }}
+                <td class="success" align="left">{{ .Time }}</td>
+                <td class="success" align="left">{{ $fullName }}</td>
+            {{ end -}}
             <td class="warning" align="left">
-                {{.Msg.Text}}
-                {{if .Msg.Photo}}
+                {{- .Msg.Text }}
+                {{- if .Msg.Photo }}
+                {{- $firstSize := index .Msg.Photo 0 }}
                 <figure>
-                    {{range .Msg.Photo}}<img src="{{.FileID | fileURL}}" width={{.Height}} width={{.Height}}>{{end}}
-                    <figcaption>{{.Msg.Caption}}</figcaption>
+                    <img src="{{ $firstSize.FileID | fileURL }}" 
+                        width={{ $firstSize.Width }}
+                        height={{ $firstSize.Height }}
+                        srcset="{{- $c := counter -}}
+                        {{- range $index, $size := .Msg.Photo -}}
+                        {{- if call $c -}}, {{ end -}}
+                        {{- $size.FileID | fileURL }} {{ $size.Width }}w
+                        {{- end -}}"
+                        >
+                    <figcaption>{{ .Msg.Caption }}</figcaption>
                 </figure>
-                {{end}}
+                {{ end -}}
             </td>
         </tr>
-        {{end}}
+        {{ end }}
 
         </table>
 

@@ -130,6 +130,13 @@ func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 			}
 			return ""
 		},
+		"counter": func() func() int {
+			i := -1
+			return func() int {
+				i++
+				return i
+			}
+		},
 	}
 	name := e.TemplateFile[strings.LastIndex(e.TemplateFile, "/")+1:]
 	t, err := template.New(name).Funcs(funcMap).ParseFiles(e.TemplateFile)

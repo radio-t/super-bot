@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -26,7 +25,7 @@ type Exporter struct {
 	ExporterParams
 	location *time.Location
 	botAPI   *tbapi.BotAPI
-	s3       *storage.S3
+	storage  *storage.Local
 
 	fileIDToURL map[string]string
 }
@@ -44,12 +43,12 @@ type SuperUser interface {
 }
 
 // NewExporter from params, initializes time.Location
-func NewExporter(botAPI *tbapi.BotAPI, s3 *storage.S3, params ExporterParams) *Exporter {
+func NewExporter(botAPI *tbapi.BotAPI, storage *storage.Local, params ExporterParams) *Exporter {
 	log.Printf("[INFO] exporter with %v", params)
 	result := Exporter{
 		ExporterParams: params,
 		botAPI:         botAPI,
-		s3:             s3,
+		storage:        storage,
 		fileIDToURL:    map[string]string{},
 	}
 
@@ -102,9 +101,9 @@ func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 		switch {
 		case msg.Photo != nil:
 			for _, photo := range *msg.Photo {
-				fileURL, err := e.maybeUploadFile(photo.FileID, false)
+				fileURL, err := e.maybeDownloadFile(photo.FileID, false)
 				if err != nil {
-					log.Printf("[ERROR] failed to get file URL for %s", photo.FileID)
+					log.Printf("[ERROR] failed to get file URL for photo %s: %v", photo.FileID, err)
 					continue
 				}
 				e.fileIDToURL[photo.FileID] = fileURL
@@ -112,9 +111,9 @@ func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 				// using this map in template FuncMap later
 			}
 		case msg.Sticker != nil:
-			fileURL, err := e.maybeUploadFile(msg.Sticker.Thumbnail.FileID, true)
+			fileURL, err := e.maybeDownloadFile(msg.Sticker.Thumbnail.FileID, true)
 			if err != nil {
-				log.Printf("[ERROR] failed to get file URL for %s", msg.Sticker.Thumbnail.FileID)
+				log.Printf("[ERROR] failed to get file URL for sticker %s: %v", msg.Sticker.Thumbnail.FileID, err)
 				continue
 			}
 			e.fileIDToURL[msg.Sticker.Thumbnail.FileID] = fileURL
@@ -162,7 +161,7 @@ func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 	return html.String()
 }
 
-func (e Exporter) maybeUploadFile(fileID string, doConvertWebPToJpg bool) (string, error) {
+func (e Exporter) maybeDownloadFile(fileID string, doConvertWebPToJpg bool) (string, error) {
 	url, err := e.botAPI.GetFileDirectURL(fileID)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get file direct URL: %s", fileID)
@@ -172,16 +171,15 @@ func (e Exporter) maybeUploadFile(fileID string, doConvertWebPToJpg bool) (strin
 		return "", errors.New("FileDirectURL has no extension")
 	}
 
-	ext := url[strings.LastIndex(url, "."):]
-	fileName := fileID + ext
+	fileName := fileID // no extension, even in `url`
 
-	fileExists, err := e.s3.FileExists(fileName)
+	fileExists, err := e.storage.FileExists(fileName)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to check if file exists alredy: %s", fileID)
 	}
 
 	if fileExists {
-		return e.s3.BuildLink(fileName), nil
+		return e.storage.BuildLink(fileName), nil
 	}
 
 	resp, err := http.Get(url)
@@ -195,49 +193,54 @@ func (e Exporter) maybeUploadFile(fileID string, doConvertWebPToJpg bool) (strin
 		return "", errors.Wrapf(err, "non-200 response from file direct URL (fileID: %s)", fileID)
 	}
 
-	if strings.HasSuffix(fileName, ".webp") && doConvertWebPToJpg {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return "", errors.Wrapf(err, "failed to read response body for file direct URL (fileID: %s)", fileID)
-		}
-		resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to read response body for file direct URL (fileID: %s)", fileID)
+	}
+	resp.Body.Close()
 
-		jpgBody, err := convertWebPToJpg(bytes.NewBuffer(bodyBytes))
+	if doConvertWebPToJpg {
+		jpgBody, err := convertWebPToJpg(bodyBytes)
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to convert WebP to JPG (fileID: %s)", fileID)
 		}
 
-		_, err = e.s3.UploadFile(jpg(fileName), jpgBody)
+		_, err = e.storage.SaveFile(jpg(fileName), jpgBody)
 		if err != nil {
 			return "", err
 		}
-
-		resp.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 	}
 
-	return e.s3.UploadFile(fileName, resp.Body)
+	return e.storage.SaveFile(fileName, bodyBytes)
 }
 
-func convertWebPToJpg(reader io.Reader) (io.Reader, error) {
+func convertWebPToJpg(in []byte) ([]byte, error) {
 	var b bytes.Buffer
 
 	cmd := exec.Command("dwebp", "-o", "-", "--", "-")
-	cmd.Stdin = reader
+	cmd.Stdin = bytes.NewBuffer(in)
 	cmd.Stdout = &b
 	err := cmd.Start()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to start dwebp execution")
+	}
 
 	err = cmd.Wait()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to execute dwebp")
 	}
 
-	return &b, nil
+	jsonBytes, err := ioutil.ReadAll(&b)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read JSON (WebP to JSON conversion)")
+	}
+
+	return jsonBytes, nil
 }
 
 func jpg(fileURL string) string {
 	if !strings.Contains(fileURL, ".") {
-		log.Printf("[ERROR] fileURL has no extension: %s", fileURL)
-		return ""
+		return fileURL + ".jpg"
 	}
 
 	return fileURL[0:strings.LastIndex(fileURL, ".")] + ".jpg"

@@ -35,7 +35,6 @@ var opts struct {
 	TemplateFile string           `long:"export-template" default:"logs.html" description:"path to template file"`
 	ExternalAPI  string           `long:"external-api" default:"https://bot.radio-t.com" description:"external api"`
 	Dbg          bool             `long:"dbg" description:"debug mode"`
-	BucketName   string           `long:"bucket" description:"S3 bucket name"`
 }
 
 var revision = "local"
@@ -104,12 +103,19 @@ func export() {
 
 	botAPI, err := tbapi.NewBotAPI(opts.Telegram.Token)
 	if err != nil {
-		log.Fatalf("[ERROR] telegram bot creation failed")
+		log.Fatalf("[ERROR] telegram bot creation failed: %v", err)
 	}
 
-	s3 := storage.NewS3(opts.BucketName)
+	exportNum := strconv.Itoa(opts.ExportNum)
+	s, err := storage.NewLocal(
+		opts.ExportPath+"/"+exportNum,
+		exportNum,
+	)
+	if err != nil {
+		log.Fatalf("[ERROR] storage creation failed: %v", err)
+	}
 
-	reporter.NewExporter(botAPI, s3, params).Export(opts.ExportNum, opts.ExportDay)
+	reporter.NewExporter(botAPI, s, params).Export(opts.ExportNum, opts.ExportDay)
 }
 
 func setupLog(dbg bool) {

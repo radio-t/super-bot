@@ -17,6 +17,7 @@ import (
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 
+	"github.com/radio-t/gitter-rt-bot/app/bot"
 	"github.com/radio-t/gitter-rt-bot/app/storage"
 )
 
@@ -83,12 +84,12 @@ func (e Exporter) Export(showNum int, yyyymmdd int) {
 
 }
 
-func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
+func (e Exporter) toHTML(messages []bot.Message, num int) string {
 
 	type Record struct {
 		Time   string
 		IsHost bool
-		Msg    tbapi.Message
+		Msg    bot.Message
 	}
 
 	type Data struct {
@@ -98,38 +99,16 @@ func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 
 	data := Data{Num: num}
 	for _, msg := range messages {
-		switch {
-		case msg.Photo != nil:
-			for _, photo := range *msg.Photo {
-				fileURL, err := e.maybeDownloadFile(photo.FileID, false)
-				if err != nil {
-					log.Printf("[ERROR] failed to get file URL for photo %s: %v", photo.FileID, err)
-					continue
-				}
-				e.fileIDToURL[photo.FileID] = fileURL
-				// hacky: need to pass fileURL to template
-				// using this map in template FuncMap later
-			}
-		case msg.Sticker != nil:
-			fileURL, err := e.maybeDownloadFile(msg.Sticker.Thumbnail.FileID, true)
-			if err != nil {
-				log.Printf("[ERROR] failed to get file URL for sticker %s: %v", msg.Sticker.Thumbnail.FileID, err)
-				continue
-			}
-			e.fileIDToURL[msg.Sticker.Thumbnail.FileID] = fileURL
-		}
+		e.maybeDownloadFiles(msg)
 
-		username := ""
-		if msg.From != nil {
-			username = msg.From.UserName
-		}
-
-		rec := Record{
-			Time:   time.Unix(int64(msg.Date), 0).In(e.location).Format("15:04:05"),
-			IsHost: e.SuperUsers.IsSuper(username),
-			Msg:    msg,
-		}
-		data.Records = append(data.Records, rec)
+		data.Records = append(
+			data.Records,
+			Record{
+				Time:   msg.Sent.In(e.location).Format("15:04:05"),
+				IsHost: e.SuperUsers.IsSuper(msg.From.Username),
+				Msg:    msg,
+			},
+		)
 	}
 
 	funcMap := template.FuncMap{
@@ -161,57 +140,99 @@ func (e Exporter) toHTML(messages []tbapi.Message, num int) string {
 	return html.String()
 }
 
-func (e Exporter) maybeDownloadFile(fileID string, doConvertWebPToJpg bool) (string, error) {
-	url, err := e.botAPI.GetFileDirectURL(fileID)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to get file direct URL: %s", fileID)
+func (e Exporter) maybeDownloadFiles(msg bot.Message) {
+	switch {
+	case msg.Picture != nil:
+		err := e.maybeDownloadFile(msg.Picture.Image.Source)
+		if err != nil {
+			log.Printf("[ERROR] failed to get file URL for file %s: %v", msg.Picture.Image.Source.FileID, err)
+			// return
+		}
+
+		for _, source := range (*msg.Picture).Image.Sources {
+			err := e.maybeDownloadFile(source)
+			if err != nil {
+				log.Printf("[ERROR] failed to get file URL for file %s: %v", source.FileID, err)
+				continue
+			}
+		}
+
+		for _, source := range (*msg.Picture).Sources {
+			err := e.maybeDownloadFile(source)
+			if err != nil {
+				log.Printf("[ERROR] failed to get file URL for file %s: %v", source.FileID, err)
+				continue
+			}
+		}
+	}
+}
+
+func (e Exporter) maybeDownloadFile(source bot.Source) error {
+	if _, found := e.fileIDToURL[source.FileID]; found {
+		// already downloaded
+		return nil
 	}
 
-	if !strings.Contains(url, ".") {
-		return "", errors.New("FileDirectURL has no extension")
+	if strings.HasSuffix(source.FileID, ".jpg") {
+		// hacky way to handle WebP stickers
+		// convertion to JPG happens when WebP image download
+		e.fileIDToURL[source.FileID] = e.storage.BuildLink(source.FileID)
+		return nil
 	}
 
-	fileName := fileID // no extension, even in `url`
-
-	fileExists, err := e.storage.FileExists(fileName)
+	url, err := e.botAPI.GetFileDirectURL(source.FileID)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to check if file exists alredy: %s", fileID)
+		return errors.Wrapf(err, "failed to get file direct URL: %s", source.FileID)
+	}
+
+	fileExists, err := e.storage.FileExists(source.FileID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if file exists alredy: %s", source.FileID)
 	}
 
 	if fileExists {
-		return e.storage.BuildLink(fileName), nil
+		e.fileIDToURL[source.FileID] = e.storage.BuildLink(source.FileID)
+		return nil
 	}
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get file by direct URL (fileID: %s)", fileID)
+		return errors.Wrapf(err, "failed to get file by direct URL (fileID: %s)", source.FileID)
 		// don't expose url – it contains Bot API Token
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return "", errors.Wrapf(err, "non-200 response from file direct URL (fileID: %s)", fileID)
+		return errors.Wrapf(err, "non-200 response from file direct URL (fileID: %s)", source.FileID)
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to read response body for file direct URL (fileID: %s)", fileID)
+		return errors.Wrapf(err, "failed to read response body for file direct URL (fileID: %s)", source.FileID)
 	}
 	resp.Body.Close()
 
-	if doConvertWebPToJpg {
+	if source.Type == "webp" {
 		jpgBody, err := convertWebPToJpg(bodyBytes)
 		if err != nil {
-			return "", errors.Wrapf(err, "failed to convert WebP to JPG (fileID: %s)", fileID)
+			return errors.Wrapf(err, "failed to convert WebP to JPG (fileID: %s)", source.FileID)
 		}
 
-		_, err = e.storage.SaveFile(jpg(fileName), jpgBody)
+		_, err = e.storage.SaveFile(source.FileID+".jpg", jpgBody)
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 
-	return e.storage.SaveFile(fileName, bodyBytes)
+	fileURL, err := e.storage.SaveFile(source.FileID, bodyBytes)
+	if err != nil {
+		return err
+	}
+
+	e.fileIDToURL[source.FileID] = fileURL
+	// hacky: need to pass fileURL to template
+	// using this map in template FuncMap later
+	return nil
 }
 
 func convertWebPToJpg(in []byte) ([]byte, error) {
@@ -246,17 +267,17 @@ func jpg(fileURL string) string {
 	return fileURL[0:strings.LastIndex(fileURL, ".")] + ".jpg"
 }
 
-func readMessages(path string) ([]tbapi.Message, error) {
+func readMessages(path string) ([]bot.Message, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	messages := []tbapi.Message{}
+	messages := []bot.Message{}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		msg := tbapi.Message{}
+		msg := bot.Message{}
 		line := scanner.Text()
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
 			log.Printf("[ERROR] failed to unmarshal %s, error=%v", line, err)
@@ -269,7 +290,7 @@ func readMessages(path string) ([]tbapi.Message, error) {
 	return messages, scanner.Err()
 }
 
-func filter(msg tbapi.Message) bool {
+func filter(msg bot.Message) bool {
 	contains := func(s []string, e string) bool {
 		e = strings.TrimSpace(strings.ToLower(e))
 		for _, a := range s {

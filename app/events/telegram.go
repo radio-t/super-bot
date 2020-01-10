@@ -63,19 +63,8 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				continue
 			}
 
-			chatID := update.Message.Chat.ID
-			update.Message.Chat = nil // to keep logs cleaner
-			l.Save(update.Message)    // save to report
-
-			msg := bot.Message{
-				Text: update.Message.Text,
-				From: bot.User{
-					// ID:          strconv.Itoa(update.Message.From.ID),
-					Username:    update.Message.From.UserName,
-					DisplayName: update.Message.From.FirstName + " " + update.Message.From.LastName,
-				},
-				Sent: update.Message.Time(),
-			}
+			msg := l.convert(update.Message)
+			l.Save(msg) // save to report
 
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
 
@@ -83,7 +72,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			if b := l.check(msg.From); b.active {
 				if b.new {
 					m := fmt.Sprintf("@%s _тебя слишком много, отдохни..._", msg.From.Username)
-					tbMsg := tbapi.NewMessage(chatID, m)
+					tbMsg := tbapi.NewMessage(update.Message.Chat.ID, m)
 					tbMsg.ParseMode = tbapi.ModeMarkdown
 					if res, e := l.botAPI.Send(tbMsg); e != nil {
 						log.Printf("[WARN] failed to send, %v", e)
@@ -96,7 +85,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			if resp, send := l.Bots.OnMessage(msg); send {
 				log.Printf("[DEBUG] bot response - %+v", resp)
-				tbMsg := tbapi.NewMessage(chatID, resp)
+				tbMsg := tbapi.NewMessage(update.Message.Chat.ID, resp)
 				tbMsg.ParseMode = tbapi.ModeMarkdown
 				if res, e := l.botAPI.Send(tbMsg); err != nil {
 					log.Printf("[WARN] can't send tbMsg to telegram, %v", e)
@@ -134,5 +123,87 @@ func (l *TelegramListener) Submit(ctx context.Context, text string) error {
 }
 
 func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {
-	l.Save(msg)
+	l.Save(l.convert(msg))
+}
+
+func (l *TelegramListener) convert(msg *tbapi.Message) bot.Message {
+	message := bot.Message{
+		From: bot.User{
+			Username:    msg.From.UserName,
+			DisplayName: msg.From.FirstName + " " + msg.From.LastName,
+		},
+		Sent: msg.Time(),
+		Text: msg.Text,
+	}
+
+	if msg.Photo != nil && len(*msg.Photo) > 0 {
+		message.Picture = &bot.Picture{
+			Image: bot.Image{
+				Source: bot.Source{
+					FileID: (*msg.Photo)[0].FileID,
+					Width:  (*msg.Photo)[0].Width,
+					Height: (*msg.Photo)[0].Height,
+				},
+				Sources: l.convertPhotoSizes(*msg.Photo),
+			},
+			Caption: msg.Caption,
+		}
+	}
+
+	if msg.Sticker != nil {
+		message.Picture = &bot.Picture{
+			Image: bot.Image{
+				Source: bot.Source{
+					FileID: msg.Sticker.Thumbnail.FileID + ".jpg",
+					Width:  msg.Sticker.Thumbnail.Width,
+					Height: msg.Sticker.Thumbnail.Height,
+					Alt:    msg.Sticker.Emoji,
+				},
+			},
+			Sources: l.convertSticker(*msg.Sticker),
+		}
+	}
+
+	return message
+}
+
+func (l *TelegramListener) convertPhotoSizes(sizes []tbapi.PhotoSize) []bot.Source {
+	var result []bot.Source
+
+	for _, size := range sizes {
+		result = append(
+			result,
+			bot.Source{
+				FileID: size.FileID,
+				Size:   size.FileSize,
+				Width:  size.Width,
+				Height: size.Height,
+			},
+		)
+	}
+
+	return result
+}
+
+func (l *TelegramListener) convertSticker(sticker tbapi.Sticker) []bot.Source {
+	var result []bot.Source
+
+	result = append(
+		result,
+		bot.Source{
+			FileID: sticker.Thumbnail.FileID,
+			Type:   "webp",
+			Size:   sticker.Thumbnail.FileSize,
+		},
+	)
+
+	result = append(
+		result,
+		bot.Source{
+			FileID: sticker.Thumbnail.FileID + ".jpg",
+			Type:   "jpeg",
+		},
+	)
+
+	return result
 }

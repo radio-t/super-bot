@@ -24,15 +24,36 @@ type SuperUser interface {
 
 // Message is primary record to pass data from/to bots
 type Message struct {
-	Text string
-	HTML string
-	From User
-	Sent time.Time
+	From    User
+	Sent    time.Time
+	HTML    string   `json:",omitempty"`
+	Text    string   `json:",omitempty"`
+	Picture *Picture `json:",omitempty"`
+}
+
+type Picture struct {
+	Caption string `json:",omitempty"`
+	Image   Image
+	Sources []Source `json:",omitempty"`
+}
+
+type Image struct {
+	Source
+	Sources []Source `json:",omitempty"`
+}
+
+type Source struct {
+	FileID string
+	Size   int    `json:",omitempty"`
+	Alt    string `json:",omitempty"`
+	Width  int    `json:",omitempty"`
+	Height int    `json:",omitempty"`
+	Type   string `json:",omitempty"`
 }
 
 // User defines user info of the Message
 type User struct {
-	ID          string
+	ID          string `json:",omitempty"`
 	Username    string
 	DisplayName string
 }

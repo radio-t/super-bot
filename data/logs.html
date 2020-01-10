@@ -68,52 +68,40 @@
         <table class="table table-striped table-hover table-condensed" id="table">
         {{ range .Records }}
         <tr>
-            {{- $fullName := "" -}}
-            {{- $username := "" -}}
-            {{- if .Msg.From -}}
-                {{- $fullName = printf "%s %s" .Msg.From.FirstName .Msg.From.LastName -}}
-                {{- $username = $fullName -}}
-                {{- if .Msg.From.UserName -}}
-                    {{- $username = .Msg.From.UserName -}}
-                {{- end -}}
-            {{- end -}}
-
             {{- if .IsHost }}
                 <td class="danger" align="left">{{ .Time }}</td>
-                <td class="success" align="left"><span title="{{ $fullName }}">{{ $username }}</span></td>
+                <td class="success" align="left"><span title="{{ .Msg.From.DisplayName }}">{{ .Msg.From.Username }}</span></td>
             {{ else }}
                 <td class="success" align="left">{{ .Time }}</td>
-                <td class="success" align="left"><span title="{{ $fullName }}">{{ $username }}</span></td>
+                <td class="success" align="left"><span title="{{ .Msg.From.DisplayName }}">{{ .Msg.From.Username }}</span></td>
             {{ end -}}
             <td class="warning" align="left">
                 {{- .Msg.Text }}
-                {{- if .Msg.Photo }}
-                {{- $firstSize := index .Msg.Photo 0 }}
-                <figure>
-                    <img src="{{ $firstSize.FileID | fileURL }}" 
-                        width={{ $firstSize.Width }}
-                        height={{ $firstSize.Height }}
-                        srcset="{{- $c := counter -}}
-                        {{- range $index, $size := .Msg.Photo -}}
-                        {{- if call $c -}}, {{ end -}}
-                        {{- $size.FileID | fileURL }} {{ $size.Width }}w
-                        {{- end -}}"
-                        >
-                    <figcaption>{{ .Msg.Caption }}</figcaption>
-                </figure>
-                {{ end -}}
-                {{- if .Msg.Sticker }}
-                <picture title="{{ .Msg.Sticker.Emoji }}">
-                    <source srcset="{{ .Msg.Sticker.Thumbnail.FileID | fileURL }}" type="image/webp">
-                    <source srcset="{{ .Msg.Sticker.Thumbnail.FileID | fileURL | jpg }}" type="image/jpeg"> 
-                    <img 
-                        src="{{ .Msg.Sticker.Thumbnail.FileID | fileURL | jpg }}"
-                        alt="{{ .Msg.Sticker.Emoji }}"
-                        width={{ .Msg.Sticker.Thumbnail.Width }}
-                        height={{ .Msg.Sticker.Thumbnail.Height }}
-                        >
-                </picture>
-                {{ end -}}
+                {{- .Msg.HTML }}
+                {{- if .Msg.Picture }}
+                    {{- if .Msg.Picture.Caption }}
+                    <figure>
+                    {{- end }}
+                    <picture>
+                        {{- range .Msg.Picture.Sources }}
+                        <source srcset="{{ .FileID | fileURL }}" type="image/{{ .Type }}">
+                        {{- end }}
+                        <img src="{{ .Msg.Picture.Image.FileID | fileURL }}" 
+                            width={{ .Msg.Picture.Image.Width }}
+                            height={{ .Msg.Picture.Image.Height }}
+                            alt="{{ .Msg.Picture.Image.Alt }}"
+                            srcset="{{- $c := counter -}}
+                            {{- range .Msg.Picture.Image.Sources -}}
+                            {{- if call $c -}}, {{ end -}}
+                            {{- .FileID | fileURL }} {{ .Width }}w
+                            {{- end -}}"
+                            >
+                    </picture>
+                    {{- if .Msg.Picture.Caption }}
+                        <figcaption>{{ .Msg.Picture.Caption }}</figcaption>
+                    </figure>
+                    {{ end }}
+                {{ end }}
             </td>
         </tr>
         {{ end }}

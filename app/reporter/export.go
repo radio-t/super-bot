@@ -146,7 +146,6 @@ func (e Exporter) maybeDownloadFiles(msg bot.Message) {
 		err := e.maybeDownloadFile(msg.Picture.Image.Source)
 		if err != nil {
 			log.Printf("[ERROR] failed to get file URL for file %s: %v", msg.Picture.Image.Source.FileID, err)
-			// return
 		}
 
 		for _, source := range (*msg.Picture).Image.Sources {

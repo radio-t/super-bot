@@ -20,8 +20,9 @@ import (
 
 var opts struct {
 	Telegram struct {
-		Token string `long:"token" env:"TOKEN" description:"telegram bot token" default:"test"`
-		Group string `long:"group" env:"GROUP" description:"group name/id" default:"test"`
+		Token   string        `long:"token" env:"TOKEN" description:"telegram bot token" default:"test"`
+		Group   string        `long:"group" env:"GROUP" description:"group name/id" default:"test"`
+		Timeout time.Duration `long:"timeout" env:"TIMEOUT" description:"http client timeout for getting files from Telegram" default:"30s"`
 	} `group:"telegram" namespace:"telegram" env-namespace:"TELEGRAM"`
 
 	RtjcPort     int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
@@ -105,9 +106,14 @@ func export() {
 	if err != nil {
 		log.Fatalf("[ERROR] telegram bot creation failed: %v", err)
 	}
+	fileRecipient := reporter.NewTelegramFileRecipient(botAPI, opts.Telegram.Timeout)
+
+	conv := map[string]reporter.Converter{
+		"webp": reporter.NewWebPConverter(),
+	}
 
 	exportNum := strconv.Itoa(opts.ExportNum)
-	s, err := storage.NewLocal(
+	st, err := storage.NewLocal(
 		opts.ExportPath+"/"+exportNum,
 		exportNum,
 	)
@@ -115,7 +121,7 @@ func export() {
 		log.Fatalf("[ERROR] storage creation failed: %v", err)
 	}
 
-	reporter.NewExporter(botAPI, s, params).Export(opts.ExportNum, opts.ExportDay)
+	reporter.NewExporter(fileRecipient, conv, st, params).Export(opts.ExportNum, opts.ExportDay)
 }
 
 func setupLog(dbg bool) {

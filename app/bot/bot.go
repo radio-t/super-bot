@@ -31,24 +31,28 @@ type Message struct {
 	Picture *Picture `json:",omitempty"`
 }
 
+// Picture represents HTML5 <picture> with optional <figcaption>
 type Picture struct {
 	Caption string `json:",omitempty"`
 	Image   Image
 	Sources []Source `json:",omitempty"`
 }
 
+// Image represents HTML <img>
 type Image struct {
 	Source
 	Sources []Source `json:",omitempty"`
 }
 
+// Source defines file, usually image
 type Source struct {
+	// FileID corresponds to Telegram file_id
 	FileID string
+	Type   string `json:",omitempty"`
 	Size   int    `json:",omitempty"`
 	Alt    string `json:",omitempty"`
 	Width  int    `json:",omitempty"`
 	Height int    `json:",omitempty"`
-	Type   string `json:",omitempty"`
 }
 
 // User defines user info of the Message
@@ -114,7 +118,7 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func makeHttpRequest(url string) (*http.Request, error) {
+func makeHTTPRequest(url string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to make request %s", url)

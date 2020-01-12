@@ -5,12 +5,23 @@ import (
 	"os"
 )
 
+// Storage knows how to: create file, check for file existance
+// and build a public-accessible link (relative in our case)
+type Storage interface {
+	FileExists(fileName string) (bool, error)
+	CreateFile(fileName string, body []byte) (string, error)
+	BuildLink(fileName string) string
+}
+
+// Local implements Storage interface
+// operating with local filesystem (possibly mounted to the container)
 type Local struct {
 	filesPath  string
 	publicPath string
 }
 
-func NewLocal(filesPath string, publicPath string) (*Local, error) {
+// NewLocal creates new Local storage
+func NewLocal(filesPath string, publicPath string) (Storage, error) {
 	if _, err := os.Stat(filesPath); os.IsNotExist(err) {
 		err = os.MkdirAll(filesPath, 0755)
 		if err != nil {
@@ -24,6 +35,7 @@ func NewLocal(filesPath string, publicPath string) (*Local, error) {
 	}, nil
 }
 
+// FileExists checks if file exists in `filesPath` directory
 func (l *Local) FileExists(fileName string) (bool, error) {
 	_, err := os.Stat(l.filesPath + "/" + fileName)
 	if err != nil {
@@ -37,7 +49,8 @@ func (l *Local) FileExists(fileName string) (bool, error) {
 	return true, nil
 }
 
-func (l *Local) SaveFile(fileName string, body []byte) (string, error) {
+// CreateFile creates file in `filesPath` directory with a given name and body
+func (l *Local) CreateFile(fileName string, body []byte) (string, error) {
 	err := ioutil.WriteFile(l.filesPath+"/"+fileName, body, 0644)
 	if err != nil {
 		return "", err
@@ -46,6 +59,7 @@ func (l *Local) SaveFile(fileName string, body []byte) (string, error) {
 	return l.BuildLink(fileName), nil
 }
 
+// BuildLink builds public-accessible link to file
 func (l *Local) BuildLink(fileName string) string {
 	return l.publicPath + "/" + fileName
 }

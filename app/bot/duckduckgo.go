@@ -31,7 +31,7 @@ func (d *Duck) OnMessage(msg Message) (response string, answer bool) {
 
 	client := http.Client{Timeout: time.Second * 5}
 
-	req, err := makeHttpRequest(reqURL)
+	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
 		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
 		return "", false

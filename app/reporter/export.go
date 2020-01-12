@@ -8,13 +8,10 @@ import (
 	"html/template"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
-	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 
 	"github.com/radio-t/gitter-rt-bot/app/bot"
@@ -24,9 +21,10 @@ import (
 // Exporter performs conversion from log file to html
 type Exporter struct {
 	ExporterParams
-	location *time.Location
-	botAPI   *tbapi.BotAPI
-	storage  *storage.Local
+	location      *time.Location
+	fileRecipient FileRecipient
+	converters    map[string]Converter
+	storage       storage.Storage
 
 	fileIDToURL map[string]string
 }
@@ -39,16 +37,23 @@ type ExporterParams struct {
 	SuperUsers   SuperUser
 }
 
+// SuperUser knows which user is a superuser
 type SuperUser interface {
 	IsSuper(user string) bool
 }
 
 // NewExporter from params, initializes time.Location
-func NewExporter(botAPI *tbapi.BotAPI, storage *storage.Local, params ExporterParams) *Exporter {
+func NewExporter(
+	fileRecipient FileRecipient,
+	converters map[string]Converter,
+	storage storage.Storage,
+	params ExporterParams,
+) *Exporter {
 	log.Printf("[INFO] exporter with %v", params)
 	result := Exporter{
 		ExporterParams: params,
-		botAPI:         botAPI,
+		fileRecipient:  fileRecipient,
+		converters:     converters,
 		storage:        storage,
 		fileIDToURL:    map[string]string{},
 	}
@@ -125,12 +130,11 @@ func (e Exporter) toHTML(messages []bot.Message, num int) string {
 				return i
 			}
 		},
-		"jpg": jpg,
 	}
 	name := e.TemplateFile[strings.LastIndex(e.TemplateFile, "/")+1:]
 	t, err := template.New(name).Funcs(funcMap).ParseFiles(e.TemplateFile)
 	if err != nil {
-		log.Fatalf("failed to parse, %v", err)
+		log.Fatalf("[ERROR] failed to parse, %v", err)
 	}
 
 	var html bytes.Buffer
@@ -151,7 +155,7 @@ func (e Exporter) maybeDownloadFiles(msg bot.Message) {
 		for _, source := range (*msg.Picture).Image.Sources {
 			err := e.maybeDownloadFile(source)
 			if err != nil {
-				log.Printf("[ERROR] failed to get file URL for file %s: %v", source.FileID, err)
+				log.Printf("[ERROR] failed to download file %s: %v", source.FileID, err)
 				continue
 			}
 		}
@@ -159,7 +163,7 @@ func (e Exporter) maybeDownloadFiles(msg bot.Message) {
 		for _, source := range (*msg.Picture).Sources {
 			err := e.maybeDownloadFile(source)
 			if err != nil {
-				log.Printf("[ERROR] failed to get file URL for file %s: %v", source.FileID, err)
+				log.Printf("[ERROR] failed to download file %s: %v", source.FileID, err)
 				continue
 			}
 		}
@@ -179,11 +183,6 @@ func (e Exporter) maybeDownloadFile(source bot.Source) error {
 		return nil
 	}
 
-	url, err := e.botAPI.GetFileDirectURL(source.FileID)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get file direct URL: %s", source.FileID)
-	}
-
 	fileExists, err := e.storage.FileExists(source.FileID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to check if file exists alredy: %s", source.FileID)
@@ -194,36 +193,28 @@ func (e Exporter) maybeDownloadFile(source bot.Source) error {
 		return nil
 	}
 
-	resp, err := http.Get(url)
+	body, err := e.fileRecipient.GetFile(source.FileID)
+	defer body.Close()
+
+	bodyBytes, err := ioutil.ReadAll(body)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get file by direct URL (fileID: %s)", source.FileID)
-		// don't expose url – it contains Bot API Token
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return errors.Wrapf(err, "non-200 response from file direct URL (fileID: %s)", source.FileID)
+		return errors.Wrapf(err, "failed to read file body for %s", source.FileID)
 	}
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read response body for file direct URL (fileID: %s)", source.FileID)
-	}
-	resp.Body.Close()
-
-	if source.Type == "webp" {
-		jpgBody, err := convertWebPToJpg(bodyBytes)
+	converter, found := e.converters[source.Type]
+	if found {
+		convertedBody, err := converter.Convert(bodyBytes)
 		if err != nil {
-			return errors.Wrapf(err, "failed to convert WebP to JPG (fileID: %s)", source.FileID)
+			return errors.Wrapf(err, "failed to convert file %s", source.FileID)
 		}
 
-		_, err = e.storage.SaveFile(source.FileID+".jpg", jpgBody)
+		_, err = e.storage.CreateFile(source.FileID+"."+converter.Extension(), convertedBody)
 		if err != nil {
 			return err
 		}
 	}
 
-	fileURL, err := e.storage.SaveFile(source.FileID, bodyBytes)
+	fileURL, err := e.storage.CreateFile(source.FileID, bodyBytes)
 	if err != nil {
 		return err
 	}
@@ -232,38 +223,6 @@ func (e Exporter) maybeDownloadFile(source bot.Source) error {
 	// hacky: need to pass fileURL to template
 	// using this map in template FuncMap later
 	return nil
-}
-
-func convertWebPToJpg(in []byte) ([]byte, error) {
-	var b bytes.Buffer
-
-	cmd := exec.Command("dwebp", "-o", "-", "--", "-")
-	cmd.Stdin = bytes.NewBuffer(in)
-	cmd.Stdout = &b
-	err := cmd.Start()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to start dwebp execution")
-	}
-
-	err = cmd.Wait()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute dwebp")
-	}
-
-	jsonBytes, err := ioutil.ReadAll(&b)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read JSON (WebP to JSON conversion)")
-	}
-
-	return jsonBytes, nil
-}
-
-func jpg(fileURL string) string {
-	if !strings.Contains(fileURL, ".") {
-		return fileURL + ".jpg"
-	}
-
-	return fileURL[0:strings.LastIndex(fileURL, ".")] + ".jpg"
 }
 
 func readMessages(path string) ([]bot.Message, error) {

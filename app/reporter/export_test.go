@@ -1,15 +1,20 @@
 package reporter
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/radio-t/gitter-rt-bot/app/bot"
+	"github.com/radio-t/gitter-rt-bot/app/storage"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 var testFile = "test.log"
@@ -22,16 +27,16 @@ var testExportParams = ExporterParams{
 }
 
 func TestNewExporter(t *testing.T) {
-	e, err := setup()
+	e, err := setup(nil, nil, nil)
 	assert.NoError(t, err)
 	defer teardown()
 
-	exporter := NewExporter(nil, nil, testExportParams)
+	exporter := NewExporter(nil, nil, nil, testExportParams)
 	assert.Equal(t, exporter, e)
 }
 
 func TestExporter_Export(t *testing.T) {
-	e, err := setup()
+	e, err := setup(nil, nil, nil)
 	assert.NoError(t, err)
 	defer teardown()
 
@@ -106,8 +111,143 @@ func Test_readMessages(t *testing.T) {
 	}
 }
 
+func Test_downloadFilesNeverCalledForTextMessages(t *testing.T) {
+	msgs := []bot.Message{
+		{
+			From: bot.User{
+				Username:    "username",
+				DisplayName: "First Last",
+			},
+			Sent: time.Unix(1578627415, 0),
+			Text: "Message",
+		},
+	}
+
+	fileRecipient := new(fileRecipientMock)
+	storage := new(storageMock)
+
+	e, err := setup(fileRecipient, nil, storage)
+	assert.NoError(t, err)
+	defer teardown()
+
+	err = createFile(e.InputRoot+"/20200111.log", msgs)
+	assert.NoError(t, err)
+	defer os.Remove(e.InputRoot + "/20200111.log")
+
+	e.Export(684, 20200111)
+
+	fileRecipient.AssertExpectations(t)
+	storage.AssertExpectations(t)
+}
+
+func Test_downloadFilesForPhoto(t *testing.T) {
+	msgs := []bot.Message{
+		{
+			From: bot.User{
+				Username:    "username",
+				DisplayName: "First Last",
+			},
+			Sent: time.Unix(1578627415, 0),
+			Text: "Message",
+			Picture: &bot.Picture{
+				Image: bot.Image{
+					Source: bot.Source{
+						FileID: "FILE_ID_1",
+					},
+					Sources: []bot.Source{
+						bot.Source{
+							FileID: "FILE_ID_1",
+						},
+						bot.Source{
+							FileID: "FILE_ID_2",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	fileRecipient := new(fileRecipientMock)
+	fileRecipient.On("GetFile", "FILE_ID_1").Return(buffer("IMAGE_1"), nil).Once()
+	fileRecipient.On("GetFile", "FILE_ID_2").Return(buffer("IMAGE_2"), nil)
+
+	storage := new(storageMock)
+	storage.On("FileExists", "FILE_ID_1").Return(false, nil).Once()
+	storage.On("FileExists", "FILE_ID_2").Return(false, nil)
+	storage.On("CreateFile", "FILE_ID_1", []byte("IMAGE_1")).Return("684/FILE_ID_1", nil).Once()
+	storage.On("CreateFile", "FILE_ID_2", []byte("IMAGE_2")).Return("684/FILE_ID_2", nil)
+
+	e, err := setup(fileRecipient, nil, storage)
+	assert.NoError(t, err)
+	defer teardown()
+
+	err = createFile(e.InputRoot+"/20200111.log", msgs)
+	assert.NoError(t, err)
+	defer os.Remove(e.InputRoot + "/20200111.log")
+
+	e.Export(684, 20200111)
+
+	fileRecipient.AssertExpectations(t)
+	storage.AssertExpectations(t)
+}
+
+func Test_downloadFilesAndConvertSticker(t *testing.T) {
+	msgs := []bot.Message{
+		{
+			From: bot.User{
+				Username:    "username",
+				DisplayName: "First Last",
+			},
+			Sent: time.Unix(1578627415, 0),
+			Text: "Message",
+			Picture: &bot.Picture{
+				Image: bot.Image{
+					Source: bot.Source{
+						FileID: "FILE_ID_1.jpg",
+					},
+				},
+				Sources: []bot.Source{
+					bot.Source{
+						FileID: "FILE_ID_1",
+						Type:   "webp",
+					},
+					bot.Source{
+						FileID: "FILE_ID_1.jpg",
+					},
+				},
+			},
+		},
+	}
+
+	fileRecipient := new(fileRecipientMock)
+	fileRecipient.On("GetFile", "FILE_ID_1").Return(buffer("IMAGE_1"), nil).Once()
+
+	converter := new(converterMock)
+	converter.On("Convert", []byte("IMAGE_1")).Return([]byte("IMAGE_1_JPG"), nil)
+	converter.On("Extension").Return("jpg")
+
+	storage := new(storageMock)
+	storage.On("FileExists", "FILE_ID_1").Return(false, nil).Once()
+	storage.On("CreateFile", "FILE_ID_1", []byte("IMAGE_1")).Return("684/FILE_ID_1", nil).Once()
+	storage.On("CreateFile", "FILE_ID_1.jpg", []byte("IMAGE_1_JPG")).Return("684/FILE_ID_1.jpg", nil).Once()
+	storage.On("BuildLink", "FILE_ID_1.jpg").Return("684/FILE_ID_1.jpg", nil)
+
+	e, err := setup(fileRecipient, map[string]Converter{"webp": converter}, storage)
+	assert.NoError(t, err)
+	defer teardown()
+
+	err = createFile(e.InputRoot+"/20200111.log", msgs)
+	assert.NoError(t, err)
+	defer os.Remove(e.InputRoot + "/20200111.log")
+
+	e.Export(684, 20200111)
+
+	fileRecipient.AssertExpectations(t)
+	storage.AssertExpectations(t)
+}
+
 //setup creates Exporter with temp folders
-func setup() (*Exporter, error) {
+func setup(fileRecipient FileRecipient, converters map[string]Converter, storage storage.Storage) (*Exporter, error) {
 	err := os.MkdirAll(testExportParams.InputRoot, os.ModePerm)
 	if err != nil {
 		return nil, err
@@ -132,6 +272,9 @@ func setup() (*Exporter, error) {
 	e := &Exporter{
 		ExporterParams: testExportParams,
 		location:       location,
+		fileRecipient:  fileRecipient,
+		converters:     converters,
+		storage:        storage,
 		fileIDToURL:    map[string]string{},
 	}
 
@@ -171,4 +314,60 @@ type SuperUserMock map[string]bool
 // IsSuper checks if user in su list
 func (s SuperUserMock) IsSuper(userName string) bool {
 	return s[userName]
+}
+
+type fileRecipientMock struct {
+	mock.Mock
+}
+
+func (fdm *fileRecipientMock) GetFile(fileID string) (io.ReadCloser, error) {
+	args := fdm.Called(fileID)
+	return args.Get(0).(io.ReadCloser), args.Error(1)
+}
+
+type storageMock struct {
+	mock.Mock
+}
+
+func (sm *storageMock) FileExists(fileName string) (bool, error) {
+	args := sm.Called(fileName)
+	return args.Bool(0), args.Error(1)
+}
+
+func (sm *storageMock) CreateFile(fileName string, body []byte) (string, error) {
+	args := sm.Called(fileName, body)
+	return args.String(0), args.Error(1)
+}
+
+func (sm *storageMock) BuildLink(fileName string) string {
+	args := sm.Called(fileName)
+	return args.String(0)
+}
+
+type converterMock struct {
+	mock.Mock
+}
+
+func (cm *converterMock) Convert(in []byte) (out []byte, err error) {
+	args := cm.Called(in)
+	return args.Get(0).([]byte), args.Error(1)
+}
+
+func (cm *converterMock) Extension() string {
+	args := cm.Called()
+	return args.String(0)
+}
+
+// closingBuffer used in mocks to represent resp.Body, implements io.ReadCloser
+type closingBuffer struct {
+	*bytes.Buffer
+}
+
+func (cb *closingBuffer) Close() error {
+	return nil
+}
+
+// buffer increases readability of tests
+func buffer(content string) io.ReadCloser {
+	return &closingBuffer{bytes.NewBufferString(content)}
 }

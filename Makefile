@@ -17,6 +17,11 @@ vendor:
 ## test: runs `go test`
 test:
 	@cd app && go test -mod=vendor ./... -coverprofile cover.out
+	
+.PHONY: lint
+## lint: runs `golint`
+lint:
+	@cd app && golint ./...
 
 .PHONY: run
 ## run: runs app locally (don't forget to set all required environment variables)

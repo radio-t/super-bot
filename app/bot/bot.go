@@ -36,6 +36,7 @@ type Picture struct {
 	Caption string `json:",omitempty"`
 	Image   Image
 	Sources []Source `json:",omitempty"`
+	Class   string   `json:",omitempty"`
 }
 
 // Image represents HTML <img>

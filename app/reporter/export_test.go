@@ -203,7 +203,7 @@ func Test_downloadFilesAndConvertSticker(t *testing.T) {
 			Picture: &bot.Picture{
 				Image: bot.Image{
 					Source: bot.Source{
-						FileID: "FILE_ID_1.jpg",
+						FileID: "FILE_ID_1.png",
 					},
 				},
 				Sources: []bot.Source{
@@ -212,7 +212,7 @@ func Test_downloadFilesAndConvertSticker(t *testing.T) {
 						Type:   "webp",
 					},
 					bot.Source{
-						FileID: "FILE_ID_1.jpg",
+						FileID: "FILE_ID_1.png",
 					},
 				},
 			},
@@ -223,14 +223,14 @@ func Test_downloadFilesAndConvertSticker(t *testing.T) {
 	fileRecipient.On("GetFile", "FILE_ID_1").Return(buffer("IMAGE_1"), nil).Once()
 
 	converter := new(converterMock)
-	converter.On("Convert", []byte("IMAGE_1")).Return([]byte("IMAGE_1_JPG"), nil)
-	converter.On("Extension").Return("jpg")
+	converter.On("Convert", []byte("IMAGE_1")).Return([]byte("IMAGE_1_PNG"), nil)
+	converter.On("Extension").Return("png")
 
 	storage := new(storageMock)
 	storage.On("FileExists", "FILE_ID_1").Return(false, nil).Once()
 	storage.On("CreateFile", "FILE_ID_1", []byte("IMAGE_1")).Return("684/FILE_ID_1", nil).Once()
-	storage.On("CreateFile", "FILE_ID_1.jpg", []byte("IMAGE_1_JPG")).Return("684/FILE_ID_1.jpg", nil).Once()
-	storage.On("BuildLink", "FILE_ID_1.jpg").Return("684/FILE_ID_1.jpg", nil)
+	storage.On("CreateFile", "FILE_ID_1.png", []byte("IMAGE_1_PNG")).Return("684/FILE_ID_1.png", nil).Once()
+	storage.On("BuildLink", "FILE_ID_1.png").Return("684/FILE_ID_1.png", nil)
 
 	e, err := setup(fileRecipient, map[string]Converter{"webp": converter}, storage)
 	assert.NoError(t, err)
@@ -243,6 +243,61 @@ func Test_downloadFilesAndConvertSticker(t *testing.T) {
 	e.Export(684, 20200111)
 
 	fileRecipient.AssertExpectations(t)
+	converter.AssertExpectations(t)
+	storage.AssertExpectations(t)
+}
+
+func Test_downloadFilesAndConvertAnimatedSticker(t *testing.T) {
+	msgs := []bot.Message{
+		{
+			From: bot.User{
+				Username:    "username",
+				DisplayName: "First Last",
+			},
+			Sent: time.Unix(1578627415, 0),
+			Text: "Message",
+			Picture: &bot.Picture{
+				Class: "animated-sticker",
+				Image: bot.Image{
+					Source: bot.Source{
+						FileID: "FILE_ID.json",
+					},
+				},
+				Sources: []bot.Source{
+					bot.Source{
+						FileID: "FILE_ID",
+						Type:   "tgs",
+					},
+				},
+			},
+		},
+	}
+
+	fileRecipient := new(fileRecipientMock)
+	fileRecipient.On("GetFile", "FILE_ID").Return(buffer("STICKER"), nil).Once()
+
+	converter := new(converterMock)
+	converter.On("Convert", []byte("STICKER")).Return([]byte("STICKER_JSON"), nil)
+	converter.On("Extension").Return("json")
+
+	storage := new(storageMock)
+	storage.On("FileExists", "FILE_ID").Return(false, nil)
+	storage.On("CreateFile", "FILE_ID", []byte("STICKER")).Return("684/FILE_ID", nil)
+	storage.On("CreateFile", "FILE_ID.json", []byte("STICKER_JSON")).Return("684/FILE_ID.json", nil).Once()
+	storage.On("BuildLink", "FILE_ID.json").Return("684/FILE_ID.json", nil)
+
+	e, err := setup(fileRecipient, map[string]Converter{"tgs": converter}, storage)
+	assert.NoError(t, err)
+	defer teardown()
+
+	err = createFile(e.InputRoot+"/20200111.log", msgs)
+	assert.NoError(t, err)
+	defer os.Remove(e.InputRoot + "/20200111.log")
+
+	e.Export(684, 20200111)
+
+	fileRecipient.AssertExpectations(t)
+	converter.AssertExpectations(t)
 	storage.AssertExpectations(t)
 }
 

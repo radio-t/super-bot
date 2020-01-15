@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -56,12 +57,16 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			if !ok {
 				return errors.Errorf("telegram update chan closed")
 			}
-			log.Printf("[INFO] receive update: %+v, %+v", update.Message, update)
+
+			log.Printf("[INFO] receive update: %+v", update)
 
 			if update.Message == nil {
 				log.Printf("[DEBUG] empty message body")
 				continue
 			}
+
+			msgJSON, _ := json.Marshal(update.Message)
+			log.Printf("[DEBUG] %s", string(msgJSON))
 
 			msg := l.convert(update.Message)
 			l.Save(msg) // save to report
@@ -147,20 +152,32 @@ func (l *TelegramListener) convert(msg *tbapi.Message) bot.Message {
 				Sources: l.convertPhotoSizes(*msg.Photo),
 			},
 			Caption: msg.Caption,
+			Class:   "photo",
 		}
 	}
 
 	if msg.Sticker != nil {
+		class := "sticker"
+		extensionFrom := "webp"
+		extensionTo := "png"
+
+		if msg.Sticker.IsAnimated {
+			class = "animated-sticker"
+			extensionFrom = "tgs"
+			extensionTo = "json"
+		}
+
 		message.Picture = &bot.Picture{
 			Image: bot.Image{
 				Source: bot.Source{
-					FileID: msg.Sticker.Thumbnail.FileID + ".jpg",
-					Width:  msg.Sticker.Thumbnail.Width,
-					Height: msg.Sticker.Thumbnail.Height,
+					FileID: msg.Sticker.FileID + "." + extensionTo,
+					Width:  msg.Sticker.Width,
+					Height: msg.Sticker.Height,
 					Alt:    msg.Sticker.Emoji,
 				},
 			},
-			Sources: l.convertSticker(*msg.Sticker),
+			Sources: l.convertSticker(*msg.Sticker, extensionFrom, extensionTo),
+			Class:   class,
 		}
 	}
 
@@ -185,23 +202,23 @@ func (l *TelegramListener) convertPhotoSizes(sizes []tbapi.PhotoSize) []bot.Sour
 	return result
 }
 
-func (l *TelegramListener) convertSticker(sticker tbapi.Sticker) []bot.Source {
+func (l *TelegramListener) convertSticker(sticker tbapi.Sticker, extensionFrom string, extensionTo string) []bot.Source {
 	var result []bot.Source
 
 	result = append(
 		result,
 		bot.Source{
-			FileID: sticker.Thumbnail.FileID,
-			Type:   "webp",
-			Size:   sticker.Thumbnail.FileSize,
+			FileID: sticker.FileID,
+			Type:   extensionFrom,
+			Size:   sticker.FileSize,
 		},
 	)
 
 	result = append(
 		result,
 		bot.Source{
-			FileID: sticker.Thumbnail.FileID + ".jpg",
-			Type:   "jpeg",
+			FileID: sticker.FileID + "." + extensionTo,
+			Type:   extensionTo,
 		},
 	)
 

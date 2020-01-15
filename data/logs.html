@@ -51,6 +51,12 @@
             .filter_visible .filter__content {
                 display: block;
             }
+
+            .sticker img,
+            .animated-sticker {
+                max-width: 128px;
+                max-height: 128px;
+            }
         </style>
     </head>
     <body>
@@ -78,10 +84,13 @@
             <td class="warning" align="left">
                 {{- .Msg.Text }}
                 {{- if .Msg.Picture }}
+                    {{- if eq .Msg.Picture.Class "animated-sticker" }}
+                    <div class="animated-sticker" title="{{ .Msg.Picture.Image.Alt }}" attr-src="{{ .Msg.Picture.Image.FileID | fileURL }}"></div>
+                    {{- else }}
                     {{- if .Msg.Picture.Caption }}
                     <figure>
                     {{- end }}
-                    <picture>
+                    <picture {{- if .Msg.Picture.Class }} class="{{ .Msg.Picture.Class }}"{{ end }}>
                         {{- range .Msg.Picture.Sources }}
                         <source srcset="{{ .FileID | fileURL }}" type="image/{{ .Type }}">
                         {{- end }}
@@ -100,6 +109,7 @@
                         <figcaption>{{ .Msg.Picture.Caption }}</figcaption>
                     </figure>
                     {{ end }}
+                    {{ end }}
                 {{ end }}
             </td>
         </tr>
@@ -107,8 +117,23 @@
 
         </table>
 
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.5.9/lottie.min.js"></script>
         <script>
             window.onload = function() {
+                var elements = document.getElementsByClassName('animated-sticker');
+                for (i = 0; i < elements.length; i++) {
+                    var animation = bodymovin.loadAnimation({
+                        container: elements[i],
+                        renderer: 'svg',
+                        loop: true,
+                        autoplay: true,
+                        path: elements[i].getAttribute("attr-src")
+                    })
+                    animation.addEventListener("data_failed", function(err, v2) {
+                        console.log("data failed", animation.path)
+                    })
+                }
+
                 var filter = document.getElementById('filter');
                 var checkboxes = filter.getElementsByClassName('filter__item');
                 var filterToggle = document.getElementById('filter__toggle');

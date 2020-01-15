@@ -176,9 +176,9 @@ func (e Exporter) maybeDownloadFile(source bot.Source) error {
 		return nil
 	}
 
-	if strings.HasSuffix(source.FileID, ".jpg") {
-		// hacky way to handle WebP stickers
-		// convertion to JPG happens when WebP image download
+	if strings.Contains(source.FileID, ".") {
+		// hacky way to handle WebP & TGS stickers
+		// convertion to happens after image "FileID" download
 		e.fileIDToURL[source.FileID] = e.storage.BuildLink(source.FileID)
 		return nil
 	}
@@ -194,24 +194,14 @@ func (e Exporter) maybeDownloadFile(source bot.Source) error {
 	}
 
 	body, err := e.fileRecipient.GetFile(source.FileID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get file body for %s", source.FileID)
+	}
 	defer body.Close()
 
 	bodyBytes, err := ioutil.ReadAll(body)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read file body for %s", source.FileID)
-	}
-
-	converter, found := e.converters[source.Type]
-	if found {
-		convertedBody, err := converter.Convert(bodyBytes)
-		if err != nil {
-			return errors.Wrapf(err, "failed to convert file %s", source.FileID)
-		}
-
-		_, err = e.storage.CreateFile(source.FileID+"."+converter.Extension(), convertedBody)
-		if err != nil {
-			return err
-		}
 	}
 
 	fileURL, err := e.storage.CreateFile(source.FileID, bodyBytes)
@@ -222,7 +212,20 @@ func (e Exporter) maybeDownloadFile(source bot.Source) error {
 	e.fileIDToURL[source.FileID] = fileURL
 	// hacky: need to pass fileURL to template
 	// using this map in template FuncMap later
-	return nil
+
+	converter, found := e.converters[source.Type]
+	if !found {
+		log.Printf("[DEBUG] no convertion will happen (converter for type \"%s\" not found)", source.Type)
+		return nil
+	}
+
+	convertedBody, err := converter.Convert(bodyBytes)
+	if err != nil {
+		return errors.Wrapf(err, "failed to convert file %s", source.FileID)
+	}
+
+	_, err = e.storage.CreateFile(source.FileID+"."+converter.Extension(), convertedBody)
+	return err
 }
 
 func readMessages(path string) ([]bot.Message, error) {

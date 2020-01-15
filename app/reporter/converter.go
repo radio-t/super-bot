@@ -2,6 +2,7 @@ package reporter
 
 import (
 	"bytes"
+	"compress/gzip"
 	"io/ioutil"
 	"os/exec"
 
@@ -52,7 +53,33 @@ func (w *WebPConverter) Convert(in []byte) (out []byte, err error) {
 
 // Extension returnes new file extension for converted file
 func (w *WebPConverter) Extension() string {
-	return "jpg"
+	return "png"
 }
 
-// TODO: converter for TGS animated stickers?
+// TGSConverter can convert TGS (used for Telegram Animated Stickers) into GIF
+// TGS file is a GZIP archive of Lottie JSON file.
+// See https://github.com/airbnb/lottie-web
+// https://core.telegram.org/animated_stickers
+type TGSConverter struct {
+}
+
+// NewTGSConverter creates new TGSConverter
+func NewTGSConverter() Converter {
+	return &TGSConverter{}
+}
+
+// Convert converts TGS file bytes into animated GIF
+func (tgs *TGSConverter) Convert(in []byte) (out []byte, err error) {
+	reader, err := gzip.NewReader(bytes.NewReader(in))
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	return ioutil.ReadAll(reader)
+}
+
+// Extension returnes new file extension for converted file
+func (tgs *TGSConverter) Extension() string {
+	return "json"
+}

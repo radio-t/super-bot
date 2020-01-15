@@ -110,6 +110,7 @@ func export() {
 
 	conv := map[string]reporter.Converter{
 		"webp": reporter.NewWebPConverter(),
+		"tgs":  reporter.NewTGSConverter(),
 	}
 
 	exportNum := strconv.Itoa(opts.ExportNum)

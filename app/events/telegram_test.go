@@ -10,7 +10,7 @@ import (
 	"github.com/radio-t/gitter-rt-bot/app/bot"
 )
 
-func Test_convertTextMessageText(t *testing.T) {
+func Test_convertTextMessage(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -36,7 +36,7 @@ func Test_convertTextMessageText(t *testing.T) {
 	)
 }
 
-func Test_convertTextMessagePhoto(t *testing.T) {
+func Test_convertPhoto(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -47,6 +47,7 @@ func Test_convertTextMessagePhoto(t *testing.T) {
 			},
 			Sent: time.Unix(1578627415, 0),
 			Picture: &bot.Picture{
+				Class:   "photo",
 				Caption: "caption",
 				Image: bot.Image{
 					Source: bot.Source{
@@ -111,7 +112,7 @@ func Test_convertTextMessagePhoto(t *testing.T) {
 	)
 }
 
-func Test_convertTextMessageSticker(t *testing.T) {
+func Test_convertSticker(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -122,23 +123,24 @@ func Test_convertTextMessageSticker(t *testing.T) {
 			},
 			Sent: time.Unix(1578627415, 0),
 			Picture: &bot.Picture{
+				Class: "sticker",
 				Image: bot.Image{
 					Source: bot.Source{
-						FileID: "AAQCAANYAgACWVMYAAE7DXqIBZjlVYNwmg4ABAEAB20AA9uMAAIWBA.jpg",
-						Width:  128,
-						Height: 128,
+						FileID: "CAADAgADWAIAAllTGAABOw16iAWY5VUWBA.png",
+						Width:  512,
+						Height: 512,
 						Alt:    "4️⃣",
 					},
 				},
 				Sources: []bot.Source{
 					bot.Source{
-						FileID: "AAQCAANYAgACWVMYAAE7DXqIBZjlVYNwmg4ABAEAB20AA9uMAAIWBA",
+						FileID: "CAADAgADWAIAAllTGAABOw16iAWY5VUWBA",
 						Type:   "webp",
-						Size:   4766,
+						Size:   23458,
 					},
 					bot.Source{
-						FileID: "AAQCAANYAgACWVMYAAE7DXqIBZjlVYNwmg4ABAEAB20AA9uMAAIWBA.jpg",
-						Type:   "jpeg",
+						FileID: "CAADAgADWAIAAllTGAABOw16iAWY5VUWBA.png",
+						Type:   "png",
 					},
 				},
 			},
@@ -152,10 +154,11 @@ func Test_convertTextMessageSticker(t *testing.T) {
 				},
 				Date: 1578627415,
 				Sticker: &tbapi.Sticker{
-					FileID:   "CAADAgADWAIAAllTGAABOw16iAWY5VUWBA",
-					Width:    512,
-					Height:   512,
-					FileSize: 23458,
+					FileID:     "CAADAgADWAIAAllTGAABOw16iAWY5VUWBA",
+					Width:      512,
+					Height:     512,
+					FileSize:   23458,
+					IsAnimated: false,
 					Thumbnail: &tbapi.PhotoSize{
 						FileID:   "AAQCAANYAgACWVMYAAE7DXqIBZjlVYNwmg4ABAEAB20AA9uMAAIWBA",
 						Width:    128,
@@ -163,6 +166,66 @@ func Test_convertTextMessageSticker(t *testing.T) {
 						FileSize: 4766,
 					},
 					Emoji: "4️⃣",
+				},
+			},
+		),
+	)
+}
+
+func Test_convertAnimatedSticker(t *testing.T) {
+	l := TelegramListener{}
+	assert.Equal(
+		t,
+		bot.Message{
+			From: bot.User{
+				Username:    "username",
+				DisplayName: "First Last",
+			},
+			Sent: time.Unix(1578627415, 0),
+			Picture: &bot.Picture{
+				Class: "animated-sticker",
+				Image: bot.Image{
+					Source: bot.Source{
+						FileID: "CAADAgAD8gEAArD72weo9_9Bp6KNxxYE.json",
+						Width:  512,
+						Height: 512,
+						Alt:    "👻",
+					},
+				},
+				Sources: []bot.Source{
+					bot.Source{
+						FileID: "CAADAgAD8gEAArD72weo9_9Bp6KNxxYE",
+						Type:   "tgs",
+						Size:   2278,
+					},
+					bot.Source{
+						FileID: "CAADAgAD8gEAArD72weo9_9Bp6KNxxYE.json",
+						Type:   "json",
+					},
+				},
+			},
+		},
+		l.convert(
+			&tbapi.Message{
+				From: &tbapi.User{
+					UserName:  "username",
+					FirstName: "First",
+					LastName:  "Last",
+				},
+				Date: 1578627415,
+				Sticker: &tbapi.Sticker{
+					FileID:     "CAADAgAD8gEAArD72weo9_9Bp6KNxxYE",
+					Width:      512,
+					Height:     512,
+					FileSize:   2278,
+					IsAnimated: true,
+					Thumbnail: &tbapi.PhotoSize{
+						FileID:   "AAQCAAPyAQACsPvbB6j3_0Gnoo3HRAq4DwAEAQAHbQADGWMAAhYE",
+						Width:    128,
+						Height:   128,
+						FileSize: 2604,
+					},
+					Emoji: "👻",
 				},
 			},
 		),

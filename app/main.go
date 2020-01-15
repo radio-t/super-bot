@@ -18,8 +18,8 @@ import (
 
 var opts struct {
 	Telegram struct {
-		Token       string `long:"token" env:"TOKEN" description:"telegram bot token" default:"test"`
-		Group       string `long:"group" env:"GROUP" description:"group name/id" default:"test"`
+		Token string `long:"token" env:"TOKEN" description:"telegram bot token" default:"test"`
+		Group string `long:"group" env:"GROUP" description:"group name/id" default:"test"`
 	} `group:"telegram" namespace:"telegram" env-namespace:"TELEGRAM"`
 
 	RtjcPort     int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
@@ -75,15 +75,17 @@ func main() {
 	}
 
 	tgListener := events.TelegramListener{
-		Terminator:  term,
-		Reporter:    reporter.NewLogger(opts.LogsPath),
-		Bots:        multiBot,
-		GroupID:     groupID,
-		Token:       opts.Telegram.Token,
-		Debug:       opts.Dbg,
+		Terminator: term,
+		Reporter:   reporter.NewLogger(opts.LogsPath),
+		Bots:       multiBot,
+		GroupID:    groupID,
+		Token:      opts.Telegram.Token,
+		Debug:      opts.Dbg,
 	}
 
 	ctx := context.TODO()
+	go events.NewBroadcastStatusBot(10*time.Second, "https://stream.radio-t.com", time.Minute, "", &tgListener).Start(ctx)
+
 	go events.Rtjc{Port: opts.RtjcPort, Submitter: &tgListener}.Listen(ctx)
 	if err := tgListener.Do(ctx); err != nil {
 		log.Fatalf("[ERROR] telegram listener failed, %v", err)

@@ -53,14 +53,21 @@ func TestBroadcastTransitions(t *testing.T) {
 	require.False(t, b.status) // still false
 }
 
-func TestBroadcastStatusBotReactsOn(t *testing.T) {
+func TestBroadcastStatusBotOnMessage(t *testing.T) {
 	b := &BroadcastStatus{}
-	resp, _ := b.OnMessage(Message{Text: "Началось?"})
-	require.Equal(t, MsgBroadcastFinished, resp)
+	b.status = false
+	resp, _ := b.OnMessage(Message{})
+	require.Equal(t, "", resp)
 
 	b.status = true
-	resp, _ = b.OnMessage(Message{Text: "Началось?"})
+	resp, _ = b.OnMessage(Message{})
 	require.Equal(t, MsgBroadcastStarted, resp)
+	resp, _ = b.OnMessage(Message{})
+	require.Equal(t, "", resp)
+
+	b.status = false
+	resp, _ = b.OnMessage(Message{})
+	require.Equal(t, MsgBroadcastFinished, resp)
 }
 
 func TestPing(t *testing.T) {

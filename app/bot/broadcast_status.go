@@ -20,7 +20,7 @@ type BroadcastStatus struct {
 	delayToOff   time.Duration // After this interval of not OK, status will be switcher to OFF
 
 	status         bool // current broadcast status
-	lastSentStatus bool
+	lastSentStatus *bool
 	offPeriod      time.Duration
 	lastCheck      time.Time
 
@@ -36,15 +36,13 @@ func NewBroadcastStatus(ctx context.Context, broadcastUrl string, pingInterval t
 
 // OnMessage returns currenct broadcast status
 func (b *BroadcastStatus) OnMessage(msg Message) (response string, answer bool) {
-	if !contains(b.ReactOn(), msg.Text) {
+	if b.lastSentStatus != nil && b.status == *b.lastSentStatus {
 		return "", false
 	}
 
-	if b.status == b.lastSentStatus {
-		return "", false
-	}
+	status := b.status
+	b.lastSentStatus = &status
 
-	b.lastSentStatus = b.status
 	if b.status {
 		return MsgBroadcastStarted, true
 	}
@@ -109,5 +107,5 @@ func ping(ctx context.Context, url string) bool {
 
 // ReactOn keys
 func (b *BroadcastStatus) ReactOn() []string {
-	return []string{""}
+	return []string{}
 }

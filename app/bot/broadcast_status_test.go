@@ -48,15 +48,16 @@ func TestBroadcastTransitions(t *testing.T) {
 	require.True(t, b.status) // still true, no deadline
 
 	time.Sleep(time.Millisecond * 5)
-	require.False(t, b.status) // false, deadline deached
+	require.False(t, b.status) // false, deadline reached
 	time.Sleep(time.Millisecond * 5)
 	require.False(t, b.status) // still false
 }
 
 func TestBroadcastStatusBotOnMessage(t *testing.T) {
 	b := &BroadcastStatus{}
-	b.status = false
 	resp, _ := b.OnMessage(Message{})
+	require.Equal(t, MsgBroadcastFinished, resp)
+	resp, _ = b.OnMessage(Message{})
 	require.Equal(t, "", resp)
 
 	b.status = true

@@ -38,6 +38,8 @@ var opts struct {
 var revision = "local"
 
 func main() {
+	ctx := context.TODO()
+
 	fmt.Printf("radio-t bot, %s\n", revision)
 	if _, err := flags.Parse(&opts); err != nil {
 		os.Exit(1)
@@ -53,6 +55,7 @@ func main() {
 	rand.Seed(int64(time.Now().Nanosecond()))
 
 	multiBot := bot.MultiBot{
+		bot.NewBroadcastStatus(ctx, "https://stream.radio-t.com", 10*time.Second, time.Minute),
 		bot.NewSys(opts.SysData),
 		bot.NewVotes(opts.SuperUsers),
 		bot.NewNews("https://news.radio-t.com/api"),
@@ -82,9 +85,6 @@ func main() {
 		Token:      opts.Telegram.Token,
 		Debug:      opts.Dbg,
 	}
-
-	ctx := context.TODO()
-	go events.NewBroadcastStatusBot(10*time.Second, "https://stream.radio-t.com", time.Minute, "", &tgListener).Start(ctx)
 
 	go events.Rtjc{Port: opts.RtjcPort, Submitter: &tgListener}.Listen(ctx)
 	if err := tgListener.Do(ctx); err != nil {

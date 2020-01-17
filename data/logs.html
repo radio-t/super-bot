@@ -57,6 +57,22 @@
                 max-width: 128px;
                 max-height: 128px;
             }
+
+            .document {
+                float: left;
+                display: block;
+                background:rgba(0,0,0,0.1);
+                padding: 0.5rem;
+                border-radius: 4px;
+            }
+            .document .thumbnail {
+                margin-right: 0.66rem;
+                margin-bottom: 0;
+            }
+            .caption {
+                float: left;
+                clear: both;
+            }
         </style>
     </head>
     <body>
@@ -85,7 +101,15 @@
                 {{- .Msg.Text }}
                 {{- if .Msg.Picture }}
                     {{- if eq .Msg.Picture.Class "animated-sticker" }}
-                    <div class="animated-sticker" title="{{ .Msg.Picture.Image.Alt }}" attr-src="{{ .Msg.Picture.Image.FileID | fileURL }}"></div>
+                    <div class="animated-sticker" title="{{ .Msg.Picture.Image.Alt }}" attr-src="{{ .Msg.Picture.Image.FileID | fileURL }}">
+                        <noscript>
+                            <img src="{{ .Msg.Picture.Thumbnail.FileID | fileURL }}" 
+                                width={{ .Msg.Picture.Thumbnail.Width }}
+                                height={{ .Msg.Picture.Thumbnail.Height }}
+                                alt={{ .Msg.Picture.Image.Alt }}
+                                >
+                        </noscript>
+                    </div>
                     {{- else }}
                     {{- if .Msg.Picture.Caption }}
                     <figure>
@@ -110,6 +134,32 @@
                     </figure>
                     {{ end }}
                     {{ end }}
+                {{ end }}
+                {{- if .Msg.Document }}
+                    <a class="document" href="{{ .Msg.Document.FileID | fileURL }}">
+                        {{- if .Msg.Document.Thumbnail }}
+                        <img class="thumbnail"
+                            src="{{ .Msg.Document.Thumbnail.FileID | fileURL }}"
+                            width={{ .Msg.Document.Thumbnail.Width }}
+                            height={{ .Msg.Document.Thumbnail.Height }}>
+                        {{ end }}
+                        {{ .Msg.Document.FileName }} <small class="size">({{ .Msg.Document.Size | sizeHuman }})</small>
+                    </a>
+                    {{- if .Msg.Document.Caption }}
+                        <span class="caption">{{ .Msg.Document.Caption }}</span>
+                    {{ end }}
+                {{ end }}
+                {{- if .Msg.Animation }}
+                    <video width={{ .Msg.Animation.Width }} height={{ .Msg.Animation.Height }} autoplay loop>
+                        <source src="{{ .Msg.Animation.FileID | fileURL }}" type="{{ .Msg.Animation.MimeType }}">
+                        Your browser does not support the video tag.
+                        {{- if .Msg.Animation.Thumbnail }}
+                        <img src="{{ .Msg.Animation.Thumbnail.FileID | fileURL }}" 
+                            width={{ .Msg.Animation.Thumbnail.Width }}
+                            height={{ .Msg.Animation.Thumbnail.Height }}>
+                        {{ end }}
+                    </video>
+                    <!--small>({{ .Msg.Animation.Size | sizeHuman }})</!--small-->
                 {{ end }}
             </td>
         </tr>

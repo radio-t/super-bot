@@ -50,11 +50,9 @@ func Test_convertPhoto(t *testing.T) {
 				Class:   "photo",
 				Caption: "caption",
 				Image: bot.Image{
-					Source: bot.Source{
-						FileID: "AgADAgADFKwxG8r0qUiQByxwp9Gi4s1qwQ8ABAEAAwIAA20AA5C9AgABFgQ",
-						Width:  320,
-						Height: 149,
-					},
+					FileID: "AgADAgADFKwxG8r0qUiQByxwp9Gi4s1qwQ8ABAEAAwIAA20AA5C9AgABFgQ",
+					Width:  320,
+					Height: 149,
 					Sources: []bot.Source{
 						bot.Source{
 							FileID: "AgADAgADFKwxG8r0qUiQByxwp9Gi4s1qwQ8ABAEAAwIAA20AA5C9AgABFgQ",
@@ -125,12 +123,15 @@ func Test_convertSticker(t *testing.T) {
 			Picture: &bot.Picture{
 				Class: "sticker",
 				Image: bot.Image{
-					Source: bot.Source{
-						FileID: "CAADAgADWAIAAllTGAABOw16iAWY5VUWBA.png",
-						Width:  512,
-						Height: 512,
-						Alt:    "4️⃣",
-					},
+					FileID: "CAADAgADWAIAAllTGAABOw16iAWY5VUWBA.png",
+					Width:  512,
+					Height: 512,
+					Alt:    "4️⃣",
+				},
+				Thumbnail: bot.Source{
+					FileID: "AAQCAANYAgACWVMYAAE7DXqIBZjlVYNwmg4ABAEAB20AA9uMAAIWBA",
+					Width:  128,
+					Height: 128,
 				},
 				Sources: []bot.Source{
 					bot.Source{
@@ -185,12 +186,15 @@ func Test_convertAnimatedSticker(t *testing.T) {
 			Picture: &bot.Picture{
 				Class: "animated-sticker",
 				Image: bot.Image{
-					Source: bot.Source{
-						FileID: "CAADAgAD8gEAArD72weo9_9Bp6KNxxYE.json",
-						Width:  512,
-						Height: 512,
-						Alt:    "👻",
-					},
+					FileID: "CAADAgAD8gEAArD72weo9_9Bp6KNxxYE.json",
+					Width:  512,
+					Height: 512,
+					Alt:    "👻",
+				},
+				Thumbnail: bot.Source{
+					FileID: "AAQCAAPyAQACsPvbB6j3_0Gnoo3HRAq4DwAEAQAHbQADGWMAAhYE",
+					Width:  128,
+					Height: 128,
 				},
 				Sources: []bot.Source{
 					bot.Source{
@@ -226,6 +230,124 @@ func Test_convertAnimatedSticker(t *testing.T) {
 						FileSize: 2604,
 					},
 					Emoji: "👻",
+				},
+			},
+		),
+	)
+}
+
+func Test_convertDocument(t *testing.T) {
+	l := TelegramListener{}
+	assert.Equal(
+		t,
+		bot.Message{
+			From: bot.User{
+				Username:    "username",
+				DisplayName: "First Last",
+			},
+			Sent: time.Unix(1578627415, 0),
+			Document: &bot.Document{
+				FileID:   "BQADAgADlgQAAsyxCUlsinA_gGRZlhYE",
+				FileName: "junk-mail.jpg",
+				MimeType: "image/jpeg",
+				Size:     101780,
+				Caption:  "document caption",
+				Thumbnail: &bot.Source{
+					FileID: "AAQCAAOWBAACzLEJSWyKcD-AZFmWgsfLDgAEAQAHbQADsA4AAhYE",
+					Width:  300,
+					Height: 300,
+					Size:   49827,
+				},
+			},
+		},
+		l.convert(
+			&tbapi.Message{
+				From: &tbapi.User{
+					UserName:  "username",
+					FirstName: "First",
+					LastName:  "Last",
+				},
+				Date: 1578627415,
+				Document: &tbapi.Document{
+					FileID:   "BQADAgADlgQAAsyxCUlsinA_gGRZlhYE",
+					FileName: "junk-mail.jpg",
+					MimeType: "image/jpeg",
+					FileSize: 101780,
+					Thumbnail: &tbapi.PhotoSize{
+						FileID:   "AAQCAAOWBAACzLEJSWyKcD-AZFmWgsfLDgAEAQAHbQADsA4AAhYE",
+						Width:    300,
+						Height:   300,
+						FileSize: 49827,
+					},
+				},
+				Caption: "document caption",
+			},
+		),
+	)
+}
+
+func Test_convertAnimation(t *testing.T) {
+	l := TelegramListener{}
+	assert.Equal(
+		t,
+		bot.Message{
+			From: bot.User{
+				Username:    "username",
+				DisplayName: "First Last",
+			},
+			Sent: time.Unix(1578627415, 0),
+			Animation: &bot.Animation{
+				FileID:   "CgADBAADBQADZHZtUX7GwEE7RarSFgQ",
+				FileName: "giphy.mp4",
+				MimeType: "video/mp4",
+				Size:     199710,
+				Duration: 2,
+				Width:    480,
+				Height:   266,
+				Thumbnail: &bot.Source{
+					FileID: "AAQEAAMFAANkdm1RfsbAQTtFqtKNzqcaAAQBAAdzAANzFgACFgQ",
+					Width:  90,
+					Height: 50,
+					Size:   2158,
+				},
+			},
+		},
+		l.convert(
+			&tbapi.Message{
+				From: &tbapi.User{
+					UserName:  "username",
+					FirstName: "First",
+					LastName:  "Last",
+				},
+				Date: 1578627415,
+				Animation: &tbapi.ChatAnimation{
+					FileID:   "CgADBAADBQADZHZtUX7GwEE7RarSFgQ",
+					FileName: "giphy.mp4",
+					MimeType: "video/mp4",
+					FileSize: 199710,
+					Duration: 2,
+					Width:    480,
+					Height:   266,
+					Thumbnail: &tbapi.PhotoSize{
+						FileID:   "AAQEAAMFAANkdm1RfsbAQTtFqtKNzqcaAAQBAAdzAANzFgACFgQ",
+						Width:    90,
+						Height:   50,
+						FileSize: 2158,
+					},
+				},
+				// no idea why Document is almost copy of Animation
+				// unless it's to support some old clients
+				Document: &tbapi.Document{
+					FileID:   "CgADBAADBQADZHZtUX7GwEE7RarSFgQ",
+					FileName: "giphy.mp4",
+					MimeType: "video/mp4",
+					FileSize: 199710,
+					Thumbnail: &tbapi.PhotoSize{
+						FileID:   "AAQEAAMFAANkdm1RfsbAQTtFqtKNzqcaAAQBAAdzAANzFgACFgQ",
+						Width:    90,
+						Height:   50,
+						FileSize: 2158,
+					},
 				},
 			},
 		),

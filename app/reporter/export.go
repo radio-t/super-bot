@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/radio-t/gitter-rt-bot/app/bot"
 	"github.com/radio-t/gitter-rt-bot/app/storage"
 )
@@ -130,6 +128,7 @@ func (e Exporter) toHTML(messages []bot.Message, num int) string {
 				return i
 			}
 		},
+		"sizeHuman": sizeHuman,
 	}
 	name := e.TemplateFile[strings.LastIndex(e.TemplateFile, "/")+1:]
 	t, err := template.New(name).Funcs(funcMap).ParseFiles(e.TemplateFile)
@@ -147,85 +146,109 @@ func (e Exporter) toHTML(messages []bot.Message, num int) string {
 func (e Exporter) maybeDownloadFiles(msg bot.Message) {
 	switch {
 	case msg.Picture != nil:
-		err := e.maybeDownloadFile(msg.Picture.Image.Source)
-		if err != nil {
-			log.Printf("[ERROR] failed to get file URL for file %s: %v", msg.Picture.Image.Source.FileID, err)
-		}
+		e.maybeDownloadFile(msg.Picture.Image.FileID, "")
+		e.maybeDownloadFile(msg.Picture.Thumbnail.FileID, "")
 
 		for _, source := range (*msg.Picture).Image.Sources {
-			err := e.maybeDownloadFile(source)
-			if err != nil {
-				log.Printf("[ERROR] failed to download file %s: %v", source.FileID, err)
-				continue
-			}
+			e.maybeDownloadFile(source.FileID, source.Type)
 		}
 
 		for _, source := range (*msg.Picture).Sources {
-			err := e.maybeDownloadFile(source)
-			if err != nil {
-				log.Printf("[ERROR] failed to download file %s: %v", source.FileID, err)
-				continue
-			}
+			e.maybeDownloadFile(source.FileID, source.Type)
+		}
+
+	case msg.Document != nil:
+		e.maybeDownloadFile(msg.Document.FileID, "")
+
+		if msg.Document.Thumbnail != nil {
+			e.maybeDownloadFile(msg.Document.Thumbnail.FileID, "")
+		}
+
+	case msg.Animation != nil:
+		e.maybeDownloadFile(msg.Animation.FileID, "")
+
+		if msg.Animation.Thumbnail != nil {
+			e.maybeDownloadFile(msg.Animation.Thumbnail.FileID, "")
 		}
 	}
 }
 
-func (e Exporter) maybeDownloadFile(source bot.Source) error {
-	if _, found := e.fileIDToURL[source.FileID]; found {
-		// already downloaded
-		return nil
+func (e Exporter) maybeDownloadFile(fileID string, fileType string) {
+	if fileID == "" {
+		return
 	}
 
-	if strings.Contains(source.FileID, ".") {
+	if _, found := e.fileIDToURL[fileID]; found {
+		// already downloaded
+		return
+	}
+
+	if strings.Contains(fileID, ".") {
 		// hacky way to handle WebP & TGS stickers
 		// convertion to happens after image "FileID" download
-		e.fileIDToURL[source.FileID] = e.storage.BuildLink(source.FileID)
-		return nil
+		e.fileIDToURL[fileID] = e.storage.BuildLink(fileID)
+		return
 	}
 
-	fileExists, err := e.storage.FileExists(source.FileID)
+	fileExists, err := e.storage.FileExists(fileID)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check if file exists alredy: %s", source.FileID)
+		log.Printf("[ERROR] failed to check if file exists alredy: %s: %v", fileID, err)
+		return
 	}
 
 	if fileExists {
-		e.fileIDToURL[source.FileID] = e.storage.BuildLink(source.FileID)
-		return nil
+		e.fileIDToURL[fileID] = e.storage.BuildLink(fileID)
+		return
 	}
 
-	body, err := e.fileRecipient.GetFile(source.FileID)
+	log.Printf("[DEBUG] downloading file %s", fileID)
+	body, err := e.fileRecipient.GetFile(fileID)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get file body for %s", source.FileID)
+		log.Printf("[ERROR] failed to get file body for %s: %v", fileID, err)
+		return
 	}
 	defer body.Close()
 
 	bodyBytes, err := ioutil.ReadAll(body)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read file body for %s", source.FileID)
+		log.Printf("[ERROR] failed to read file body for %s: %v", fileID, err)
+		return
 	}
+	log.Printf("[DEBUG] downloaded file %s", fileID)
 
-	fileURL, err := e.storage.CreateFile(source.FileID, bodyBytes)
+	fileURL, err := e.storage.CreateFile(fileID, bodyBytes)
 	if err != nil {
-		return err
+		log.Printf("[ERROR] failed to create file %s: %v", fileID, err)
+		return
 	}
 
-	e.fileIDToURL[source.FileID] = fileURL
+	e.fileIDToURL[fileID] = fileURL
 	// hacky: need to pass fileURL to template
 	// using this map in template FuncMap later
 
-	converter, found := e.converters[source.Type]
+	if fileType == "" {
+		return
+	}
+
+	converter, found := e.converters[fileType]
 	if !found {
-		log.Printf("[DEBUG] no convertion will happen (converter for type \"%s\" not found)", source.Type)
-		return nil
+		log.Printf("[DEBUG] no convertion will happen (converter for type \"%s\" not found)", fileType)
+		return
 	}
 
 	convertedBody, err := converter.Convert(bodyBytes)
 	if err != nil {
-		return errors.Wrapf(err, "failed to convert file %s", source.FileID)
+		log.Printf("[ERROR] failed to convert file %s: %v", fileID, err)
+		return
 	}
 
-	_, err = e.storage.CreateFile(source.FileID+"."+converter.Extension(), convertedBody)
-	return err
+	fileNameConverted := fileID + "." + converter.Extension()
+	_, err = e.storage.CreateFile(fileNameConverted, convertedBody)
+	if err != nil {
+		log.Printf("[ERROR] failed to create file %s: %v", fileNameConverted, err)
+	}
+
+	return
 }
 
 func readMessages(path string) ([]bot.Message, error) {
@@ -262,4 +285,23 @@ func filter(msg bot.Message) bool {
 		return false
 	}
 	return contains([]string{"+1", "-1", ":+1:", ":-1:"}, msg.Text)
+}
+
+func sizeHuman(b int) string {
+	const unit = 1000
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+
+	return fmt.Sprintf(
+		"%.1f %cB",
+		float64(b)/float64(div),
+		"kMGTPE"[exp],
+	)
 }

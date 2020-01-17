@@ -24,36 +24,64 @@ type SuperUser interface {
 
 // Message is primary record to pass data from/to bots
 type Message struct {
-	From    User
-	Sent    time.Time
-	HTML    string   `json:",omitempty"`
-	Text    string   `json:",omitempty"`
-	Picture *Picture `json:",omitempty"`
+	From      User
+	Sent      time.Time
+	HTML      string     `json:",omitempty"`
+	Text      string     `json:",omitempty"`
+	Picture   *Picture   `json:",omitempty"`
+	Document  *Document  `json:",omitempty"`
+	Animation *Animation `json:",omitempty"`
 }
 
 // Picture represents HTML5 <picture> with optional <figcaption>
 type Picture struct {
-	Caption string `json:",omitempty"`
-	Image   Image
-	Sources []Source `json:",omitempty"`
-	Class   string   `json:",omitempty"`
+	Image     Image
+	Class     string   `json:",omitempty"`
+	Caption   string   `json:",omitempty"`
+	Sources   []Source `json:",omitempty"`
+	Thumbnail Source   `json:",omitempty"`
 }
 
 // Image represents HTML <img>
 type Image struct {
-	Source
+	// FileID corresponds to Telegram file_id
+	FileID  string
+	Width   int
+	Height  int
+	Size    int
+	Alt     string   `json:",omitempty"`
 	Sources []Source `json:",omitempty"`
 }
 
 // Source defines file, usually image
 type Source struct {
-	// FileID corresponds to Telegram file_id
 	FileID string
-	Type   string `json:",omitempty"`
+	Width  int
+	Height int
 	Size   int    `json:",omitempty"`
-	Alt    string `json:",omitempty"`
-	Width  int    `json:",omitempty"`
-	Height int    `json:",omitempty"`
+	Type   string `json:",omitempty"`
+}
+
+// Document is for attached file on Telegram
+type Document struct {
+	FileID    string
+	FileName  string
+	Size      int
+	MimeType  string
+	Caption   string
+	Thumbnail *Source
+}
+
+// Animation is for animation (MP4, GIF)
+type Animation struct {
+	FileID    string
+	FileName  string
+	Size      int
+	MimeType  string
+	Thumbnail *Source
+	Duration  int
+	Width     int
+	Height    int
 }
 
 // User defines user info of the Message

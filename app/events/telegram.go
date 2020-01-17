@@ -141,43 +141,79 @@ func (l *TelegramListener) convert(msg *tbapi.Message) bot.Message {
 		Text: msg.Text,
 	}
 
-	if msg.Photo != nil && len(*msg.Photo) > 0 {
+	switch {
+	case msg.Photo != nil && len(*msg.Photo) > 0:
 		message.Picture = &bot.Picture{
 			Image: bot.Image{
-				Source: bot.Source{
-					FileID: (*msg.Photo)[0].FileID,
-					Width:  (*msg.Photo)[0].Width,
-					Height: (*msg.Photo)[0].Height,
-				},
+				FileID:  (*msg.Photo)[0].FileID,
+				Width:   (*msg.Photo)[0].Width,
+				Height:  (*msg.Photo)[0].Height,
 				Sources: l.convertPhotoSizes(*msg.Photo),
 			},
 			Caption: msg.Caption,
 			Class:   "photo",
 		}
-	}
 
-	if msg.Sticker != nil {
-		class := "sticker"
-		extensionFrom := "webp"
-		extensionTo := "png"
-
-		if msg.Sticker.IsAnimated {
-			class = "animated-sticker"
-			extensionFrom = "tgs"
-			extensionTo = "json"
-		}
+	case msg.Sticker != nil:
+		class, extensionFrom, extensionTo := func(isAnimated bool) (string, string, string) {
+			if isAnimated {
+				return "animated-sticker", "tgs", "json"
+			}
+			return "sticker", "webp", "png"
+		}(msg.Sticker.IsAnimated)
 
 		message.Picture = &bot.Picture{
 			Image: bot.Image{
-				Source: bot.Source{
-					FileID: msg.Sticker.FileID + "." + extensionTo,
-					Width:  msg.Sticker.Width,
-					Height: msg.Sticker.Height,
-					Alt:    msg.Sticker.Emoji,
-				},
+				FileID: msg.Sticker.FileID + "." + extensionTo,
+				Width:  msg.Sticker.Width,
+				Height: msg.Sticker.Height,
+				Alt:    msg.Sticker.Emoji,
+			},
+			Thumbnail: bot.Source{
+				FileID: msg.Sticker.Thumbnail.FileID,
+				Width:  msg.Sticker.Thumbnail.Width,
+				Height: msg.Sticker.Thumbnail.Height,
 			},
 			Sources: l.convertSticker(*msg.Sticker, extensionFrom, extensionTo),
 			Class:   class,
+		}
+
+	case msg.Animation != nil: // have to be before Document case block, run tests
+		message.Animation = &bot.Animation{
+			FileID:   msg.Animation.FileID,
+			FileName: msg.Animation.FileName,
+			Size:     msg.Animation.FileSize,
+			MimeType: msg.Animation.MimeType,
+			Duration: msg.Animation.Duration,
+			Width:    msg.Animation.Width,
+			Height:   msg.Animation.Height,
+		}
+
+		if msg.Animation.Thumbnail != nil {
+			message.Animation.Thumbnail = &bot.Source{
+				FileID: msg.Animation.Thumbnail.FileID,
+				Width:  msg.Animation.Thumbnail.Width,
+				Height: msg.Animation.Thumbnail.Height,
+				Size:   msg.Animation.Thumbnail.FileSize,
+			}
+		}
+
+	case msg.Document != nil:
+		message.Document = &bot.Document{
+			FileID:   msg.Document.FileID,
+			FileName: msg.Document.FileName,
+			Size:     msg.Document.FileSize,
+			MimeType: msg.Document.MimeType,
+			Caption:  msg.Caption,
+		}
+
+		if msg.Document.Thumbnail != nil {
+			message.Document.Thumbnail = &bot.Source{
+				FileID: msg.Document.Thumbnail.FileID,
+				Width:  msg.Document.Thumbnail.Width,
+				Height: msg.Document.Thumbnail.Height,
+				Size:   msg.Document.Thumbnail.FileSize,
+			}
 		}
 	}
 

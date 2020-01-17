@@ -29,7 +29,7 @@ lint:
 # make run ARGS="--super umputun"
 # make run ARGS="--super umputun --export-num 684 --export-path logs --export-day 20200104 --export-template data/logs.html"
 run:
-	@go run -v -mod=vendor app/main.go ${ARGS}
+	@go run -v -mod=vendor app/main.go --dbg ${ARGS}
 
 .PHONY: help
 ## help: prints this help message

@@ -140,7 +140,7 @@ func Test_downloadFilesNeverCalledForTextMessages(t *testing.T) {
 	storage.AssertExpectations(t)
 }
 
-func Test_downloadFilesForPhoto(t *testing.T) {
+func Test_downloadFilesPhoto(t *testing.T) {
 	msgs := []bot.Message{
 		{
 			From: bot.User{
@@ -160,6 +160,9 @@ func Test_downloadFilesForPhoto(t *testing.T) {
 							FileID: "FILE_ID_2",
 						},
 					},
+				},
+				Thumbnail: &bot.Source{
+					FileID: "FILE_ID_1",
 				},
 			},
 		},
@@ -189,7 +192,7 @@ func Test_downloadFilesForPhoto(t *testing.T) {
 	storage.AssertExpectations(t)
 }
 
-func Test_downloadFilesAndConvertSticker(t *testing.T) {
+func Test_downloadFilesSticker(t *testing.T) {
 	msgs := []bot.Message{
 		{
 			From: bot.User{
@@ -199,35 +202,49 @@ func Test_downloadFilesAndConvertSticker(t *testing.T) {
 			Sent: time.Unix(1578627415, 0),
 			Text: "Message",
 			Picture: &bot.Picture{
+				Class: "sticker",
 				Image: bot.Image{
-					FileID: "FILE_ID_1.png",
+					FileID: "FILE_ID",
+					Alt:    "😀",
+					Type:   "webp",
 				},
 				Sources: []bot.Source{
 					bot.Source{
-						FileID: "FILE_ID_1",
+						FileID: "FILE_ID",
 						Type:   "webp",
 					},
 					bot.Source{
-						FileID: "FILE_ID_1.png",
+						FileID: "FILE_ID.png",
 						Type:   "png",
 					},
+				},
+				Thumbnail: &bot.Source{
+					FileID: "FILE_ID_THUMB",
+					Width:  128,
+					Height: 128,
 				},
 			},
 		},
 	}
 
 	fileRecipient := new(fileRecipientMock)
-	fileRecipient.On("GetFile", "FILE_ID_1").Return(buffer("IMAGE_1"), nil).Once()
+	fileRecipient.On("GetFile", "FILE_ID").Return(buffer("IMAGE"), nil).Once()
+	fileRecipient.On("GetFile", "FILE_ID_THUMB").Return(buffer("THUMB"), nil).Once()
 
 	converter := new(converterMock)
-	converter.On("Convert", []byte("IMAGE_1")).Return([]byte("IMAGE_1_PNG"), nil)
+	converter.On("Convert", []byte("IMAGE")).Return([]byte("IMAGE_PNG"), nil)
+	converter.On("Convert", []byte("THUMB")).Return([]byte("THUMB_PNG"), nil)
 	converter.On("Extension").Return("png")
 
 	storage := new(storageMock)
-	storage.On("FileExists", "FILE_ID_1").Return(false, nil).Once()
-	storage.On("CreateFile", "FILE_ID_1", []byte("IMAGE_1")).Return("684/FILE_ID_1", nil).Once()
-	storage.On("CreateFile", "FILE_ID_1.png", []byte("IMAGE_1_PNG")).Return("684/FILE_ID_1.png", nil).Once()
-	storage.On("BuildLink", "FILE_ID_1.png").Return("684/FILE_ID_1.png", nil)
+	storage.On("FileExists", "FILE_ID").Return(false, nil).Once()
+	storage.On("CreateFile", "FILE_ID", []byte("IMAGE")).Return("684/FILE_ID", nil).Once()
+	storage.On("CreateFile", "FILE_ID.png", []byte("IMAGE_PNG")).Return("684/FILE_ID.png", nil).Once()
+	storage.On("BuildLink", "FILE_ID.png").Return("684/FILE_ID.png", nil)
+
+	storage.On("FileExists", "FILE_ID_THUMB").Return(false, nil)
+	storage.On("CreateFile", "FILE_ID_THUMB", []byte("THUMB")).Return("684/FILE_ID_THUMB", nil).Once()
+	storage.On("CreateFile", "FILE_ID_THUMB.png", []byte("THUMB_PNG")).Return("684/FILE_ID_THUMB.png", nil).Once()
 
 	e, err := setup(fileRecipient, map[string]Converter{"webp": converter}, storage)
 	assert.NoError(t, err)
@@ -244,7 +261,7 @@ func Test_downloadFilesAndConvertSticker(t *testing.T) {
 	storage.AssertExpectations(t)
 }
 
-func Test_downloadFilesAndConvertAnimatedSticker(t *testing.T) {
+func Test_downloadFilesAnimatedSticker(t *testing.T) {
 	msgs := []bot.Message{
 		{
 			From: bot.User{
@@ -259,9 +276,10 @@ func Test_downloadFilesAndConvertAnimatedSticker(t *testing.T) {
 					FileID: "FILE_ID.json",
 					Width:  512,
 					Height: 512,
+					Type:   "json",
 					Alt:    "👻",
 				},
-				Thumbnail: bot.Source{
+				Thumbnail: &bot.Source{
 					FileID: "FILE_ID_THUMB",
 					Width:  128,
 					Height: 128,

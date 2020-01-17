@@ -65,7 +65,7 @@ func NewExporter(
 }
 
 // Export to html with showNum
-func (e Exporter) Export(showNum int, yyyymmdd int) {
+func (e *Exporter) Export(showNum int, yyyymmdd int) {
 	from := fmt.Sprintf("%s/%s.log", e.InputRoot, time.Now().Format("20060102")) // current day by default
 	if yyyymmdd != 0 {
 		from = fmt.Sprintf("%s/%d.log", e.InputRoot, yyyymmdd)
@@ -87,7 +87,7 @@ func (e Exporter) Export(showNum int, yyyymmdd int) {
 
 }
 
-func (e Exporter) toHTML(messages []bot.Message, num int) string {
+func (e *Exporter) toHTML(messages []bot.Message, num int) string {
 
 	type Record struct {
 		Time   string
@@ -128,7 +128,11 @@ func (e Exporter) toHTML(messages []bot.Message, num int) string {
 				return i
 			}
 		},
-		"sizeHuman": sizeHuman,
+		"png": func(fileURL string) string {
+			return fileURL + ".png"
+		},
+		"sizeHuman":      sizeHuman,
+		"timestampHuman": e.timestampHuman,
 	}
 	name := e.TemplateFile[strings.LastIndex(e.TemplateFile, "/")+1:]
 	t, err := template.New(name).Funcs(funcMap).ParseFiles(e.TemplateFile)
@@ -143,11 +147,24 @@ func (e Exporter) toHTML(messages []bot.Message, num int) string {
 	return html.String()
 }
 
-func (e Exporter) maybeDownloadFiles(msg bot.Message) {
+func (e *Exporter) timestampHuman(t time.Time) string {
+	return t.In(e.location).Format("15:04:05")
+}
+
+func (e *Exporter) maybeDownloadFiles(msg bot.Message) {
 	switch {
 	case msg.Picture != nil:
-		e.maybeDownloadFile(msg.Picture.Image.FileID, "")
-		e.maybeDownloadFile(msg.Picture.Thumbnail.FileID, "")
+		imageType := "png"
+		if msg.Picture.Class == "sticker" || msg.Picture.Class == "animated-sticker" {
+			imageType = "webp"
+		}
+
+		e.maybeDownloadFile(msg.Picture.Image.FileID, imageType)
+
+		if msg.Picture.Thumbnail != nil {
+
+			e.maybeDownloadFile(msg.Picture.Thumbnail.FileID, imageType)
+		}
 
 		for _, source := range (*msg.Picture).Image.Sources {
 			e.maybeDownloadFile(source.FileID, source.Type)
@@ -173,7 +190,7 @@ func (e Exporter) maybeDownloadFiles(msg bot.Message) {
 	}
 }
 
-func (e Exporter) maybeDownloadFile(fileID string, fileType string) {
+func (e *Exporter) maybeDownloadFile(fileID string, fileType string) {
 	if fileID == "" {
 		return
 	}
@@ -235,6 +252,8 @@ func (e Exporter) maybeDownloadFile(fileID string, fileType string) {
 		log.Printf("[DEBUG] no convertion will happen (converter for type \"%s\" not found)", fileType)
 		return
 	}
+
+	log.Printf("[DEBUG] converting file %s to %s", fileID, converter.Extension())
 
 	convertedBody, err := converter.Convert(bodyBytes)
 	if err != nil {

@@ -88,7 +88,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				continue
 			}
 
-			if resp, send := l.Bots.OnMessage(msg); send {
+			if resp, send := l.Bots.OnMessage(*msg); send {
 				log.Printf("[DEBUG] bot response - %+v", resp)
 				tbMsg := tbapi.NewMessage(update.Message.Chat.ID, resp)
 				tbMsg.ParseMode = tbapi.ModeMarkdown
@@ -131,27 +131,42 @@ func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {
 	l.Save(l.convert(msg))
 }
 
-func (l *TelegramListener) convert(msg *tbapi.Message) bot.Message {
+func (l *TelegramListener) convert(msg *tbapi.Message) *bot.Message {
 	message := bot.Message{
-		From: bot.User{
-			Username:    msg.From.UserName,
-			DisplayName: msg.From.FirstName + " " + msg.From.LastName,
-		},
+		ID:   msg.MessageID,
 		Sent: msg.Time(),
 		Text: msg.Text,
 	}
 
+	if msg.From != nil {
+		message.From = bot.User{
+			Username:    msg.From.UserName,
+			DisplayName: msg.From.FirstName + " " + msg.From.LastName,
+		}
+	}
+
+	if msg.ReplyToMessage != nil {
+		message.ReplyToMessage = l.convert(msg.ReplyToMessage)
+	}
+
 	switch {
 	case msg.Photo != nil && len(*msg.Photo) > 0:
+		sizes := *msg.Photo
 		message.Picture = &bot.Picture{
+			Class: "photo",
 			Image: bot.Image{
-				FileID:  (*msg.Photo)[0].FileID,
-				Width:   (*msg.Photo)[0].Width,
-				Height:  (*msg.Photo)[0].Height,
+				FileID:  sizes[0].FileID,
+				Width:   sizes[0].Width,
+				Height:  sizes[0].Height,
 				Sources: l.convertPhotoSizes(*msg.Photo),
 			},
 			Caption: msg.Caption,
-			Class:   "photo",
+			Thumbnail: &bot.Source{
+				FileID: sizes[0].FileID,
+				Width:  sizes[0].Width,
+				Height: sizes[0].Height,
+				Size:   sizes[0].FileSize,
+			},
 		}
 
 	case msg.Sticker != nil:
@@ -163,19 +178,23 @@ func (l *TelegramListener) convert(msg *tbapi.Message) bot.Message {
 		}(msg.Sticker.IsAnimated)
 
 		message.Picture = &bot.Picture{
+			Class: class,
 			Image: bot.Image{
 				FileID: msg.Sticker.FileID + "." + extensionTo,
 				Width:  msg.Sticker.Width,
 				Height: msg.Sticker.Height,
 				Alt:    msg.Sticker.Emoji,
+				Type:   extensionTo,
 			},
-			Thumbnail: bot.Source{
+			Sources: l.convertSticker(*msg.Sticker, extensionFrom, extensionTo),
+		}
+
+		if msg.Sticker.Thumbnail != nil {
+			message.Picture.Thumbnail = &bot.Source{
 				FileID: msg.Sticker.Thumbnail.FileID,
 				Width:  msg.Sticker.Thumbnail.Width,
 				Height: msg.Sticker.Thumbnail.Height,
-			},
-			Sources: l.convertSticker(*msg.Sticker, extensionFrom, extensionTo),
-			Class:   class,
+			}
 		}
 
 	case msg.Animation != nil: // have to be before Document case block, run tests
@@ -217,7 +236,7 @@ func (l *TelegramListener) convert(msg *tbapi.Message) bot.Message {
 		}
 	}
 
-	return message
+	return &message
 }
 
 func (l *TelegramListener) convertPhotoSizes(sizes []tbapi.PhotoSize) []bot.Source {

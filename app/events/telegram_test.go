@@ -14,7 +14,8 @@ func Test_convertTextMessage(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
-		bot.Message{
+		&bot.Message{
+			ID: 30,
 			From: bot.User{
 				Username:    "username",
 				DisplayName: "First Last",
@@ -29,8 +30,56 @@ func Test_convertTextMessage(t *testing.T) {
 					FirstName: "First",
 					LastName:  "Last",
 				},
-				Date: 1578627415,
+				MessageID: 30,
+				Date:      1578627415,
+				Text:      "Message",
+			},
+		),
+	)
+}
+
+func Test_convertTextMessageWithReply(t *testing.T) {
+	l := TelegramListener{}
+	assert.Equal(
+		t,
+		&bot.Message{
+			ID: 31,
+			From: bot.User{
+				Username:    "username",
+				DisplayName: "First Last",
+			},
+			Sent: time.Unix(1578627415, 0),
+			Text: "Reply",
+			ReplyToMessage: &bot.Message{
+				ID: 30,
+				From: bot.User{
+					Username:    "username2",
+					DisplayName: "First2 Last2",
+				},
+				Sent: time.Unix(1578627415, 0),
 				Text: "Message",
+			},
+		},
+		l.convert(
+			&tbapi.Message{
+				MessageID: 31,
+				From: &tbapi.User{
+					UserName:  "username",
+					FirstName: "First",
+					LastName:  "Last",
+				},
+				Date: 1578627415,
+				Text: "Reply",
+				ReplyToMessage: &tbapi.Message{
+					MessageID: 30,
+					From: &tbapi.User{
+						UserName:  "username2",
+						FirstName: "First2",
+						LastName:  "Last2",
+					},
+					Date: 1578627415,
+					Text: "Message",
+				},
 			},
 		),
 	)
@@ -40,11 +89,7 @@ func Test_convertPhoto(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
-		bot.Message{
-			From: bot.User{
-				Username:    "username",
-				DisplayName: "First Last",
-			},
+		&bot.Message{
 			Sent: time.Unix(1578627415, 0),
 			Picture: &bot.Picture{
 				Class:   "photo",
@@ -74,15 +119,16 @@ func Test_convertPhoto(t *testing.T) {
 						},
 					},
 				},
+				Thumbnail: &bot.Source{
+					FileID: "AgADAgADFKwxG8r0qUiQByxwp9Gi4s1qwQ8ABAEAAwIAA20AA5C9AgABFgQ",
+					Width:  320,
+					Height: 149,
+					Size:   6262,
+				},
 			},
 		},
 		l.convert(
 			&tbapi.Message{
-				From: &tbapi.User{
-					UserName:  "username",
-					FirstName: "First",
-					LastName:  "Last",
-				},
 				Date: 1578627415,
 				Photo: &[]tbapi.PhotoSize{
 					tbapi.PhotoSize{
@@ -114,11 +160,7 @@ func Test_convertSticker(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
-		bot.Message{
-			From: bot.User{
-				Username:    "username",
-				DisplayName: "First Last",
-			},
+		&bot.Message{
 			Sent: time.Unix(1578627415, 0),
 			Picture: &bot.Picture{
 				Class: "sticker",
@@ -127,11 +169,7 @@ func Test_convertSticker(t *testing.T) {
 					Width:  512,
 					Height: 512,
 					Alt:    "4️⃣",
-				},
-				Thumbnail: bot.Source{
-					FileID: "AAQCAANYAgACWVMYAAE7DXqIBZjlVYNwmg4ABAEAB20AA9uMAAIWBA",
-					Width:  128,
-					Height: 128,
+					Type:   "png",
 				},
 				Sources: []bot.Source{
 					bot.Source{
@@ -144,15 +182,15 @@ func Test_convertSticker(t *testing.T) {
 						Type:   "png",
 					},
 				},
+				Thumbnail: &bot.Source{
+					FileID: "AAQCAANYAgACWVMYAAE7DXqIBZjlVYNwmg4ABAEAB20AA9uMAAIWBA",
+					Width:  128,
+					Height: 128,
+				},
 			},
 		},
 		l.convert(
 			&tbapi.Message{
-				From: &tbapi.User{
-					UserName:  "username",
-					FirstName: "First",
-					LastName:  "Last",
-				},
 				Date: 1578627415,
 				Sticker: &tbapi.Sticker{
 					FileID:     "CAADAgADWAIAAllTGAABOw16iAWY5VUWBA",
@@ -177,11 +215,7 @@ func Test_convertAnimatedSticker(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
-		bot.Message{
-			From: bot.User{
-				Username:    "username",
-				DisplayName: "First Last",
-			},
+		&bot.Message{
 			Sent: time.Unix(1578627415, 0),
 			Picture: &bot.Picture{
 				Class: "animated-sticker",
@@ -189,9 +223,10 @@ func Test_convertAnimatedSticker(t *testing.T) {
 					FileID: "CAADAgAD8gEAArD72weo9_9Bp6KNxxYE.json",
 					Width:  512,
 					Height: 512,
+					Type:   "json",
 					Alt:    "👻",
 				},
-				Thumbnail: bot.Source{
+				Thumbnail: &bot.Source{
 					FileID: "AAQCAAPyAQACsPvbB6j3_0Gnoo3HRAq4DwAEAQAHbQADGWMAAhYE",
 					Width:  128,
 					Height: 128,
@@ -211,11 +246,6 @@ func Test_convertAnimatedSticker(t *testing.T) {
 		},
 		l.convert(
 			&tbapi.Message{
-				From: &tbapi.User{
-					UserName:  "username",
-					FirstName: "First",
-					LastName:  "Last",
-				},
 				Date: 1578627415,
 				Sticker: &tbapi.Sticker{
 					FileID:     "CAADAgAD8gEAArD72weo9_9Bp6KNxxYE",
@@ -240,11 +270,7 @@ func Test_convertDocument(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
-		bot.Message{
-			From: bot.User{
-				Username:    "username",
-				DisplayName: "First Last",
-			},
+		&bot.Message{
 			Sent: time.Unix(1578627415, 0),
 			Document: &bot.Document{
 				FileID:   "BQADAgADlgQAAsyxCUlsinA_gGRZlhYE",
@@ -262,11 +288,6 @@ func Test_convertDocument(t *testing.T) {
 		},
 		l.convert(
 			&tbapi.Message{
-				From: &tbapi.User{
-					UserName:  "username",
-					FirstName: "First",
-					LastName:  "Last",
-				},
 				Date: 1578627415,
 				Document: &tbapi.Document{
 					FileID:   "BQADAgADlgQAAsyxCUlsinA_gGRZlhYE",
@@ -290,11 +311,7 @@ func Test_convertAnimation(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
-		bot.Message{
-			From: bot.User{
-				Username:    "username",
-				DisplayName: "First Last",
-			},
+		&bot.Message{
 			Sent: time.Unix(1578627415, 0),
 			Animation: &bot.Animation{
 				FileID:   "CgADBAADBQADZHZtUX7GwEE7RarSFgQ",
@@ -314,11 +331,6 @@ func Test_convertAnimation(t *testing.T) {
 		},
 		l.convert(
 			&tbapi.Message{
-				From: &tbapi.User{
-					UserName:  "username",
-					FirstName: "First",
-					LastName:  "Last",
-				},
 				Date: 1578627415,
 				Animation: &tbapi.ChatAnimation{
 					FileID:   "CgADBAADBQADZHZtUX7GwEE7RarSFgQ",

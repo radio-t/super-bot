@@ -56,6 +56,7 @@
             .animated-sticker {
                 max-width: 128px;
                 max-height: 128px;
+                object-fit: contain;
             }
 
             .document {
@@ -73,6 +74,32 @@
                 float: left;
                 clear: both;
             }
+
+            .reply-to-message figcaption,
+            .reply-to-message blockquote {
+                font-size: 90%;
+            }
+            .reply-to-message blockquote {
+                display: inline-block;
+                opacity: 0.8;
+                background: rgba(255,255,255,0.25)
+            }
+            .reply-to-message blockquote::after {
+                content: "";
+                clear: both;
+                display: table;
+            }
+            .reply-to-message::after {
+                content: "";
+                clear: both;
+                display: table;
+            }
+            .reply-to-message .thumbnail {
+                margin-bottom: 0;
+                max-width: 64px;
+                max-height: 64px;
+                object-fit: cover;
+            }
         </style>
     </head>
     <body>
@@ -89,50 +116,108 @@
 
         <table class="table table-striped table-hover table-condensed" id="table">
         {{ range .Records }}
-        <tr>
+        <tr id="{{ .Msg.ID }}">
             {{- if .IsHost }}
-                <td class="danger" align="left">{{ .Time }}</td>
-                <td class="success" align="left"><span title="{{ .Msg.From.DisplayName }}">{{ .Msg.From.Username }}</span></td>
+                <td class="danger" align="left">{{ .Msg.Sent | timestampHuman }}</td>
+                <td class="success" align="left"><span title="{{ .Msg.From.Username }}">{{ .Msg.From.DisplayName }}</span></td>
             {{ else }}
-                <td class="success" align="left">{{ .Time }}</td>
-                <td class="success" align="left"><span title="{{ .Msg.From.DisplayName }}">{{ .Msg.From.Username }}</span></td>
+                <td class="success" align="left">{{ .Msg.Sent | timestampHuman }}</td>
+                <td class="success" align="left"><span title="{{ .Msg.From.Username }}">{{ .Msg.From.DisplayName }}</span></td>
             {{ end -}}
             <td class="warning" align="left">
+                {{- if .Msg.ReplyToMessage }}
+                    <a class="reply-to-message" href="#{{ .Msg.ReplyToMessage.ID }}">
+                        <blockquote>
+                            <strong>{{ .Msg.ReplyToMessage.From.DisplayName }}</strong> {{ .Msg.ReplyToMessage.Sent | timestampHuman }}:<br>
+                            {{- .Msg.ReplyToMessage.Text }}
+                            {{- if .Msg.ReplyToMessage.Picture }}
+                                {{- if .Msg.ReplyToMessage.Picture.Caption }}
+                                <figure>
+                                {{- end }}
+                                {{- if .Msg.ReplyToMessage.Picture.Thumbnail }}
+                                    <img class="thumbnail{{- if .Msg.ReplyToMessage.Picture.Class }} {{ .Msg.ReplyToMessage.Picture.Class }}{{ end }}" 
+                                        src="{{ .Msg.ReplyToMessage.Picture.Thumbnail.FileID | fileURL | png }}" 
+                                        width={{ .Msg.ReplyToMessage.Picture.Thumbnail.Width }}
+                                        height={{ .Msg.ReplyToMessage.Picture.Thumbnail.Height }}
+                                        alt="{{ .Msg.ReplyToMessage.Picture.Image.Alt }}"
+                                        align="left"
+                                        >
+                                {{ end }}
+                                {{- if .Msg.ReplyToMessage.Picture.Caption }}
+                                    <figcaption>
+                                        {{- .Msg.ReplyToMessage.Picture.Caption }}
+                                    </figcaption>
+                                </figure>
+                                {{ end }}
+                                {{- if eq .Msg.ReplyToMessage.Picture.Class "sticker" }}
+                                    {{ .Msg.ReplyToMessage.Picture.Image.Alt }} Sticker
+                                {{- end -}}
+                            {{ end }}
+                            {{- if .Msg.ReplyToMessage.Document }}
+                                <span class="document">
+                                    {{- if .Msg.ReplyToMessage.Document.Thumbnail }}
+                                    <img class="thumbnail"
+                                        src="{{ .Msg.ReplyToMessage.Document.ReplyToMessage.Thumbnail.FileID | fileURL }}"
+                                        width={{ .Msg.ReplyToMessage.Document.ReplyToMessage.Thumbnail.Width }}
+                                        height={{ .Msg.ReplyToMessage.Document.ReplyToMessage.Thumbnail.Height }}>
+                                    {{ end }}
+                                    {{ .Msg.ReplyToMessage.Document.FileName }}
+                                </span>
+                                {{- if .Msg.ReplyToMessage.Document.Caption }}
+                                    <span class="caption">{{ .Msg.ReplyToMessage.Document.Caption }}</span>
+                                {{ end }}
+                            {{ end }}
+                            {{- if .Msg.ReplyToMessage.Animation }}
+                                {{- if .Msg.ReplyToMessage.Animation.Thumbnail }}
+                                    <img class="thumbnail"
+                                        src="{{ .Msg.ReplyToMessage.Animation.Thumbnail.FileID | fileURL }}" 
+                                        width={{ .Msg.ReplyToMessage.Animation.Thumbnail.Width }}
+                                        height={{ .Msg.ReplyToMessage.Animation.Thumbnail.Height }}
+                                        align="left">
+                                {{ end }}
+                                GIF
+                            {{ end }}
+                        </blockquote>
+                    </a>
+                {{ end -}}
                 {{- .Msg.Text }}
                 {{- if .Msg.Picture }}
                     {{- if eq .Msg.Picture.Class "animated-sticker" }}
-                    <div class="animated-sticker" title="{{ .Msg.Picture.Image.Alt }}" attr-src="{{ .Msg.Picture.Image.FileID | fileURL }}">
-                        <noscript>
-                            <img src="{{ .Msg.Picture.Thumbnail.FileID | fileURL }}" 
-                                width={{ .Msg.Picture.Thumbnail.Width }}
-                                height={{ .Msg.Picture.Thumbnail.Height }}
-                                alt={{ .Msg.Picture.Image.Alt }}
-                                >
-                        </noscript>
-                    </div>
+                        <div class="animated-sticker" title="{{ .Msg.Picture.Image.Alt }}" attr-src="{{ .Msg.Picture.Image.FileID | fileURL }}">
+                            <noscript>
+                                {{- if .Msg.Picture.Thumbnail }}
+                                <img class="thumbnail"
+                                    src="{{ .Msg.Picture.Thumbnail.FileID | fileURL }}" 
+                                    width={{ .Msg.Picture.Thumbnail.Width }}
+                                    height={{ .Msg.Picture.Thumbnail.Height }}
+                                    alt={{ .Msg.Picture.Image.Alt }}
+                                    >
+                                {{- end }}
+                            </noscript>
+                        </div>
                     {{- else }}
-                    {{- if .Msg.Picture.Caption }}
-                    <figure>
-                    {{- end }}
-                    <picture {{- if .Msg.Picture.Class }} class="{{ .Msg.Picture.Class }}"{{ end }}>
-                        {{- range .Msg.Picture.Sources }}
-                        <source srcset="{{ .FileID | fileURL }}" type="image/{{ .Type }}">
+                        {{- if .Msg.Picture.Caption }}
+                        <figure>
                         {{- end }}
-                        <img src="{{ .Msg.Picture.Image.FileID | fileURL }}" 
-                            width={{ .Msg.Picture.Image.Width }}
-                            height={{ .Msg.Picture.Image.Height }}
-                            alt="{{ .Msg.Picture.Image.Alt }}"
-                            srcset="{{- $c := counter -}}
-                            {{- range .Msg.Picture.Image.Sources -}}
-                            {{- if call $c -}}, {{ end -}}
-                            {{- .FileID | fileURL }} {{ .Width }}w
-                            {{- end -}}"
-                            >
-                    </picture>
-                    {{- if .Msg.Picture.Caption }}
-                        <figcaption>{{ .Msg.Picture.Caption }}</figcaption>
-                    </figure>
-                    {{ end }}
+                        <picture {{- if .Msg.Picture.Class }} class="{{ .Msg.Picture.Class }}"{{ end }}>
+                            {{- range .Msg.Picture.Sources }}
+                            <source srcset="{{ .FileID | fileURL }}" type="image/{{ .Type }}">
+                            {{- end }}
+                            <img src="{{ .Msg.Picture.Image.FileID | fileURL }}" 
+                                width={{ .Msg.Picture.Image.Width }}
+                                height={{ .Msg.Picture.Image.Height }}
+                                alt="{{ .Msg.Picture.Image.Alt }}"
+                                srcset="{{- $c := counter -}}
+                                {{- range .Msg.Picture.Image.Sources -}}
+                                {{- if call $c -}}, {{ end -}}
+                                {{- .FileID | fileURL }} {{ .Width }}w
+                                {{- end -}}"
+                                >
+                        </picture>
+                        {{- if .Msg.Picture.Caption }}
+                            <figcaption>{{ .Msg.Picture.Caption }}</figcaption>
+                        </figure>
+                        {{ end }}
                     {{ end }}
                 {{ end }}
                 {{- if .Msg.Document }}
@@ -154,7 +239,8 @@
                         <source src="{{ .Msg.Animation.FileID | fileURL }}" type="{{ .Msg.Animation.MimeType }}">
                         Your browser does not support the video tag.
                         {{- if .Msg.Animation.Thumbnail }}
-                        <img src="{{ .Msg.Animation.Thumbnail.FileID | fileURL }}" 
+                        <img class="thumbnail"
+                            src="{{ .Msg.Animation.Thumbnail.FileID | fileURL }}" 
                             width={{ .Msg.Animation.Thumbnail.Width }}
                             height={{ .Msg.Animation.Thumbnail.Height }}>
                         {{ end }}

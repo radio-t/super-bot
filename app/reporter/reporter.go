@@ -26,7 +26,7 @@ func NewLogger(logs string) (result Reporter) {
 }
 
 // Save to log channel, non-blocking and skip if needed
-func (l Reporter) Save(msg bot.Message) {
+func (l Reporter) Save(msg *bot.Message) {
 
 	bdata, err := json.Marshal(&msg)
 	if err != nil {

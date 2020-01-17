@@ -15,18 +15,22 @@ const (
 
 // BroadcastStatus bot returns current broadcast status
 type BroadcastStatus struct {
+	// Params
 	broadcastUrl string        // Url for "ping"
 	pingInterval time.Duration // Ping interval
 	delayToOff   time.Duration // After this interval of not OK, status will be switcher to OFF
 
-	status         bool // current broadcast status
-	lastSentStatus *bool
+	// State
+	status         bool  // current broadcast status
+	lastSentStatus *bool // by default this value is null to react on first message
 	offPeriod      time.Duration
 	lastCheck      time.Time
 
+	// ping func (place here for tests)
 	ping func(ctx context.Context, url string) bool
 }
 
+// NewBroadcastStatus starts status checking goroutine and returns bot instance
 func NewBroadcastStatus(ctx context.Context, broadcastUrl string, pingInterval time.Duration, delayToOff time.Duration) *BroadcastStatus {
 	log.Printf("[INFO] BroadcastStatus bot with %v", broadcastUrl)
 	b := &BroadcastStatus{broadcastUrl: broadcastUrl, pingInterval: pingInterval, delayToOff: delayToOff, lastCheck: time.Now(), ping: ping}
@@ -34,19 +38,20 @@ func NewBroadcastStatus(ctx context.Context, broadcastUrl string, pingInterval t
 	return b
 }
 
-// OnMessage returns currenct broadcast status
-func (b *BroadcastStatus) OnMessage(msg Message) (response string, answer bool) {
+// OnMessage returns current broadcast status
+func (b *BroadcastStatus) OnMessage(_ Message) (response string, answer bool) {
 	if b.lastSentStatus != nil && b.status == *b.lastSentStatus {
 		return "", false
 	}
 
+	answer = true
 	status := b.status
 	b.lastSentStatus = &status
-
-	if b.status {
-		return MsgBroadcastStarted, true
+	response = MsgBroadcastStarted
+	if !b.status {
+		response = MsgBroadcastFinished
 	}
-	return MsgBroadcastFinished, true
+	return
 }
 
 func (b *BroadcastStatus) checker(ctx context.Context) {

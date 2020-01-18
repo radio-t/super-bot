@@ -16,6 +16,10 @@ import (
 	"github.com/radio-t/gitter-rt-bot/app/storage"
 )
 
+// magic number used to trim text in reply
+// 43 is the number that Telegram clients are using
+const maxQuoteLength = 43
+
 // Exporter performs conversion from log file to html
 type Exporter struct {
 	ExporterParams
@@ -130,6 +134,15 @@ func (e *Exporter) toHTML(messages []bot.Message, num int) string {
 		},
 		"png": func(fileURL string) string {
 			return fileURL + ".png"
+		},
+		"trim": func(text string) string {
+			runes := []rune(text)
+
+			if len(runes) < maxQuoteLength {
+				return text
+			}
+
+			return string(runes[0:maxQuoteLength]) + "..."
 		},
 		"sizeHuman":      sizeHuman,
 		"timestampHuman": e.timestampHuman,

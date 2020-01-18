@@ -24,17 +24,31 @@ type SuperUser interface {
 
 // Message is primary record to pass data from/to bots
 type Message struct {
-	ID             int
-	From           User
-	Sent           time.Time
-	HTML           string     `json:",omitempty"`
-	Text           string     `json:",omitempty"`
-	Picture        *Picture   `json:",omitempty"`
-	Document       *Document  `json:",omitempty"`
-	Animation      *Animation `json:",omitempty"`
-	Voice          *Voice     `json:",omitempty"`
-	Video          *Video     `json:",omitempty"`
-	ReplyToMessage *Message   `json:",omitempty"`
+	ID                   int
+	From                 User
+	Sent                 time.Time
+	HTML                 string     `json:",omitempty"`
+	Text                 string     `json:",omitempty"`
+	Picture              *Picture   `json:",omitempty"`
+	Document             *Document  `json:",omitempty"`
+	Animation            *Animation `json:",omitempty"`
+	Voice                *Voice     `json:",omitempty"`
+	Video                *Video     `json:",omitempty"`
+	ReplyToMessage       *Message   `json:",omitempty"`
+	ForwardFrom          *User      `json:",omitempty"`
+	ForwardFromChat      *Chat      `json:",omitempty"`
+	ForwardFromMessageID int        `json:",omitempty"`
+}
+
+// Chat represents channel or chat
+// Used in Message.ForwardFromChat
+type Chat struct {
+	ID        int64
+	Type      string
+	Title     string
+	UserName  string
+	FirstName string `json:",omitempty"`
+	LastName  string `json:",omitempty"`
 }
 
 // Picture represents HTML5 <picture> with optional <figcaption>

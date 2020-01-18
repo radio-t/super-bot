@@ -145,6 +145,26 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 		}
 	}
 
+	if msg.ForwardFrom != nil {
+		message.ForwardFrom = &bot.User{
+			Username:    msg.ForwardFrom.UserName,
+			DisplayName: msg.ForwardFrom.FirstName + " " + msg.ForwardFrom.LastName,
+		}
+		message.ForwardFromMessageID = msg.ForwardFromMessageID
+	}
+
+	if msg.ForwardFromChat != nil {
+		message.ForwardFromChat = &bot.Chat{
+			ID:        msg.ForwardFromChat.ID,
+			Type:      msg.ForwardFromChat.Type,
+			Title:     msg.ForwardFromChat.Title,
+			UserName:  msg.ForwardFromChat.UserName,
+			FirstName: msg.ForwardFromChat.FirstName,
+			LastName:  msg.ForwardFromChat.LastName,
+		}
+		message.ForwardFromMessageID = msg.ForwardFromMessageID
+	}
+
 	if msg.ReplyToMessage != nil {
 		message.ReplyToMessage = l.transform(msg.ReplyToMessage)
 	}

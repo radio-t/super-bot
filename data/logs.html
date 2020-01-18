@@ -65,6 +65,8 @@
             .animated-sticker {
                 max-width: 128px;
                 max-height: 128px;
+                width: auto;
+                height: auto;
                 object-fit: contain;
             }
 
@@ -82,6 +84,13 @@
             .caption, .video {
                 float: left;
                 clear: both;
+            }
+
+            .forwarded {
+                font-size: 90%;
+            }
+            .forwarded .from {
+                font-weight: bold;
             }
 
             .reply-to-message figcaption,
@@ -105,8 +114,8 @@
             }
             .reply-to-message .thumbnail {
                 margin-bottom: 0;
-                max-width: 64px;
-                max-height: 64px;
+                width: 64px;
+                height: 64px;
                 object-fit: cover;
             }
         </style>
@@ -134,11 +143,21 @@
                 <td class="success" align="left"><span title="{{ .Msg.From.Username }}">{{ .Msg.From.DisplayName }}</span></td>
             {{ end -}}
             <td class="warning" align="left">
+                {{- if .Msg.ForwardFromChat }}
+                    <div class="forwarded">Forwarded from <a class="from" href="https://t.me/{{ .Msg.ForwardFromChat.UserName }}/{{ .Msg.ForwardFromMessageID }}">{{ .Msg.ForwardFromChat.Title }}</a></div>
+                {{ end }}
+                {{- if .Msg.ForwardFrom }}
+                    <div class="forwarded">Forwarded from
+                        {{- if .Msg.ForwardFrom.Username }} <a class="from" href="https://t.me/{{ .Msg.ForwardFrom.Username }}">{{ .Msg.ForwardFrom.DisplayName }}</a>
+                        {{- else }} <span class="from">{{ .Msg.ForwardFrom.DisplayName }}</span>
+                        {{- end -}}
+                    </div>
+                {{ end }}
                 {{- if .Msg.ReplyToMessage }}
                     <a class="reply-to-message" href="#{{ .Msg.ReplyToMessage.ID }}">
                         <blockquote>
                             <strong>{{ .Msg.ReplyToMessage.From.DisplayName }}</strong> {{ .Msg.ReplyToMessage.Sent | timestampHuman }}:<br>
-                            {{- .Msg.ReplyToMessage.Text }}
+                            {{- .Msg.ReplyToMessage.Text | trim }}
                             {{- if .Msg.ReplyToMessage.Picture }}
                                 {{- if .Msg.ReplyToMessage.Picture.Caption }}
                                 <figure>

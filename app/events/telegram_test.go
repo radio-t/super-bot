@@ -445,3 +445,81 @@ func Test_transformVideo(t *testing.T) {
 		),
 	)
 }
+
+func Test_transformForwardFromChat(t *testing.T) {
+	l := TelegramListener{}
+	assert.Equal(
+		t,
+		&bot.Message{
+			Sent: time.Unix(1578627415, 0),
+			Text: "И под конец рабочей недели <...> https://techcrunch.com/2020/01/17/digitalocean-layoffs/",
+			ForwardFromChat: &bot.Chat{
+				ID:        -1001005993407,
+				Type:      "channel",
+				Title:     "addmeto",
+				UserName:  "addmeto",
+				FirstName: "",
+				LastName:  "",
+			},
+			ForwardFromMessageID: 2956,
+		},
+		l.transform(
+			&tbapi.Message{
+				Date: 1578627415,
+				Text: "И под конец рабочей недели <...> https://techcrunch.com/2020/01/17/digitalocean-layoffs/",
+				ForwardFromChat: &tbapi.Chat{
+					ID:                  -1001005993407,
+					Type:                "channel",
+					Title:               "addmeto",
+					UserName:            "addmeto",
+					FirstName:           "",
+					LastName:            "",
+					AllMembersAreAdmins: false,
+					Photo:               nil,
+					PinnedMessage:       nil,
+				},
+				ForwardFromMessageID: 2956,
+				ForwardDate:          1579293863,
+				Entities: &[]tbapi.MessageEntity{
+					{
+						Type:   "url",
+						Offset: 33,
+						Length: 55,
+						URL:    "",
+						User:   nil,
+					},
+				},
+			},
+		),
+	)
+}
+
+func Test_transformForwardFrom(t *testing.T) {
+	l := TelegramListener{}
+	assert.Equal(
+		t,
+		&bot.Message{
+			Sent: time.Unix(1578627415, 0),
+			Text: "Я имел ввиду GKE и EKS, да",
+			ForwardFrom: &bot.User{
+				Username:    "chuhlomin",
+				DisplayName: "Konstantin Chukhlomin",
+			},
+		},
+		l.transform(
+			&tbapi.Message{
+				Date: 1578627415,
+				Text: "Я имел ввиду GKE и EKS, да",
+				ForwardFrom: &tbapi.User{
+					ID:           4885399,
+					UserName:     "chuhlomin",
+					FirstName:    "Konstantin",
+					LastName:     "Chukhlomin",
+					LanguageCode: "",
+					IsBot:        false,
+				},
+				ForwardDate: 1579362361,
+			},
+		),
+	)
+}

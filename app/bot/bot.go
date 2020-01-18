@@ -38,6 +38,8 @@ type Message struct {
 	ForwardFrom          *User      `json:",omitempty"`
 	ForwardFromChat      *Chat      `json:",omitempty"`
 	ForwardFromMessageID int        `json:",omitempty"`
+	NewChatMembers       *[]User    `json:",omitempty"`
+	LeftChatMember       *User      `json:",omitempty"`
 }
 
 // Chat represents channel or chat

@@ -290,6 +290,25 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 				Size:   msg.Video.Thumbnail.FileSize,
 			}
 		}
+
+	case msg.NewChatMembers != nil:
+		var users []bot.User
+		for _, user := range *msg.NewChatMembers {
+			users = append(users, bot.User{
+				Username:    user.UserName,
+				DisplayName: user.FirstName + " " + user.LastName,
+			})
+		}
+
+		message.From = bot.User{}
+		message.NewChatMembers = &users
+
+	case msg.LeftChatMember != nil:
+		message.From = bot.User{}
+		message.LeftChatMember = &bot.User{
+			Username:    msg.LeftChatMember.UserName,
+			DisplayName: msg.LeftChatMember.FirstName + " " + msg.LeftChatMember.LastName,
+		}
 	}
 
 	return &message

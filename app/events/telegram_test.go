@@ -523,3 +523,74 @@ func Test_transformForwardFrom(t *testing.T) {
 		),
 	)
 }
+
+func Test_transformUserJoined(t *testing.T) {
+	l := TelegramListener{}
+	assert.Equal(
+		t,
+		&bot.Message{
+			Sent: time.Unix(1578627415, 0),
+			NewChatMembers: &[]bot.User{
+				{
+					Username:    "username1",
+					DisplayName: "First1 Last1",
+				},
+				{
+					Username:    "username2",
+					DisplayName: "First2 Last2",
+				},
+			},
+		},
+		l.transform(
+			&tbapi.Message{
+				Date: 1578627415,
+				From: &tbapi.User{
+					FirstName: "First1",
+					LastName:  "Last1",
+					UserName:  "username1",
+				},
+				NewChatMembers: &[]tbapi.User{
+					{
+						FirstName: "First1",
+						LastName:  "Last1",
+						UserName:  "username1",
+					},
+					{
+						FirstName: "First2",
+						LastName:  "Last2",
+						UserName:  "username2",
+					},
+				},
+			},
+		),
+	)
+}
+
+func Test_transformUserLeft(t *testing.T) {
+	l := TelegramListener{}
+	assert.Equal(
+		t,
+		&bot.Message{
+			Sent: time.Unix(1578627415, 0),
+			LeftChatMember: &bot.User{
+				Username:    "username1",
+				DisplayName: "First1 Last1",
+			},
+		},
+		l.transform(
+			&tbapi.Message{
+				Date: 1578627415,
+				From: &tbapi.User{
+					FirstName: "First1",
+					LastName:  "Last1",
+					UserName:  "username1",
+				},
+				LeftChatMember: &tbapi.User{
+					FirstName: "First1",
+					LastName:  "Last1",
+					UserName:  "username1",
+				},
+			},
+		),
+	)
+}

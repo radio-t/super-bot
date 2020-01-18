@@ -118,6 +118,21 @@
                 height: 64px;
                 object-fit: cover;
             }
+
+            .member-joined,
+            .member-left {
+                display: block;
+                float: left;
+                clear: both;
+                padding: 0rem 1rem;
+                border-radius: 100px;
+                background: rgba(0,0,0,0.1);
+            }
+
+            .member-joined .name,
+            .member-left .name {
+                font-weight: bold;
+            }
         </style>
     </head>
     <body>
@@ -311,6 +326,20 @@
                         {{- if .Msg.Video.Caption }}{{ .Msg.Video.Caption }}{{ end }}
                         <small>({{ .Msg.Video.Size | sizeHuman }})</small>
                     </span>
+                {{ end }}
+                {{- if .Msg.NewChatMembers }}
+                    {{- range .Msg.NewChatMembers }}
+                        <span class="member-joined">
+                            {{- if .Username }}<a class="name" href="https://t.me/{{ .Username }}">{{ .DisplayName }}</a> {{ else -}}
+                            <span class="name">{{ .DisplayName }}</span> {{ end -}}
+                            joined the group</span>
+                    {{ end }}
+                {{ end }}
+                {{- if .Msg.LeftChatMember }}
+                    <span class="member-left">
+                        {{- if .Msg.LeftChatMember.Username }}<a class="name" href="https://t.me/{{ .Msg.LeftChatMember.Username }}">{{ .Msg.LeftChatMember.DisplayName }}</a> {{ else -}}
+                        <span class="name">{{ .Msg.LeftChatMember.DisplayName }}</span> {{ end -}}
+                        left the group</span>
                 {{ end }}
             </td>
         </tr>

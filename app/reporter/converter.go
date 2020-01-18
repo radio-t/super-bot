@@ -1,59 +1,53 @@
 package reporter
 
 import (
-	"bytes"
 	"compress/gzip"
-	"io/ioutil"
+	"io"
+	"os"
 	"os/exec"
+
+	"github.com/radio-t/gitter-rt-bot/app/storage"
 
 	"github.com/pkg/errors"
 )
 
 // Converter knows how to convert file from one format to another
 type Converter interface {
-	Convert(in []byte) (out []byte, err error)
-	Extension() string
+	Convert(fileID string) (err error)
 }
 
 // WebPConverter can convert WebP (used for Telegram stickers) into JPG
 // See https://developers.google.com/speed/webp
-type WebPConverter struct{}
+type WebPConverter struct {
+	storage storage.Storage
+}
 
 // NewWebPConverter creates new WebPConverter
-func NewWebPConverter() Converter {
-	return &WebPConverter{}
+func NewWebPConverter(storage storage.Storage) Converter {
+	return &WebPConverter{storage: storage}
 }
 
 // Convert converts WebP image into JPG image
-// Requires dwebp binary in PATH
+// Requires `dwebp` binary in PATH
 // See http://downloads.webmproject.org/releases/webp/
-func (w *WebPConverter) Convert(in []byte) (out []byte, err error) {
-	var b bytes.Buffer
-
-	cmd := exec.Command("dwebp", "-o", "-", "--", "-")
-	cmd.Stdin = bytes.NewBuffer(in)
-	cmd.Stdout = &b
-	err = cmd.Start()
+func (w *WebPConverter) Convert(fileID string) error {
+	cmd := exec.Command(
+		"dwebp",
+		w.storage.BuildPath(fileID),
+		"-o",
+		w.storage.BuildPath(fileID+".png"),
+	)
+	err := cmd.Start()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to start dwebp execution")
+		return errors.Wrap(err, "failed to start dwebp execution")
 	}
 
 	err = cmd.Wait()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute dwebp")
+		return errors.Wrap(err, "failed to execute dwebp")
 	}
 
-	out, err = ioutil.ReadAll(&b)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read JSON (WebP to JSON conversion)")
-	}
-
-	return
-}
-
-// Extension returnes new file extension for converted file
-func (w *WebPConverter) Extension() string {
-	return "png"
+	return nil
 }
 
 // TGSConverter can convert TGS (used for Telegram Animated Stickers) into GIF
@@ -61,25 +55,70 @@ func (w *WebPConverter) Extension() string {
 // See https://github.com/airbnb/lottie-web
 // https://core.telegram.org/animated_stickers
 type TGSConverter struct {
+	storage storage.Storage
 }
 
 // NewTGSConverter creates new TGSConverter
-func NewTGSConverter() Converter {
-	return &TGSConverter{}
+func NewTGSConverter(storage storage.Storage) Converter {
+	return &TGSConverter{storage: storage}
 }
 
 // Convert converts TGS file bytes into animated GIF
-func (tgs *TGSConverter) Convert(in []byte) (out []byte, err error) {
-	reader, err := gzip.NewReader(bytes.NewReader(in))
+func (tgs *TGSConverter) Convert(fileID string) error {
+	in, err := os.Open(tgs.storage.BuildPath(fileID))
 	if err != nil {
-		return nil, err
+		return errors.Wrapf(err, "failed to open file %s", tgs.storage.BuildPath(fileID))
+	}
+	defer in.Close()
+
+	out, err := os.Create(tgs.storage.BuildPath(fileID + ".json"))
+	if err != nil {
+		return errors.Wrapf(err, "failed to create file %s", tgs.storage.BuildPath(fileID))
+	}
+	defer out.Close()
+
+	reader, err := gzip.NewReader(in)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create reader for file %s", tgs.storage.BuildPath(fileID))
 	}
 	defer reader.Close()
 
-	return ioutil.ReadAll(reader)
+	_, err = io.Copy(out, reader)
+	if err != nil {
+		return errors.Wrapf(err, "failed to copy reader for file %s", tgs.storage.BuildPath(fileID))
+	}
+
+	return nil
 }
 
-// Extension returnes new file extension for converted file
-func (tgs *TGSConverter) Extension() string {
-	return "json"
+// OGGConverter can convert OGG Audio (used for Voice messages) into MP3
+// Requires `dwebp` binary in PATH
+type OGGConverter struct {
+	storage storage.Storage
+}
+
+// NewOGGConverter creates new OGGConverter
+func NewOGGConverter(storage storage.Storage) Converter {
+	return &OGGConverter{storage: storage}
+}
+
+// Convert converts OGG audio bytes to MP3
+func (ogg *OGGConverter) Convert(fileID string) error {
+	cmd := exec.Command(
+		"ffmpeg",
+		"-i",
+		ogg.storage.BuildPath(fileID),
+		ogg.storage.BuildPath(fileID+".mp3"),
+	)
+	err := cmd.Start()
+	if err != nil {
+		return errors.Wrap(err, "failed to start ffmpeg execution")
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		return errors.Wrap(err, "failed to execute ffmpeg")
+	}
+
+	return nil
 }

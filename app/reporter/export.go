@@ -187,6 +187,11 @@ func (e *Exporter) maybeDownloadFiles(msg bot.Message) {
 		if msg.Animation.Thumbnail != nil {
 			e.maybeDownloadFile(msg.Animation.Thumbnail.FileID, "")
 		}
+
+	case msg.Voice != nil:
+		for _, source := range (*msg.Voice).Sources {
+			e.maybeDownloadFile(source.FileID, source.Type)
+		}
 	}
 }
 
@@ -253,18 +258,11 @@ func (e *Exporter) maybeDownloadFile(fileID string, fileType string) {
 		return
 	}
 
-	log.Printf("[DEBUG] converting file %s to %s", fileID, converter.Extension())
+	log.Printf("[DEBUG] converting file %s (%s)", fileID, fileType)
 
-	convertedBody, err := converter.Convert(bodyBytes)
+	err = converter.Convert(fileID)
 	if err != nil {
 		log.Printf("[ERROR] failed to convert file %s: %v", fileID, err)
-		return
-	}
-
-	fileNameConverted := fileID + "." + converter.Extension()
-	_, err = e.storage.CreateFile(fileNameConverted, convertedBody)
-	if err != nil {
-		log.Printf("[ERROR] failed to create file %s: %v", fileNameConverted, err)
 	}
 
 	return

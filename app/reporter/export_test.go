@@ -148,7 +148,6 @@ func Test_downloadFilesPhoto(t *testing.T) {
 				DisplayName: "First Last",
 			},
 			Sent: time.Unix(1578627415, 0),
-			Text: "Message",
 			Picture: &bot.Picture{
 				Image: bot.Image{
 					FileID: "FILE_ID_1",
@@ -200,7 +199,6 @@ func Test_downloadFilesSticker(t *testing.T) {
 				DisplayName: "First Last",
 			},
 			Sent: time.Unix(1578627415, 0),
-			Text: "Message",
 			Picture: &bot.Picture{
 				Class: "sticker",
 				Image: bot.Image{
@@ -232,19 +230,16 @@ func Test_downloadFilesSticker(t *testing.T) {
 	fileRecipient.On("GetFile", "FILE_ID_THUMB").Return(buffer("THUMB"), nil).Once()
 
 	converter := new(converterMock)
-	converter.On("Convert", []byte("IMAGE")).Return([]byte("IMAGE_PNG"), nil)
-	converter.On("Convert", []byte("THUMB")).Return([]byte("THUMB_PNG"), nil)
-	converter.On("Extension").Return("png")
+	converter.On("Convert", "FILE_ID").Return(nil)
+	converter.On("Convert", "FILE_ID_THUMB").Return(nil)
 
 	storage := new(storageMock)
 	storage.On("FileExists", "FILE_ID").Return(false, nil).Once()
 	storage.On("CreateFile", "FILE_ID", []byte("IMAGE")).Return("684/FILE_ID", nil).Once()
-	storage.On("CreateFile", "FILE_ID.png", []byte("IMAGE_PNG")).Return("684/FILE_ID.png", nil).Once()
 	storage.On("BuildLink", "FILE_ID.png").Return("684/FILE_ID.png", nil)
 
 	storage.On("FileExists", "FILE_ID_THUMB").Return(false, nil)
 	storage.On("CreateFile", "FILE_ID_THUMB", []byte("THUMB")).Return("684/FILE_ID_THUMB", nil).Once()
-	storage.On("CreateFile", "FILE_ID_THUMB.png", []byte("THUMB_PNG")).Return("684/FILE_ID_THUMB.png", nil).Once()
 
 	e, err := setup(fileRecipient, map[string]Converter{"webp": converter}, storage)
 	assert.NoError(t, err)
@@ -269,7 +264,6 @@ func Test_downloadFilesAnimatedSticker(t *testing.T) {
 				DisplayName: "First Last",
 			},
 			Sent: time.Unix(1578627415, 0),
-			Text: "Message",
 			Picture: &bot.Picture{
 				Class: "animated-sticker",
 				Image: bot.Image{
@@ -303,20 +297,28 @@ func Test_downloadFilesAnimatedSticker(t *testing.T) {
 	fileRecipient.On("GetFile", "FILE_ID").Return(buffer("STICKER"), nil).Once()
 	fileRecipient.On("GetFile", "FILE_ID_THUMB").Return(buffer("STICKER_THUMB"), nil).Once()
 
-	converter := new(converterMock)
-	converter.On("Convert", []byte("STICKER")).Return([]byte("STICKER_JSON"), nil)
-	converter.On("Extension").Return("json")
+	converterTGS := new(converterMock)
+	converterTGS.On("Convert", "FILE_ID").Return(nil)
+
+	converterWebP := new(converterMock)
+	converterWebP.On("Convert", "FILE_ID_THUMB").Return(nil)
 
 	storage := new(storageMock)
 	storage.On("FileExists", "FILE_ID").Return(false, nil)
 	storage.On("CreateFile", "FILE_ID", []byte("STICKER")).Return("684/FILE_ID", nil)
-	storage.On("CreateFile", "FILE_ID.json", []byte("STICKER_JSON")).Return("684/FILE_ID.json", nil).Once()
 	storage.On("BuildLink", "FILE_ID.json").Return("684/FILE_ID.json", nil)
 
 	storage.On("FileExists", "FILE_ID_THUMB").Return(false, nil)
 	storage.On("CreateFile", "FILE_ID_THUMB", []byte("STICKER_THUMB")).Return("684/FILE_ID_THUMB", nil)
 
-	e, err := setup(fileRecipient, map[string]Converter{"tgs": converter}, storage)
+	e, err := setup(
+		fileRecipient,
+		map[string]Converter{
+			"tgs":  converterTGS,
+			"webp": converterWebP,
+		},
+		storage,
+	)
 	assert.NoError(t, err)
 	defer teardown()
 
@@ -327,7 +329,8 @@ func Test_downloadFilesAnimatedSticker(t *testing.T) {
 	e.Export(684, 20200111)
 
 	fileRecipient.AssertExpectations(t)
-	converter.AssertExpectations(t)
+	converterTGS.AssertExpectations(t)
+	converterWebP.AssertExpectations(t)
 	storage.AssertExpectations(t)
 }
 
@@ -339,7 +342,6 @@ func Test_downloadFilesDocument(t *testing.T) {
 				DisplayName: "First Last",
 			},
 			Sent: time.Unix(1578627415, 0),
-			Text: "Message",
 			Document: &bot.Document{
 				FileID:   "FILE_ID",
 				MimeType: "image/jpeg",
@@ -358,8 +360,6 @@ func Test_downloadFilesDocument(t *testing.T) {
 	fileRecipient.On("GetFile", "FILE_ID").Return(buffer("DOCUMENT"), nil).Once()
 	fileRecipient.On("GetFile", "FILE_ID_THUMB").Return(buffer("THUMB"), nil).Once()
 
-	converter := new(converterMock)
-
 	storage := new(storageMock)
 	storage.On("FileExists", "FILE_ID").Return(false, nil)
 	storage.On("CreateFile", "FILE_ID", []byte("DOCUMENT")).Return("684/FILE_ID", nil)
@@ -367,7 +367,7 @@ func Test_downloadFilesDocument(t *testing.T) {
 	storage.On("FileExists", "FILE_ID_THUMB").Return(false, nil)
 	storage.On("CreateFile", "FILE_ID_THUMB", []byte("THUMB")).Return("684/FILE_ID_THUMB", nil)
 
-	e, err := setup(fileRecipient, map[string]Converter{"tgs": converter}, storage)
+	e, err := setup(fileRecipient, nil, storage)
 	assert.NoError(t, err)
 	defer teardown()
 
@@ -378,7 +378,6 @@ func Test_downloadFilesDocument(t *testing.T) {
 	e.Export(684, 20200111)
 
 	fileRecipient.AssertExpectations(t)
-	converter.AssertExpectations(t)
 	storage.AssertExpectations(t)
 }
 
@@ -390,7 +389,6 @@ func Test_downloadFilesAnimation(t *testing.T) {
 				DisplayName: "First Last",
 			},
 			Sent: time.Unix(1578627415, 0),
-			Text: "Message",
 			Animation: &bot.Animation{
 				FileID:   "FILE_ID",
 				FileName: "giphy.mp4",
@@ -413,8 +411,6 @@ func Test_downloadFilesAnimation(t *testing.T) {
 	fileRecipient.On("GetFile", "FILE_ID").Return(buffer("ANIMATION"), nil).Once()
 	fileRecipient.On("GetFile", "FILE_ID_THUMB").Return(buffer("THUMB"), nil).Once()
 
-	converter := new(converterMock)
-
 	storage := new(storageMock)
 	storage.On("FileExists", "FILE_ID").Return(false, nil)
 	storage.On("CreateFile", "FILE_ID", []byte("ANIMATION")).Return("684/FILE_ID", nil)
@@ -422,7 +418,57 @@ func Test_downloadFilesAnimation(t *testing.T) {
 	storage.On("FileExists", "FILE_ID_THUMB").Return(false, nil)
 	storage.On("CreateFile", "FILE_ID_THUMB", []byte("THUMB")).Return("684/FILE_ID_THUMB", nil)
 
-	e, err := setup(fileRecipient, map[string]Converter{"tgs": converter}, storage)
+	e, err := setup(fileRecipient, nil, storage)
+	assert.NoError(t, err)
+	defer teardown()
+
+	err = createFile(e.InputRoot+"/20200111.log", msgs)
+	assert.NoError(t, err)
+	defer os.Remove(e.InputRoot + "/20200111.log")
+
+	e.Export(684, 20200111)
+
+	fileRecipient.AssertExpectations(t)
+	storage.AssertExpectations(t)
+}
+
+func Test_downloadFilesVoice(t *testing.T) {
+	msgs := []bot.Message{
+		{
+			From: bot.User{
+				Username:    "username",
+				DisplayName: "First Last",
+			},
+			Sent: time.Unix(1578627415, 0),
+			Voice: &bot.Voice{
+				Duration: 1,
+				Sources: []bot.Source{
+					{
+						FileID: "FILE_ID",
+						Type:   "audio/ogg",
+						Size:   6394,
+					},
+					{
+						FileID: "FILE_ID.mp3",
+						Type:   "audio/mp3",
+					},
+				},
+			},
+		},
+	}
+
+	fileRecipient := new(fileRecipientMock)
+	fileRecipient.On("GetFile", "FILE_ID").Return(buffer("VOICE"), nil)
+
+	converter := new(converterMock)
+	converter.On("Convert", "FILE_ID").Return(nil)
+
+	storage := new(storageMock)
+	storage.On("FileExists", "FILE_ID").Return(false, nil)
+	storage.On("CreateFile", "FILE_ID", []byte("VOICE")).Return("684/FILE_ID", nil)
+	storage.On("BuildLink", "FILE_ID.mp3").Return("684/FILE_ID.mp3", nil)
+
+	e, err := setup(fileRecipient, map[string]Converter{"audio/ogg": converter}, storage)
 	assert.NoError(t, err)
 	defer teardown()
 
@@ -535,18 +581,18 @@ func (sm *storageMock) BuildLink(fileName string) string {
 	return args.String(0)
 }
 
+func (sm *storageMock) BuildPath(fileName string) string {
+	args := sm.Called(fileName)
+	return args.String(0)
+}
+
 type converterMock struct {
 	mock.Mock
 }
 
-func (cm *converterMock) Convert(in []byte) (out []byte, err error) {
-	args := cm.Called(in)
-	return args.Get(0).([]byte), args.Error(1)
-}
-
-func (cm *converterMock) Extension() string {
-	args := cm.Called()
-	return args.String(0)
+func (cm *converterMock) Convert(fileID string) error {
+	args := cm.Called(fileID)
+	return args.Error(0)
 }
 
 // closingBuffer used in mocks to represent resp.Body, implements io.ReadCloser

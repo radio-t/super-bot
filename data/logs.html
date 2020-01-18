@@ -52,6 +52,15 @@
                 display: block;
             }
 
+            .timestamp {
+                text-decoration: none;
+                border-bottom: 1px dashed #333333;
+                color: #333333;
+            }
+            .timestamp:hover {
+                text-decoration: none;
+            }
+
             .sticker img,
             .animated-sticker {
                 max-width: 128px;
@@ -118,10 +127,10 @@
         {{ range .Records }}
         <tr id="{{ .Msg.ID }}">
             {{- if .IsHost }}
-                <td class="danger" align="left">{{ .Msg.Sent | timestampHuman }}</td>
+                <td class="danger" align="left"><a class="timestamp" href="#{{ .Msg.ID }}">{{ .Msg.Sent | timestampHuman }}</a></td>
                 <td class="success" align="left"><span title="{{ .Msg.From.Username }}">{{ .Msg.From.DisplayName }}</span></td>
             {{ else }}
-                <td class="success" align="left">{{ .Msg.Sent | timestampHuman }}</td>
+                <td class="success" align="left"><a class="timestamp" href="#{{ .Msg.ID }}">{{ .Msg.Sent | timestampHuman }}</a></td>
                 <td class="success" align="left"><span title="{{ .Msg.From.Username }}">{{ .Msg.From.DisplayName }}</span></td>
             {{ end -}}
             <td class="warning" align="left">
@@ -157,9 +166,9 @@
                                 <span class="document">
                                     {{- if .Msg.ReplyToMessage.Document.Thumbnail }}
                                     <img class="thumbnail"
-                                        src="{{ .Msg.ReplyToMessage.Document.ReplyToMessage.Thumbnail.FileID | fileURL }}"
-                                        width={{ .Msg.ReplyToMessage.Document.ReplyToMessage.Thumbnail.Width }}
-                                        height={{ .Msg.ReplyToMessage.Document.ReplyToMessage.Thumbnail.Height }}>
+                                        src="{{ .Msg.ReplyToMessage.Document.Thumbnail.FileID | fileURL }}"
+                                        width={{ .Msg.ReplyToMessage.Document.Thumbnail.Width }}
+                                        height={{ .Msg.ReplyToMessage.Document.Thumbnail.Height }}>
                                     {{ end }}
                                     {{ .Msg.ReplyToMessage.Document.FileName }}
                                 </span>
@@ -177,6 +186,7 @@
                                 {{ end }}
                                 GIF
                             {{ end }}
+                            {{- if .Msg.ReplyToMessage.Voice }}Voice message{{ end }}
                         </blockquote>
                     </a>
                 {{ end -}}
@@ -246,6 +256,14 @@
                         {{ end }}
                     </video>
                     <!--small>({{ .Msg.Animation.Size | sizeHuman }})</!--small-->
+                {{ end }}
+                {{- if .Msg.Voice }}
+                    <audio controls>
+                        {{- range .Msg.Voice.Sources }}
+                        <source src="{{ .FileID | fileURL }}" type="{{ .Type }}">
+                        {{- end }}
+                        Your browser does not support the audio element.
+                    </audio>
                 {{ end }}
             </td>
         </tr>

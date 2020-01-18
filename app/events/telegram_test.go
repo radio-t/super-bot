@@ -10,7 +10,7 @@ import (
 	"github.com/radio-t/gitter-rt-bot/app/bot"
 )
 
-func Test_convertTextMessage(t *testing.T) {
+func Test_transformTextMessage(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -23,7 +23,7 @@ func Test_convertTextMessage(t *testing.T) {
 			Sent: time.Unix(1578627415, 0),
 			Text: "Message",
 		},
-		l.convert(
+		l.transform(
 			&tbapi.Message{
 				From: &tbapi.User{
 					UserName:  "username",
@@ -38,7 +38,7 @@ func Test_convertTextMessage(t *testing.T) {
 	)
 }
 
-func Test_convertTextMessageWithReply(t *testing.T) {
+func Test_transformTextMessageWithReply(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -60,7 +60,7 @@ func Test_convertTextMessageWithReply(t *testing.T) {
 				Text: "Message",
 			},
 		},
-		l.convert(
+		l.transform(
 			&tbapi.Message{
 				MessageID: 31,
 				From: &tbapi.User{
@@ -85,7 +85,7 @@ func Test_convertTextMessageWithReply(t *testing.T) {
 	)
 }
 
-func Test_convertPhoto(t *testing.T) {
+func Test_transformPhoto(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -127,7 +127,7 @@ func Test_convertPhoto(t *testing.T) {
 				},
 			},
 		},
-		l.convert(
+		l.transform(
 			&tbapi.Message{
 				Date: 1578627415,
 				Photo: &[]tbapi.PhotoSize{
@@ -156,7 +156,7 @@ func Test_convertPhoto(t *testing.T) {
 	)
 }
 
-func Test_convertSticker(t *testing.T) {
+func Test_transformSticker(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -189,7 +189,7 @@ func Test_convertSticker(t *testing.T) {
 				},
 			},
 		},
-		l.convert(
+		l.transform(
 			&tbapi.Message{
 				Date: 1578627415,
 				Sticker: &tbapi.Sticker{
@@ -211,7 +211,7 @@ func Test_convertSticker(t *testing.T) {
 	)
 }
 
-func Test_convertAnimatedSticker(t *testing.T) {
+func Test_transformAnimatedSticker(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -244,7 +244,7 @@ func Test_convertAnimatedSticker(t *testing.T) {
 				},
 			},
 		},
-		l.convert(
+		l.transform(
 			&tbapi.Message{
 				Date: 1578627415,
 				Sticker: &tbapi.Sticker{
@@ -266,7 +266,7 @@ func Test_convertAnimatedSticker(t *testing.T) {
 	)
 }
 
-func Test_convertDocument(t *testing.T) {
+func Test_transformDocument(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -286,7 +286,7 @@ func Test_convertDocument(t *testing.T) {
 				},
 			},
 		},
-		l.convert(
+		l.transform(
 			&tbapi.Message{
 				Date: 1578627415,
 				Document: &tbapi.Document{
@@ -307,7 +307,7 @@ func Test_convertDocument(t *testing.T) {
 	)
 }
 
-func Test_convertAnimation(t *testing.T) {
+func Test_transformAnimation(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -329,7 +329,7 @@ func Test_convertAnimation(t *testing.T) {
 				},
 			},
 		},
-		l.convert(
+		l.transform(
 			&tbapi.Message{
 				Date: 1578627415,
 				Animation: &tbapi.ChatAnimation{
@@ -360,6 +360,41 @@ func Test_convertAnimation(t *testing.T) {
 						Height:   50,
 						FileSize: 2158,
 					},
+				},
+			},
+		),
+	)
+}
+
+func Test_transformVoice(t *testing.T) {
+	l := TelegramListener{}
+	assert.Equal(
+		t,
+		&bot.Message{
+			Sent: time.Unix(1578627415, 0),
+			Voice: &bot.Voice{
+				Duration: 1,
+				Sources: []bot.Source{
+					{
+						FileID: "AwADAgADSAUAAkmeEUnZa0L9pIG5ZBYE",
+						Type:   "audio/ogg",
+						Size:   6394,
+					},
+					{
+						FileID: "AwADAgADSAUAAkmeEUnZa0L9pIG5ZBYE.mp3",
+						Type:   "audio/mp3",
+					},
+				},
+			},
+		},
+		l.transform(
+			&tbapi.Message{
+				Date: 1578627415,
+				Voice: &tbapi.Voice{
+					FileID:   "AwADAgADSAUAAkmeEUnZa0L9pIG5ZBYE",
+					MimeType: "audio/ogg",
+					FileSize: 6394,
+					Duration: 1,
 				},
 			},
 		),

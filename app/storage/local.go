@@ -11,6 +11,7 @@ type Storage interface {
 	FileExists(fileName string) (bool, error)
 	CreateFile(fileName string, body []byte) (string, error)
 	BuildLink(fileName string) string
+	BuildPath(fileName string) string
 }
 
 // Local implements Storage interface
@@ -62,4 +63,9 @@ func (l *Local) CreateFile(fileName string, body []byte) (string, error) {
 // BuildLink builds public-accessible link to file
 func (l *Local) BuildLink(fileName string) string {
 	return l.publicPath + "/" + fileName
+}
+
+// BuildPath builds local path to file
+func (l *Local) BuildPath(fileName string) string {
+	return l.filesPath + "/" + fileName
 }

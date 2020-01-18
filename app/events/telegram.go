@@ -68,7 +68,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			msgJSON, _ := json.Marshal(update.Message)
 			log.Printf("[DEBUG] %s", string(msgJSON))
 
-			msg := l.convert(update.Message)
+			msg := l.transform(update.Message)
 			l.Save(msg) // save to report
 
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
@@ -128,10 +128,10 @@ func (l *TelegramListener) Submit(ctx context.Context, text string) error {
 }
 
 func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {
-	l.Save(l.convert(msg))
+	l.Save(l.transform(msg))
 }
 
-func (l *TelegramListener) convert(msg *tbapi.Message) *bot.Message {
+func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 	message := bot.Message{
 		ID:   msg.MessageID,
 		Sent: msg.Time(),
@@ -146,7 +146,7 @@ func (l *TelegramListener) convert(msg *tbapi.Message) *bot.Message {
 	}
 
 	if msg.ReplyToMessage != nil {
-		message.ReplyToMessage = l.convert(msg.ReplyToMessage)
+		message.ReplyToMessage = l.transform(msg.ReplyToMessage)
 	}
 
 	switch {
@@ -233,6 +233,22 @@ func (l *TelegramListener) convert(msg *tbapi.Message) *bot.Message {
 				Height: msg.Document.Thumbnail.Height,
 				Size:   msg.Document.Thumbnail.FileSize,
 			}
+		}
+
+	case msg.Voice != nil:
+		message.Voice = &bot.Voice{
+			Duration: msg.Voice.Duration,
+			Sources: []bot.Source{
+				{
+					FileID: msg.Voice.FileID,
+					Type:   msg.Voice.MimeType,
+					Size:   msg.Voice.FileSize,
+				},
+				{
+					FileID: msg.Voice.FileID + ".mp3",
+					Type:   "audio/mp3",
+				},
+			},
 		}
 	}
 

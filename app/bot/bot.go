@@ -33,6 +33,7 @@ type Message struct {
 	Document       *Document  `json:",omitempty"`
 	Animation      *Animation `json:",omitempty"`
 	Voice          *Voice     `json:",omitempty"`
+	Video          *Video     `json:",omitempty"`
 	ReplyToMessage *Message   `json:",omitempty"`
 }
 
@@ -92,6 +93,19 @@ type Animation struct {
 type Voice struct {
 	Duration int
 	Sources  []Source
+}
+
+// Video is for video messages
+type Video struct {
+	FileID    string
+	FileName  string
+	Size      int
+	MimeType  string
+	Thumbnail *Source
+	Duration  int
+	Width     int
+	Height    int
+	Caption   string
 }
 
 // User defines user info of the Message

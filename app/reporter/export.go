@@ -192,6 +192,13 @@ func (e *Exporter) maybeDownloadFiles(msg bot.Message) {
 		for _, source := range (*msg.Voice).Sources {
 			e.maybeDownloadFile(source.FileID, source.Type)
 		}
+
+	case msg.Video != nil:
+		e.maybeDownloadFile(msg.Video.FileID, "")
+
+		if msg.Video.Thumbnail != nil {
+			e.maybeDownloadFile(msg.Video.Thumbnail.FileID, "")
+		}
 	}
 }
 

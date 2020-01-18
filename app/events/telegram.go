@@ -250,6 +250,26 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 				},
 			},
 		}
+
+	case msg.Video != nil:
+		message.Video = &bot.Video{
+			FileID:   msg.Video.FileID,
+			Size:     msg.Video.FileSize,
+			MimeType: msg.Video.MimeType,
+			Duration: msg.Video.Duration,
+			Width:    msg.Video.Width,
+			Height:   msg.Video.Height,
+			Caption:  msg.Caption,
+		}
+
+		if msg.Video.Thumbnail != nil {
+			message.Video.Thumbnail = &bot.Source{
+				FileID: msg.Video.Thumbnail.FileID,
+				Width:  msg.Video.Thumbnail.Width,
+				Height: msg.Video.Thumbnail.Height,
+				Size:   msg.Video.Thumbnail.FileSize,
+			}
+		}
 	}
 
 	return &message

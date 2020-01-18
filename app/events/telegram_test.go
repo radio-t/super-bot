@@ -400,3 +400,48 @@ func Test_transformVoice(t *testing.T) {
 		),
 	)
 }
+
+func Test_transformVideo(t *testing.T) {
+	l := TelegramListener{}
+	assert.Equal(
+		t,
+		&bot.Message{
+			Sent: time.Unix(1578627415, 0),
+			Video: &bot.Video{
+				FileID:   "BAADAgADTAUAAkmeEUlD7g0Wpe4cxRYE",
+				Width:    240,
+				Height:   240,
+				Duration: 1,
+				MimeType: "video/mp4",
+				Size:     71665,
+				Caption:  "Caption",
+				Thumbnail: &bot.Source{
+					FileID: "AAQCAANMBQACSZ4RSUPuDRal7hzFz-rdDwAEAQAHbQADxAgAAhYE",
+					Width:  240,
+					Height: 240,
+					Size:   11733,
+				},
+			},
+		},
+		l.transform(
+			&tbapi.Message{
+				Date: 1578627415,
+				Video: &tbapi.Video{
+					FileID:   "BAADAgADTAUAAkmeEUlD7g0Wpe4cxRYE",
+					Width:    240,
+					Height:   240,
+					Duration: 1,
+					Thumbnail: &tbapi.PhotoSize{
+						FileID:   "AAQCAANMBQACSZ4RSUPuDRal7hzFz-rdDwAEAQAHbQADxAgAAhYE",
+						Width:    240,
+						Height:   240,
+						FileSize: 11733,
+					},
+					MimeType: "video/mp4",
+					FileSize: 71665,
+				},
+				Caption: "Caption",
+			},
+		),
+	)
+}

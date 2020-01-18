@@ -483,6 +483,50 @@ func Test_downloadFilesVoice(t *testing.T) {
 	storage.AssertExpectations(t)
 }
 
+func Test_downloadFilesVideo(t *testing.T) {
+	msgs := []bot.Message{
+		{
+			From: bot.User{
+				Username:    "username",
+				DisplayName: "First Last",
+			},
+			Sent: time.Unix(1578627415, 0),
+			Video: &bot.Video{
+				FileID:   "FILE_ID",
+				MimeType: "video/mp4",
+				Size:     71665,
+				Thumbnail: &bot.Source{
+					FileID: "FILE_ID_THUMB",
+				},
+			},
+		},
+	}
+
+	fileRecipient := new(fileRecipientMock)
+	fileRecipient.On("GetFile", "FILE_ID").Return(buffer("VIDEO"), nil)
+	fileRecipient.On("GetFile", "FILE_ID_THUMB").Return(buffer("VIDEO_THUMB"), nil)
+
+	storage := new(storageMock)
+	storage.On("FileExists", "FILE_ID").Return(false, nil)
+	storage.On("CreateFile", "FILE_ID", []byte("VIDEO")).Return("684/FILE_ID", nil)
+
+	storage.On("FileExists", "FILE_ID_THUMB").Return(false, nil)
+	storage.On("CreateFile", "FILE_ID_THUMB", []byte("VIDEO_THUMB")).Return("684/FILE_ID_THUMB", nil)
+
+	e, err := setup(fileRecipient, nil, storage)
+	assert.NoError(t, err)
+	defer teardown()
+
+	err = createFile(e.InputRoot+"/20200111.log", msgs)
+	assert.NoError(t, err)
+	defer os.Remove(e.InputRoot + "/20200111.log")
+
+	e.Export(684, 20200111)
+
+	fileRecipient.AssertExpectations(t)
+	storage.AssertExpectations(t)
+}
+
 //setup creates Exporter with temp folders
 func setup(fileRecipient FileRecipient, converters map[string]Converter, storage storage.Storage) (*Exporter, error) {
 	err := os.MkdirAll(testExportParams.InputRoot, os.ModePerm)

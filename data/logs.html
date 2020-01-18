@@ -79,7 +79,7 @@
                 margin-right: 0.66rem;
                 margin-bottom: 0;
             }
-            .caption {
+            .caption, .video {
                 float: left;
                 clear: both;
             }
@@ -186,6 +186,18 @@
                                 {{ end }}
                                 GIF
                             {{ end }}
+                            {{- if .Msg.ReplyToMessage.Video }}
+                                {{- if .Msg.ReplyToMessage.Video.Thumbnail }}
+                                    <img class="thumbnail"
+                                        src="{{ .Msg.ReplyToMessage.Video.Thumbnail.FileID | fileURL }}" 
+                                        width={{ .Msg.ReplyToMessage.Video.Thumbnail.Width }}
+                                        height={{ .Msg.ReplyToMessage.Video.Thumbnail.Height }}
+                                        align="left">
+                                {{ end }}
+                                {{- if .Msg.ReplyToMessage.Video.Caption }}
+                                    <span class="caption">{{ .Msg.ReplyToMessage.Video.Caption }}</span>
+                                {{ end }}
+                            {{ end }}
                             {{- if .Msg.ReplyToMessage.Voice }}Voice message{{ end }}
                         </blockquote>
                     </a>
@@ -264,6 +276,22 @@
                         {{- end }}
                         Your browser does not support the audio element.
                     </audio>
+                {{ end }}
+                {{- if .Msg.Video }}
+                    <video class="video" width={{ .Msg.Video.Width }} height={{ .Msg.Video.Height }} controls>
+                        <source src="{{ .Msg.Video.FileID | fileURL }}" type="{{ .Msg.Video.MimeType }}">
+                        Your browser does not support the video tag.
+                        {{- if .Msg.Video.Thumbnail }}
+                        <img class="thumbnail"
+                            src="{{ .Msg.Video.Thumbnail.FileID | fileURL }}" 
+                            width={{ .Msg.Video.Thumbnail.Width }}
+                            height={{ .Msg.Video.Thumbnail.Height }}>
+                        {{ end }}
+                    </video>
+                    <span class="caption">
+                        {{- if .Msg.Video.Caption }}{{ .Msg.Video.Caption }}{{ end }}
+                        <small>({{ .Msg.Video.Size | sizeHuman }})</small>
+                    </span>
                 {{ end }}
             </td>
         </tr>

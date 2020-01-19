@@ -453,6 +453,13 @@ func Test_transformForwardFromChat(t *testing.T) {
 		&bot.Message{
 			Sent: time.Unix(1578627415, 0),
 			Text: "И под конец рабочей недели <...> https://techcrunch.com/2020/01/17/digitalocean-layoffs/",
+			Entities: &[]bot.Entity{
+				{
+					Type:   "url",
+					Offset: 33,
+					Length: 55,
+				},
+			},
 			ForwardFromChat: &bot.Chat{
 				ID:        -1001005993407,
 				Type:      "channel",
@@ -589,6 +596,47 @@ func Test_transformUserLeft(t *testing.T) {
 					FirstName: "First1",
 					LastName:  "Last1",
 					UserName:  "username1",
+				},
+			},
+		),
+	)
+}
+
+func Test_transformEntities(t *testing.T) {
+	l := TelegramListener{}
+	assert.Equal(
+		t,
+		&bot.Message{
+			Sent: time.Unix(1578627415, 0),
+			Text: "@username тебя слишком много, отдохни...",
+			Entities: &[]bot.Entity{
+				{
+					Type:   "mention",
+					Offset: 0,
+					Length: 9,
+				},
+				{
+					Type:   "italic",
+					Offset: 10,
+					Length: 30,
+				},
+			},
+		},
+		l.transform(
+			&tbapi.Message{
+				Date: 1578627415,
+				Text: "@username тебя слишком много, отдохни...",
+				Entities: &[]tbapi.MessageEntity{
+					{
+						Type:   "mention",
+						Offset: 0,
+						Length: 9,
+					},
+					{
+						Type:   "italic",
+						Offset: 10,
+						Length: 30,
+					},
 				},
 			},
 		),

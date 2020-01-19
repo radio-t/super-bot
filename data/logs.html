@@ -236,7 +236,7 @@
                         </blockquote>
                     </a>
                 {{ end -}}
-                {{- .Msg.Text }}
+                {{- format .Msg.Text .Msg.Entities }}
                 {{- if .Msg.Picture }}
                     {{- if eq .Msg.Picture.Class "animated-sticker" }}
                         <div class="animated-sticker" title="{{ .Msg.Picture.Image.Alt }}" attr-src="{{ .Msg.Picture.Image.FileID | fileURL }}">

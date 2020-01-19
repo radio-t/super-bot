@@ -29,6 +29,7 @@ type Message struct {
 	Sent                 time.Time
 	HTML                 string     `json:",omitempty"`
 	Text                 string     `json:",omitempty"`
+	Entities             *[]Entity  `json:",omitempty"`
 	Picture              *Picture   `json:",omitempty"`
 	Document             *Document  `json:",omitempty"`
 	Animation            *Animation `json:",omitempty"`
@@ -40,6 +41,16 @@ type Message struct {
 	ForwardFromMessageID int        `json:",omitempty"`
 	NewChatMembers       *[]User    `json:",omitempty"`
 	LeftChatMember       *User      `json:",omitempty"`
+}
+
+// Entity represents one special entity in a text message.
+// For example, hashtags, usernames, URLs, etc.
+type Entity struct {
+	Type   string
+	Offset int
+	Length int
+	URL    string `json:",omitempty"` // For “text_link” only, url that will be opened after user taps on the text
+	User   *User  `json:",omitempty"` // For “text_mention” only, the mentioned user
 }
 
 // Chat represents channel or chat

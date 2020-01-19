@@ -170,6 +170,25 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 	}
 
 	switch {
+	case msg.Entities != nil && len(*msg.Entities) > 0:
+		var entities []bot.Entity
+		for _, entity := range *msg.Entities {
+			e := bot.Entity{
+				Type:   entity.Type,
+				Offset: entity.Offset,
+				Length: entity.Length,
+				URL:    entity.URL,
+			}
+			if entity.User != nil {
+				e.User = &bot.User{
+					Username:    entity.User.UserName,
+					DisplayName: entity.User.FirstName + " " + entity.User.LastName,
+				}
+			}
+			entities = append(entities, e)
+		}
+		message.Entities = &entities
+
 	case msg.Photo != nil && len(*msg.Photo) > 0:
 		sizes := *msg.Photo
 		message.Picture = &bot.Picture{

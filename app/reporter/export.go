@@ -5,12 +5,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/radio-t/gitter-rt-bot/app/bot"
 	"github.com/radio-t/gitter-rt-bot/app/storage"
@@ -136,16 +139,15 @@ func (e *Exporter) toHTML(messages []bot.Message, num int) string {
 			return fileURL + ".png"
 		},
 		"trim": func(text string) string {
-			runes := []rune(text)
-
-			if len(runes) < maxQuoteLength {
-				return text
+			if utf8.RuneCountInString(text) > maxQuoteLength {
+				return substr(text, 0, maxQuoteLength) + "..."
 			}
 
-			return string(runes[0:maxQuoteLength]) + "..."
+			return text
 		},
 		"sizeHuman":      sizeHuman,
 		"timestampHuman": e.timestampHuman,
+		"format":         format,
 	}
 	name := e.TemplateFile[strings.LastIndex(e.TemplateFile, "/")+1:]
 	t, err := template.New(name).Funcs(funcMap).ParseFiles(e.TemplateFile)
@@ -341,4 +343,147 @@ func sizeHuman(b int) string {
 		float64(b)/float64(div),
 		"kMGTPE"[exp],
 	)
+}
+
+func format(text string, entities *[]bot.Entity) template.HTML {
+	if entities == nil {
+		return template.HTML(html.EscapeString(text))
+	}
+
+	runes := []rune(text)
+	offset := 0
+	length := len(runes)
+
+	for _, entity := range *entities {
+		switch entity.Type {
+		case "bold":
+			runes = decorate(
+				runes,
+				entity.Offset+offset, entity.Length,
+				"<strong>", "</strong>",
+			)
+
+		case "italic":
+			runes = decorate(
+				runes,
+				entity.Offset+offset, entity.Length,
+				"<em>", "</em>",
+			)
+
+		case "underline":
+			runes = decorate(
+				runes,
+				entity.Offset+offset, entity.Length,
+				"<u>", "</u>",
+			)
+
+		case "strikethrough":
+			runes = decorate(
+				runes,
+				entity.Offset+offset, entity.Length,
+				"<s>", "</s>",
+			)
+
+		case "code":
+			runes = decorate(
+				runes,
+				entity.Offset+offset, entity.Length,
+				"<code>", "</code>",
+			)
+
+		case "pre":
+			runes = decorate(
+				runes,
+				entity.Offset+offset, entity.Length,
+				"<pre>", "</pre>",
+			)
+
+		case "text_link":
+			runes = decorate(
+				runes,
+				entity.Offset+offset, entity.Length,
+				"<a href=\"%s\">", "</a>",
+				entity.URL,
+			)
+
+		case "url":
+			runes = decorate(
+				runes,
+				entity.Offset+offset, entity.Length,
+				"<a href=\"%s\">", "</a>",
+				string(runes[entity.Offset+offset:entity.Offset+offset+entity.Length]),
+			)
+
+		case "mention":
+			runes = decorate(
+				runes,
+				entity.Offset+offset, entity.Length,
+				"<a href=\"https://t.me/%s\">", "</a>",
+				string(runes[entity.Offset+offset+1:entity.Offset+offset+entity.Length]),
+			)
+
+		case "email":
+			runes = decorate(
+				runes,
+				entity.Offset+offset, entity.Length,
+				"<a href=\"mailto:%s\">", "</a>",
+				string(runes[entity.Offset+offset:entity.Offset+offset+entity.Length]),
+			)
+
+		case "phone_number":
+			runes = decorate(
+				runes,
+				entity.Offset+offset, entity.Length,
+				"<a href=\"tel:%s\">", "</a>",
+				cleanPhoneNumber(string(runes[entity.Offset+offset:entity.Offset+offset+entity.Length])),
+			)
+
+		// intentiall ignored:
+		case "text_mention": // for users without usernames
+		case "bot_command": // "/start@jobs_bot"
+		case "hashtag": // "#hashtag"
+		case "cashtag": // "$USD"
+		}
+
+		offset += len(runes) - length
+		length = len(runes)
+	}
+
+	return template.HTML(strings.ReplaceAll(string(runes), "\n", "<br>"))
+}
+
+func substr(text string, offset int, length int) string {
+	runes := []rune(text)
+
+	if len(runes) < offset || len(runes) < length {
+		return string(runes)
+	}
+
+	if length == -1 {
+		return string(runes[offset:])
+	}
+
+	return string(runes[offset:length])
+}
+
+func decorate(runes []rune, offset int, length int, before string, after string, params ...interface{}) []rune {
+	if params != nil {
+		before = fmt.Sprintf(before, params...)
+	}
+	beforeRunes := []rune(before)
+	afterRunes := []rune(after)
+
+	result := make([]rune, len(runes)+len(beforeRunes)+len(afterRunes))
+	copy(result[:], runes[0:offset])
+	copy(result[offset:], beforeRunes)
+	copy(result[offset+len(beforeRunes):], runes[offset:offset+length])
+	copy(result[offset+length+len(beforeRunes):], afterRunes)
+	copy(result[offset+length+len(beforeRunes)+len(afterRunes):], runes[offset+length:])
+
+	return result
+}
+
+func cleanPhoneNumber(phoneNumber string) string {
+	reg := regexp.MustCompile("[^\\d+]")
+	return reg.ReplaceAllString(phoneNumber, "")
 }

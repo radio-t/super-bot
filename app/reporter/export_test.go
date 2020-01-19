@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"os"
 	"strconv"
@@ -525,6 +526,80 @@ func Test_downloadFilesVideo(t *testing.T) {
 
 	fileRecipient.AssertExpectations(t)
 	storage.AssertExpectations(t)
+}
+
+func TestExporter_format(t *testing.T) {
+	tbl := []struct {
+		in       string
+		entities *[]bot.Entity
+		output   template.HTML
+	}{
+		{
+			"text", nil, "text",
+		},
+		{
+			"text",
+			&[]bot.Entity{
+				{
+					Type:   "bold",
+					Offset: 0,
+					Length: 4,
+				},
+			},
+			"<strong>text</strong>",
+		},
+		{
+			"some text here",
+			&[]bot.Entity{{Type: "italic", Offset: 5, Length: 4}},
+			"some <em>text</em> here",
+		},
+		{
+			"@chuhlomin тебя слишком много, отдохни...",
+			&[]bot.Entity{{Type: "mention", Offset: 0, Length: 10}, {Type: "italic", Offset: 11, Length: 30}},
+			"<a href=\"https://t.me/chuhlomin\">@chuhlomin</a> <em>тебя слишком много, отдохни...</em>",
+		},
+		{
+			"inline",
+			&[]bot.Entity{{Type: "code", Offset: 0, Length: 6}},
+			"<code>inline</code>",
+		},
+		{
+			"code block here",
+			&[]bot.Entity{{Type: "pre", Offset: 0, Length: 15}},
+			"<pre>code block here</pre>",
+		},
+		{
+			"some link: https://github.com",
+			&[]bot.Entity{{Type: "url", Offset: 11, Length: 18}},
+			"some link: <a href=\"https://github.com\">https://github.com</a>",
+		},
+		{
+			"email: mail@domain.com\nphone: +1 (987) 654-32-10",
+			&[]bot.Entity{{Type: "email", Offset: 7, Length: 15}, {Type: "phone_number", Offset: 30, Length: 18}},
+			"email: <a href=\"mailto:mail@domain.com\">mail@domain.com</a><br>phone: <a href=\"tel:+19876543210\">+1 (987) 654-32-10</a>",
+		},
+		{
+			"some text here",
+			&[]bot.Entity{{Type: "underline", Offset: 5, Length: 4}},
+			"some <u>text</u> here",
+		},
+		{
+			"some text here",
+			&[]bot.Entity{{Type: "strikethrough", Offset: 5, Length: 4}},
+			"some <s>text</s> here",
+		},
+		{
+			"here is some link",
+			&[]bot.Entity{{Type: "text_link", Offset: 13, Length: 4, URL: "https://github.com/"}},
+			"here is some <a href=\"https://github.com/\">link</a>",
+		},
+	}
+
+	for i, tt := range tbl {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			assert.Equal(t, tt.output, format(tt.in, tt.entities))
+		})
+	}
 }
 
 //setup creates Exporter with temp folders

@@ -593,6 +593,11 @@ func TestExporter_format(t *testing.T) {
 			&[]bot.Entity{{Type: "text_link", Offset: 13, Length: 4, URL: "https://github.com/"}},
 			"here is some <a href=\"https://github.com/\">link</a>",
 		},
+		{
+			"code\nwith\nline breaks",
+			&[]bot.Entity{{Type: "pre", Offset: 0, Length: 21}},
+			"<pre>code<br>with<br>line breaks</pre>",
+		},
 	}
 
 	for i, tt := range tbl {

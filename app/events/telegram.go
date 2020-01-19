@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	log "github.com/go-pkgz/lgr"
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -79,10 +80,14 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 					m := fmt.Sprintf("@%s _тебя слишком много, отдохни..._", msg.From.Username)
 					tbMsg := tbapi.NewMessage(update.Message.Chat.ID, m)
 					tbMsg.ParseMode = tbapi.ModeMarkdown
-					if res, e := l.botAPI.Send(tbMsg); e != nil {
-						log.Printf("[WARN] failed to send, %v", e)
+					if res, err := l.botAPI.Send(tbMsg); err != nil {
+						log.Printf("[WARN] failed to send, %v", err)
 					} else {
 						l.saveBotMessage(&res)
+					}
+
+					if err := l.banUser(update.Message.Chat.ID, update.Message.From.ID); err != nil {
+						log.Printf("[ERROR] failed to ban user %v: %v", msg.From, err)
 					}
 				}
 				continue
@@ -92,22 +97,22 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				log.Printf("[DEBUG] bot response - %+v", resp)
 				tbMsg := tbapi.NewMessage(update.Message.Chat.ID, resp)
 				tbMsg.ParseMode = tbapi.ModeMarkdown
-				if res, e := l.botAPI.Send(tbMsg); err != nil {
-					log.Printf("[WARN] can't send tbMsg to telegram, %v", e)
+				if res, err := l.botAPI.Send(tbMsg); err != nil {
+					log.Printf("[WARN] can't send tbMsg to telegram, %v", err)
 				} else {
 					l.saveBotMessage(&res)
 				}
 			}
 
 		case msg := <-l.msgs.ch: // publish messages from outside clients
-			chat, e := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: l.GroupID})
+			chat, err := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: l.GroupID})
 			if err != nil {
 				return errors.Wrapf(err, "can't get chat for %s", l.GroupID)
 			}
 			tbMsg := tbapi.NewMessage(chat.ID, msg)
 			tbMsg.ParseMode = tbapi.ModeMarkdown
 			if res, err := l.botAPI.Send(tbMsg); err != nil {
-				log.Printf("[WARN] can't send msg to telegram, %v", e)
+				log.Printf("[WARN] can't send msg to telegram, %v", err)
 			} else {
 				l.saveBotMessage(&res)
 			}
@@ -129,6 +134,39 @@ func (l *TelegramListener) Submit(ctx context.Context, text string) error {
 
 func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {
 	l.Save(l.transform(msg))
+}
+
+// The bot must be an administrator in the supergroup for this to work
+// and must have the appropriate admin rights.
+func (l *TelegramListener) banUser(chatID int64, userID int) error {
+	banDuration := l.AllowedPeriod
+
+	// If user is restricted for more than 366 days or less than 30 seconds from the current time,
+	// they are considered to be restricted forever
+	if banDuration < 30*time.Second {
+		banDuration = 1 * time.Minute
+	}
+
+	resp, err := l.botAPI.RestrictChatMember(tbapi.RestrictChatMemberConfig{
+		ChatMemberConfig: tbapi.ChatMemberConfig{
+			ChatID: chatID,
+			UserID: userID,
+		},
+		UntilDate:             time.Now().Add(banDuration).Unix(),
+		CanSendMessages:       new(bool),
+		CanSendMediaMessages:  new(bool),
+		CanSendOtherMessages:  new(bool),
+		CanAddWebPagePreviews: new(bool),
+	})
+	if err != nil {
+		return err
+	}
+
+	if !resp.Ok {
+		return fmt.Errorf("response is not Ok: %v", string(resp.Result))
+	}
+
+	return nil
 }
 
 func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
@@ -197,7 +235,7 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 				FileID:  sizes[0].FileID,
 				Width:   sizes[0].Width,
 				Height:  sizes[0].Height,
-				Sources: l.convertPhotoSizes(*msg.Photo),
+				Sources: l.transformPhotoSizes(*msg.Photo),
 			},
 			Caption: msg.Caption,
 			Thumbnail: &bot.Source{
@@ -225,7 +263,7 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 				Alt:    msg.Sticker.Emoji,
 				Type:   extensionTo,
 			},
-			Sources: l.convertSticker(*msg.Sticker, extensionFrom, extensionTo),
+			Sources: l.transformSticker(*msg.Sticker, extensionFrom, extensionTo),
 		}
 
 		if msg.Sticker.Thumbnail != nil {
@@ -333,7 +371,7 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 	return &message
 }
 
-func (l *TelegramListener) convertPhotoSizes(sizes []tbapi.PhotoSize) []bot.Source {
+func (l *TelegramListener) transformPhotoSizes(sizes []tbapi.PhotoSize) []bot.Source {
 	var result []bot.Source
 
 	for _, size := range sizes {
@@ -351,7 +389,7 @@ func (l *TelegramListener) convertPhotoSizes(sizes []tbapi.PhotoSize) []bot.Sour
 	return result
 }
 
-func (l *TelegramListener) convertSticker(sticker tbapi.Sticker, extensionFrom string, extensionTo string) []bot.Source {
+func (l *TelegramListener) transformSticker(sticker tbapi.Sticker, extensionFrom string, extensionTo string) []bot.Source {
 	var result []bot.Source
 
 	result = append(

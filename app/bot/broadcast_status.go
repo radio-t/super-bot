@@ -26,7 +26,7 @@ type BroadcastStatus struct {
 	offPeriod      time.Duration
 	lastCheck      time.Time
 
-	// ping func (place here for tests)
+	// ping func (for tests)
 	ping func(ctx context.Context, url string) bool
 }
 
@@ -41,13 +41,14 @@ func NewBroadcastStatus(ctx context.Context, broadcastUrl string, pingInterval t
 // OnMessage returns current broadcast status
 func (b *BroadcastStatus) OnMessage(_ Message) (response string, answer bool) {
 	if b.lastSentStatus != nil && b.status == *b.lastSentStatus {
-		return "", false
+		return
 	}
 
 	answer = true
+	response = MsgBroadcastStarted
+
 	status := b.status
 	b.lastSentStatus = &status
-	response = MsgBroadcastStarted
 	if !b.status {
 		response = MsgBroadcastFinished
 	}
@@ -87,8 +88,6 @@ func (b *BroadcastStatus) check(ctx context.Context) {
 			b.offPeriod = 0
 			return
 		}
-
-		log.Printf("[DEBUG] %v to off", b.delayToOff-b.offPeriod)
 	}
 }
 

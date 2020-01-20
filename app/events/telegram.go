@@ -143,11 +143,15 @@ func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {
 // The bot must be an administrator in the supergroup for this to work
 // and must have the appropriate admin rights.
 func (l *TelegramListener) banUser(chatID int64, userID int) error {
-	banDuration := l.AllowedPeriod
+	banDuration := l.BanDuration
 
 	// From Telegram Bot API documentation:
-	// If user is restricted for more than 366 days or less than 30 seconds from the current time,
-	// they are considered to be restricted forever
+	// > If user is restricted for more than 366 days or less than 30 seconds from the current time,
+	// > they are considered to be restricted forever
+	// Because the API query uses unix timestamp rather than "ban duration",
+	// you do not want to accidentally get into this 30-second window of a lifetime ban.
+	// In practice BanDuration is equal to ten minutes,
+	// so this `if` statement is unlikely to be evaluated to true.
 	if banDuration < 30*time.Second {
 		banDuration = 1 * time.Minute
 	}

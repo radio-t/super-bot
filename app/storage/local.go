@@ -3,16 +3,9 @@ package storage
 import (
 	"io/ioutil"
 	"os"
-)
 
-// Storage knows how to: create file, check for file existance
-// and build a public-accessible link (relative in our case)
-type Storage interface {
-	FileExists(fileName string) (bool, error)
-	CreateFile(fileName string, body []byte) (string, error)
-	BuildLink(fileName string) string
-	BuildPath(fileName string) string
-}
+	"github.com/radio-t/gitter-rt-bot/app/reporter"
+)
 
 // Local implements Storage interface
 // operating with local filesystem (possibly mounted to the container)
@@ -22,7 +15,7 @@ type Local struct {
 }
 
 // NewLocal creates new Local storage
-func NewLocal(filesPath string, publicPath string) (Storage, error) {
+func NewLocal(filesPath string, publicPath string) (reporter.Storage, error) {
 	if _, err := os.Stat(filesPath); os.IsNotExist(err) {
 		err = os.MkdirAll(filesPath, 0755)
 		if err != nil {

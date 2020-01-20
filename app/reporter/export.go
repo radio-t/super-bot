@@ -16,7 +16,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/radio-t/gitter-rt-bot/app/bot"
-	"github.com/radio-t/gitter-rt-bot/app/storage"
 )
 
 // magic number used to trim text in reply
@@ -29,7 +28,7 @@ type Exporter struct {
 	location      *time.Location
 	fileRecipient FileRecipient
 	converters    map[string]Converter
-	storage       storage.Storage
+	storage       Storage
 
 	fileIDToURL map[string]string
 }
@@ -47,11 +46,20 @@ type SuperUser interface {
 	IsSuper(user string) bool
 }
 
+// Storage knows how to: create file, check for file existance
+// and build a public-accessible link (relative in our case)
+type Storage interface {
+	FileExists(fileName string) (bool, error)
+	CreateFile(fileName string, body []byte) (string, error)
+	BuildLink(fileName string) string
+	BuildPath(fileName string) string
+}
+
 // NewExporter from params, initializes time.Location
 func NewExporter(
 	fileRecipient FileRecipient,
 	converters map[string]Converter,
-	storage storage.Storage,
+	storage Storage,
 	params ExporterParams,
 ) *Exporter {
 	log.Printf("[INFO] exporter with %v", params)

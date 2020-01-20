@@ -6,8 +6,6 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/radio-t/gitter-rt-bot/app/storage"
-
 	"github.com/pkg/errors"
 )
 
@@ -19,11 +17,11 @@ type Converter interface {
 // WebPConverter can convert WebP (used for Telegram stickers) into JPG
 // See https://developers.google.com/speed/webp
 type WebPConverter struct {
-	storage storage.Storage
+	storage Storage
 }
 
 // NewWebPConverter creates new WebPConverter
-func NewWebPConverter(storage storage.Storage) Converter {
+func NewWebPConverter(storage Storage) Converter {
 	return &WebPConverter{storage: storage}
 }
 
@@ -55,11 +53,11 @@ func (w *WebPConverter) Convert(fileID string) error {
 // See https://github.com/airbnb/lottie-web
 // https://core.telegram.org/animated_stickers
 type TGSConverter struct {
-	storage storage.Storage
+	storage Storage
 }
 
 // NewTGSConverter creates new TGSConverter
-func NewTGSConverter(storage storage.Storage) Converter {
+func NewTGSConverter(storage Storage) Converter {
 	return &TGSConverter{storage: storage}
 }
 
@@ -94,11 +92,11 @@ func (tgs *TGSConverter) Convert(fileID string) error {
 // OGGConverter can convert OGG Audio (used for Voice messages) into MP3
 // Requires `dwebp` binary in PATH
 type OGGConverter struct {
-	storage storage.Storage
+	storage Storage
 }
 
 // NewOGGConverter creates new OGGConverter
-func NewOGGConverter(storage storage.Storage) Converter {
+func NewOGGConverter(storage Storage) Converter {
 	return &OGGConverter{storage: storage}
 }
 

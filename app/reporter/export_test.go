@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/radio-t/gitter-rt-bot/app/bot"
-	"github.com/radio-t/gitter-rt-bot/app/storage"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -608,7 +607,7 @@ func TestExporter_format(t *testing.T) {
 }
 
 //setup creates Exporter with temp folders
-func setup(fileRecipient FileRecipient, converters map[string]Converter, storage storage.Storage) (*Exporter, error) {
+func setup(fileRecipient FileRecipient, converters map[string]Converter, storage Storage) (*Exporter, error) {
 	err := os.MkdirAll(testExportParams.InputRoot, os.ModePerm)
 	if err != nil {
 		return nil, err

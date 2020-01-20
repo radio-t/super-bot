@@ -66,8 +66,12 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				continue
 			}
 
-			msgJSON, _ := json.Marshal(update.Message)
-			log.Printf("[DEBUG] %s", string(msgJSON))
+			msgJSON, err := json.Marshal(update.Message)
+			if err != nil {
+				log.Printf("[ERROR] failed to marshal update.Message to JSON: %v", err)
+			} else {
+				log.Printf("[DEBUG] %s", string(msgJSON))
+			}
 
 			msg := l.transform(update.Message)
 			l.Save(msg) // save to report
@@ -141,6 +145,7 @@ func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {
 func (l *TelegramListener) banUser(chatID int64, userID int) error {
 	banDuration := l.AllowedPeriod
 
+	// From Telegram Bot API documentation:
 	// If user is restricted for more than 366 days or less than 30 seconds from the current time,
 	// they are considered to be restricted forever
 	if banDuration < 30*time.Second {

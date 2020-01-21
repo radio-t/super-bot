@@ -52,86 +52,10 @@
                 display: block;
             }
 
-            .timestamp {
-                text-decoration: none;
-                border-bottom: 1px dashed #333333;
-                color: #333333;
-            }
-            .timestamp:hover {
-                text-decoration: none;
-            }
-
-            .sticker img,
-            .animated-sticker {
-                max-width: 128px;
-                max-height: 128px;
-                width: auto;
+            img {
+                display: block;
+                max-width: 500px;
                 height: auto;
-                object-fit: contain;
-            }
-
-            .document {
-                float: left;
-                display: block;
-                background:rgba(0,0,0,0.1);
-                padding: 0.5rem;
-                border-radius: 4px;
-            }
-            .document .thumbnail {
-                margin-right: 0.66rem;
-                margin-bottom: 0;
-            }
-            .caption, .video {
-                float: left;
-                clear: both;
-            }
-
-            .forwarded {
-                font-size: 90%;
-            }
-            .forwarded .from {
-                font-weight: bold;
-            }
-
-            .reply-to-message figcaption,
-            .reply-to-message blockquote {
-                font-size: 90%;
-            }
-            .reply-to-message blockquote {
-                display: inline-block;
-                opacity: 0.8;
-                background: rgba(255,255,255,0.25)
-            }
-            .reply-to-message blockquote::after {
-                content: "";
-                clear: both;
-                display: table;
-            }
-            .reply-to-message::after {
-                content: "";
-                clear: both;
-                display: table;
-            }
-            .reply-to-message .thumbnail {
-                margin-bottom: 0;
-                width: 64px;
-                height: 64px;
-                object-fit: cover;
-            }
-
-            .member-joined,
-            .member-left {
-                display: block;
-                float: left;
-                clear: both;
-                padding: 0rem 1rem;
-                border-radius: 100px;
-                background: rgba(0,0,0,0.1);
-            }
-
-            .member-joined .name,
-            .member-left .name {
-                font-weight: bold;
             }
         </style>
     </head>
@@ -149,197 +73,19 @@
 
         <table class="table table-striped table-hover table-condensed" id="table">
         {{ range .Records }}
-        <tr id="{{ .Msg.ID }}">
+        <tr>
             {{- if .IsHost }}
-                <td class="danger" align="left"><a class="timestamp" href="#{{ .Msg.ID }}">{{ .Msg.Sent | timestampHuman }}</a></td>
+                <td class="danger" align="left">{{ .Msg.Sent | timestampHuman }}</td>
                 <td class="success" align="left"><span title="{{ .Msg.From.Username }}">{{ .Msg.From.DisplayName }}</span></td>
             {{ else }}
-                <td class="success" align="left"><a class="timestamp" href="#{{ .Msg.ID }}">{{ .Msg.Sent | timestampHuman }}</a></td>
+                <td class="success" align="left">{{ .Msg.Sent | timestampHuman }}</td>
                 <td class="success" align="left"><span title="{{ .Msg.From.Username }}">{{ .Msg.From.DisplayName }}</span></td>
             {{ end -}}
             <td class="warning" align="left">
-                {{- if .Msg.ForwardFromChat }}
-                    <div class="forwarded">Forwarded from <a class="from" href="https://t.me/{{ .Msg.ForwardFromChat.UserName }}/{{ .Msg.ForwardFromMessageID }}">{{ .Msg.ForwardFromChat.Title }}</a></div>
-                {{ end }}
-                {{- if .Msg.ForwardFrom }}
-                    <div class="forwarded">Forwarded from
-                        {{- if .Msg.ForwardFrom.Username }} <a class="from" href="https://t.me/{{ .Msg.ForwardFrom.Username }}">{{ .Msg.ForwardFrom.DisplayName }}</a>
-                        {{- else }} <span class="from">{{ .Msg.ForwardFrom.DisplayName }}</span>
-                        {{- end -}}
-                    </div>
-                {{ end }}
-                {{- if .Msg.ReplyToMessage }}
-                    <a class="reply-to-message" href="#{{ .Msg.ReplyToMessage.ID }}">
-                        <blockquote>
-                            <strong>{{ .Msg.ReplyToMessage.From.DisplayName }}</strong> {{ .Msg.ReplyToMessage.Sent | timestampHuman }}:<br>
-                            {{- .Msg.ReplyToMessage.Text | trim }}
-                            {{- if .Msg.ReplyToMessage.Picture }}
-                                {{- if .Msg.ReplyToMessage.Picture.Caption }}
-                                <figure>
-                                {{- end }}
-                                {{- if .Msg.ReplyToMessage.Picture.Thumbnail }}
-                                    <img class="thumbnail{{- if .Msg.ReplyToMessage.Picture.Class }} {{ .Msg.ReplyToMessage.Picture.Class }}{{ end }}" 
-                                        src="{{ .Msg.ReplyToMessage.Picture.Thumbnail.FileID | fileURL | png }}" 
-                                        width={{ .Msg.ReplyToMessage.Picture.Thumbnail.Width }}
-                                        height={{ .Msg.ReplyToMessage.Picture.Thumbnail.Height }}
-                                        alt="{{ .Msg.ReplyToMessage.Picture.Image.Alt }}"
-                                        align="left"
-                                        >
-                                {{ end }}
-                                {{- if .Msg.ReplyToMessage.Picture.Caption }}
-                                    <figcaption>
-                                        {{- .Msg.ReplyToMessage.Picture.Caption }}
-                                    </figcaption>
-                                </figure>
-                                {{ end }}
-                                {{- if eq .Msg.ReplyToMessage.Picture.Class "sticker" }}
-                                    {{ .Msg.ReplyToMessage.Picture.Image.Alt }} Sticker
-                                {{- end -}}
-                            {{ end }}
-                            {{- if .Msg.ReplyToMessage.Document }}
-                                <span class="document">
-                                    {{- if .Msg.ReplyToMessage.Document.Thumbnail }}
-                                    <img class="thumbnail"
-                                        src="{{ .Msg.ReplyToMessage.Document.Thumbnail.FileID | fileURL }}"
-                                        width={{ .Msg.ReplyToMessage.Document.Thumbnail.Width }}
-                                        height={{ .Msg.ReplyToMessage.Document.Thumbnail.Height }}>
-                                    {{ end }}
-                                    {{ .Msg.ReplyToMessage.Document.FileName }}
-                                </span>
-                                {{- if .Msg.ReplyToMessage.Document.Caption }}
-                                    <span class="caption">{{ .Msg.ReplyToMessage.Document.Caption }}</span>
-                                {{ end }}
-                            {{ end }}
-                            {{- if .Msg.ReplyToMessage.Animation }}
-                                {{- if .Msg.ReplyToMessage.Animation.Thumbnail }}
-                                    <img class="thumbnail"
-                                        src="{{ .Msg.ReplyToMessage.Animation.Thumbnail.FileID | fileURL }}" 
-                                        width={{ .Msg.ReplyToMessage.Animation.Thumbnail.Width }}
-                                        height={{ .Msg.ReplyToMessage.Animation.Thumbnail.Height }}
-                                        align="left">
-                                {{ end }}
-                                GIF
-                            {{ end }}
-                            {{- if .Msg.ReplyToMessage.Video }}
-                                {{- if .Msg.ReplyToMessage.Video.Thumbnail }}
-                                    <img class="thumbnail"
-                                        src="{{ .Msg.ReplyToMessage.Video.Thumbnail.FileID | fileURL }}" 
-                                        width={{ .Msg.ReplyToMessage.Video.Thumbnail.Width }}
-                                        height={{ .Msg.ReplyToMessage.Video.Thumbnail.Height }}
-                                        align="left">
-                                {{ end }}
-                                {{- if .Msg.ReplyToMessage.Video.Caption }}
-                                    <span class="caption">{{ .Msg.ReplyToMessage.Video.Caption }}</span>
-                                {{ end }}
-                            {{ end }}
-                            {{- if .Msg.ReplyToMessage.Voice }}Voice message{{ end }}
-                        </blockquote>
-                    </a>
-                {{ end -}}
                 {{- format .Msg.Text .Msg.Entities }}
-                {{- if .Msg.Picture }}
-                    {{- if eq .Msg.Picture.Class "animated-sticker" }}
-                        <div class="animated-sticker" title="{{ .Msg.Picture.Image.Alt }}" attr-src="{{ .Msg.Picture.Image.FileID | fileURL }}">
-                            <noscript>
-                                {{- if .Msg.Picture.Thumbnail }}
-                                <img class="thumbnail"
-                                    src="{{ .Msg.Picture.Thumbnail.FileID | fileURL }}" 
-                                    width={{ .Msg.Picture.Thumbnail.Width }}
-                                    height={{ .Msg.Picture.Thumbnail.Height }}
-                                    alt={{ .Msg.Picture.Image.Alt }}
-                                    >
-                                {{- end }}
-                            </noscript>
-                        </div>
-                    {{- else }}
-                        {{- if .Msg.Picture.Caption }}
-                        <figure>
-                        {{- end }}
-                        <picture {{- if .Msg.Picture.Class }} class="{{ .Msg.Picture.Class }}"{{ end }}>
-                            {{- range .Msg.Picture.Sources }}
-                            <source srcset="{{ .FileID | fileURL }}" type="image/{{ .Type }}">
-                            {{- end }}
-                            <img src="{{ .Msg.Picture.Image.FileID | fileURL }}" 
-                                width={{ .Msg.Picture.Image.Width }}
-                                height={{ .Msg.Picture.Image.Height }}
-                                alt="{{ .Msg.Picture.Image.Alt }}"
-                                srcset="{{- $c := counter -}}
-                                {{- range .Msg.Picture.Image.Sources -}}
-                                {{- if call $c -}}, {{ end -}}
-                                {{- .FileID | fileURL }} {{ .Width }}w
-                                {{- end -}}"
-                                >
-                        </picture>
-                        {{- if .Msg.Picture.Caption }}
-                            <figcaption>{{ .Msg.Picture.Caption }}</figcaption>
-                        </figure>
-                        {{ end }}
-                    {{ end }}
-                {{ end }}
-                {{- if .Msg.Document }}
-                    <a class="document" href="{{ .Msg.Document.FileID | fileURL }}">
-                        {{- if .Msg.Document.Thumbnail }}
-                        <img class="thumbnail"
-                            src="{{ .Msg.Document.Thumbnail.FileID | fileURL }}"
-                            width={{ .Msg.Document.Thumbnail.Width }}
-                            height={{ .Msg.Document.Thumbnail.Height }}>
-                        {{ end }}
-                        {{ .Msg.Document.FileName }} <small class="size">({{ .Msg.Document.Size | sizeHuman }})</small>
-                    </a>
-                    {{- if .Msg.Document.Caption }}
-                        <span class="caption">{{ .Msg.Document.Caption }}</span>
-                    {{ end }}
-                {{ end }}
-                {{- if .Msg.Animation }}
-                    <video width={{ .Msg.Animation.Width }} height={{ .Msg.Animation.Height }} autoplay loop>
-                        <source src="{{ .Msg.Animation.FileID | fileURL }}" type="{{ .Msg.Animation.MimeType }}">
-                        Your browser does not support the video tag.
-                        {{- if .Msg.Animation.Thumbnail }}
-                        <img class="thumbnail"
-                            src="{{ .Msg.Animation.Thumbnail.FileID | fileURL }}" 
-                            width={{ .Msg.Animation.Thumbnail.Width }}
-                            height={{ .Msg.Animation.Thumbnail.Height }}>
-                        {{ end }}
-                    </video>
-                    <!--small>({{ .Msg.Animation.Size | sizeHuman }})</!--small-->
-                {{ end }}
-                {{- if .Msg.Voice }}
-                    <audio controls>
-                        {{- range .Msg.Voice.Sources }}
-                        <source src="{{ .FileID | fileURL }}" type="{{ .Type }}">
-                        {{- end }}
-                        Your browser does not support the audio element.
-                    </audio>
-                {{ end }}
-                {{- if .Msg.Video }}
-                    <video class="video" width={{ .Msg.Video.Width }} height={{ .Msg.Video.Height }} controls>
-                        <source src="{{ .Msg.Video.FileID | fileURL }}" type="{{ .Msg.Video.MimeType }}">
-                        Your browser does not support the video tag.
-                        {{- if .Msg.Video.Thumbnail }}
-                        <img class="thumbnail"
-                            src="{{ .Msg.Video.Thumbnail.FileID | fileURL }}" 
-                            width={{ .Msg.Video.Thumbnail.Width }}
-                            height={{ .Msg.Video.Thumbnail.Height }}>
-                        {{ end }}
-                    </video>
-                    <span class="caption">
-                        {{- if .Msg.Video.Caption }}{{ .Msg.Video.Caption }}{{ end }}
-                        <small>({{ .Msg.Video.Size | sizeHuman }})</small>
-                    </span>
-                {{ end }}
-                {{- if .Msg.NewChatMembers }}
-                    {{- range .Msg.NewChatMembers }}
-                        <span class="member-joined">
-                            {{- if .Username }}<a class="name" href="https://t.me/{{ .Username }}">{{ .DisplayName }}</a> {{ else -}}
-                            <span class="name">{{ .DisplayName }}</span> {{ end -}}
-                            joined the group</span>
-                    {{ end }}
-                {{ end }}
-                {{- if .Msg.LeftChatMember }}
-                    <span class="member-left">
-                        {{- if .Msg.LeftChatMember.Username }}<a class="name" href="https://t.me/{{ .Msg.LeftChatMember.Username }}">{{ .Msg.LeftChatMember.DisplayName }}</a> {{ else -}}
-                        <span class="name">{{ .Msg.LeftChatMember.DisplayName }}</span> {{ end -}}
-                        left the group</span>
+                {{- if .Msg.Image }}
+                    <img src="{{ .Msg.Image.FileID | fileURL }}" width={{ .Msg.Image.Width }} height={{ .Msg.Image.Height }}>
+                    {{ format .Msg.Image.Caption .Msg.Image.Entities }}
                 {{ end }}
             </td>
         </tr>
@@ -350,20 +96,6 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.5.9/lottie.min.js"></script>
         <script>
             window.onload = function() {
-                var elements = document.getElementsByClassName('animated-sticker');
-                for (i = 0; i < elements.length; i++) {
-                    var animation = bodymovin.loadAnimation({
-                        container: elements[i],
-                        renderer: 'svg',
-                        loop: true,
-                        autoplay: true,
-                        path: elements[i].getAttribute("attr-src")
-                    })
-                    animation.addEventListener("data_failed", function(err, v2) {
-                        console.log("data failed", animation.path)
-                    })
-                }
-
                 var filter = document.getElementById('filter');
                 var checkboxes = filter.getElementsByClassName('filter__item');
                 var filterToggle = document.getElementById('filter__toggle');

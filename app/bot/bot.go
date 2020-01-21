@@ -24,23 +24,13 @@ type SuperUser interface {
 
 // Message is primary record to pass data from/to bots
 type Message struct {
-	ID                   int
-	From                 User
-	Sent                 time.Time
-	HTML                 string     `json:",omitempty"`
-	Text                 string     `json:",omitempty"`
-	Entities             *[]Entity  `json:",omitempty"`
-	Picture              *Picture   `json:",omitempty"`
-	Document             *Document  `json:",omitempty"`
-	Animation            *Animation `json:",omitempty"`
-	Voice                *Voice     `json:",omitempty"`
-	Video                *Video     `json:",omitempty"`
-	ReplyToMessage       *Message   `json:",omitempty"`
-	ForwardFrom          *User      `json:",omitempty"`
-	ForwardFromChat      *Chat      `json:",omitempty"`
-	ForwardFromMessageID int        `json:",omitempty"`
-	NewChatMembers       *[]User    `json:",omitempty"`
-	LeftChatMember       *User      `json:",omitempty"`
+	ID       int
+	From     User
+	Sent     time.Time
+	HTML     string    `json:",omitempty"`
+	Text     string    `json:",omitempty"`
+	Entities *[]Entity `json:",omitempty"`
+	Image    *Image    `json:",omitempty"`
 }
 
 // Entity represents one special entity in a text message.
@@ -53,86 +43,14 @@ type Entity struct {
 	User   *User  `json:",omitempty"` // For “text_mention” only, the mentioned user
 }
 
-// Chat represents channel or chat
-// Used in Message.ForwardFromChat
-type Chat struct {
-	ID        int64
-	Type      string
-	Title     string
-	UserName  string
-	FirstName string `json:",omitempty"`
-	LastName  string `json:",omitempty"`
-}
-
-// Picture represents HTML5 <picture> with optional <figcaption>
-type Picture struct {
-	Image     Image
-	Class     string   `json:",omitempty"`
-	Caption   string   `json:",omitempty"`
-	Sources   []Source `json:",omitempty"`
-	Thumbnail *Source  `json:",omitempty"`
-}
-
-// Image represents HTML <img>
+// Image represents image
 type Image struct {
 	// FileID corresponds to Telegram file_id
-	FileID  string
-	Width   int
-	Height  int
-	Size    int
-	Type    string   `json:",omitempty"`
-	Alt     string   `json:",omitempty"`
-	Sources []Source `json:",omitempty"`
-}
-
-// Source defines file, usually image
-type Source struct {
-	FileID string
-	Width  int
-	Height int
-	Size   int    `json:",omitempty"`
-	Type   string `json:",omitempty"`
-}
-
-// Document is for attached file on Telegram
-type Document struct {
-	FileID    string
-	FileName  string
-	Size      int
-	MimeType  string
-	Caption   string
-	Thumbnail *Source
-}
-
-// Animation is for animation (MP4, GIF)
-type Animation struct {
-	FileID    string
-	FileName  string
-	Size      int
-	MimeType  string
-	Thumbnail *Source
-	Duration  int
-	Width     int
-	Height    int
-}
-
-// Voice is for voice messages
-type Voice struct {
-	Duration int
-	Sources  []Source
-}
-
-// Video is for video messages
-type Video struct {
-	FileID    string
-	FileName  string
-	Size      int
-	MimeType  string
-	Thumbnail *Source
-	Duration  int
-	Width     int
-	Height    int
-	Caption   string
+	FileID   string
+	Width    int
+	Height   int
+	Caption  string    `json:",omitempty"`
+	Entities *[]Entity `json:",omitempty"`
 }
 
 // User defines user info of the Message

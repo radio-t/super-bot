@@ -109,7 +109,7 @@ func export() {
 	fileRecipient := reporter.NewTelegramFileRecipient(botAPI, opts.Telegram.Timeout)
 
 	exportNum := strconv.Itoa(opts.ExportNum)
-	st, err := storage.NewLocal(
+	s, err := storage.NewLocal(
 		opts.ExportPath+"/"+exportNum,
 		exportNum,
 	)
@@ -117,13 +117,7 @@ func export() {
 		log.Fatalf("[ERROR] storage creation failed: %v", err)
 	}
 
-	conv := map[string]reporter.Converter{
-		"webp":      reporter.NewWebPConverter(st),
-		"tgs":       reporter.NewTGSConverter(st),
-		"audio/ogg": reporter.NewOGGConverter(st),
-	}
-
-	reporter.NewExporter(fileRecipient, conv, st, params).Export(opts.ExportNum, opts.ExportDay)
+	reporter.NewExporter(fileRecipient, s, params).Export(opts.ExportNum, opts.ExportDay)
 }
 
 func setupLog(dbg bool) {

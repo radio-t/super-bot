@@ -192,231 +192,46 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 		}
 	}
 
-	if msg.ForwardFrom != nil {
-		message.ForwardFrom = &bot.User{
-			Username:    msg.ForwardFrom.UserName,
-			DisplayName: msg.ForwardFrom.FirstName + " " + msg.ForwardFrom.LastName,
-		}
-		message.ForwardFromMessageID = msg.ForwardFromMessageID
-	}
-
-	if msg.ForwardFromChat != nil {
-		message.ForwardFromChat = &bot.Chat{
-			ID:        msg.ForwardFromChat.ID,
-			Type:      msg.ForwardFromChat.Type,
-			Title:     msg.ForwardFromChat.Title,
-			UserName:  msg.ForwardFromChat.UserName,
-			FirstName: msg.ForwardFromChat.FirstName,
-			LastName:  msg.ForwardFromChat.LastName,
-		}
-		message.ForwardFromMessageID = msg.ForwardFromMessageID
-	}
-
-	if msg.ReplyToMessage != nil {
-		message.ReplyToMessage = l.transform(msg.ReplyToMessage)
-	}
-
 	switch {
 	case msg.Entities != nil && len(*msg.Entities) > 0:
-		var entities []bot.Entity
-		for _, entity := range *msg.Entities {
-			e := bot.Entity{
-				Type:   entity.Type,
-				Offset: entity.Offset,
-				Length: entity.Length,
-				URL:    entity.URL,
-			}
-			if entity.User != nil {
-				e.User = &bot.User{
-					Username:    entity.User.UserName,
-					DisplayName: entity.User.FirstName + " " + entity.User.LastName,
-				}
-			}
-			entities = append(entities, e)
-		}
-		message.Entities = &entities
+		message.Entities = l.transformEntities(msg.Entities)
 
 	case msg.Photo != nil && len(*msg.Photo) > 0:
 		sizes := *msg.Photo
-		message.Picture = &bot.Picture{
-			Class: "photo",
-			Image: bot.Image{
-				FileID:  sizes[0].FileID,
-				Width:   sizes[0].Width,
-				Height:  sizes[0].Height,
-				Sources: l.transformPhotoSizes(*msg.Photo),
-			},
-			Caption: msg.Caption,
-			Thumbnail: &bot.Source{
-				FileID: sizes[0].FileID,
-				Width:  sizes[0].Width,
-				Height: sizes[0].Height,
-				Size:   sizes[0].FileSize,
-			},
-		}
-
-	case msg.Sticker != nil:
-		class, extensionFrom, extensionTo := func(isAnimated bool) (string, string, string) {
-			if isAnimated {
-				return "animated-sticker", "tgs", "json"
-			}
-			return "sticker", "webp", "png"
-		}(msg.Sticker.IsAnimated)
-
-		message.Picture = &bot.Picture{
-			Class: class,
-			Image: bot.Image{
-				FileID: msg.Sticker.FileID + "." + extensionTo,
-				Width:  msg.Sticker.Width,
-				Height: msg.Sticker.Height,
-				Alt:    msg.Sticker.Emoji,
-				Type:   extensionTo,
-			},
-			Sources: l.transformSticker(*msg.Sticker, extensionFrom, extensionTo),
-		}
-
-		if msg.Sticker.Thumbnail != nil {
-			message.Picture.Thumbnail = &bot.Source{
-				FileID: msg.Sticker.Thumbnail.FileID,
-				Width:  msg.Sticker.Thumbnail.Width,
-				Height: msg.Sticker.Thumbnail.Height,
-			}
-		}
-
-	case msg.Animation != nil: // have to be before Document case block, run tests
-		message.Animation = &bot.Animation{
-			FileID:   msg.Animation.FileID,
-			FileName: msg.Animation.FileName,
-			Size:     msg.Animation.FileSize,
-			MimeType: msg.Animation.MimeType,
-			Duration: msg.Animation.Duration,
-			Width:    msg.Animation.Width,
-			Height:   msg.Animation.Height,
-		}
-
-		if msg.Animation.Thumbnail != nil {
-			message.Animation.Thumbnail = &bot.Source{
-				FileID: msg.Animation.Thumbnail.FileID,
-				Width:  msg.Animation.Thumbnail.Width,
-				Height: msg.Animation.Thumbnail.Height,
-				Size:   msg.Animation.Thumbnail.FileSize,
-			}
-		}
-
-	case msg.Document != nil:
-		message.Document = &bot.Document{
-			FileID:   msg.Document.FileID,
-			FileName: msg.Document.FileName,
-			Size:     msg.Document.FileSize,
-			MimeType: msg.Document.MimeType,
+		lastSize := sizes[len(sizes)-1]
+		message.Image = &bot.Image{
+			FileID:   lastSize.FileID,
+			Width:    lastSize.Width,
+			Height:   lastSize.Height,
 			Caption:  msg.Caption,
-		}
-
-		if msg.Document.Thumbnail != nil {
-			message.Document.Thumbnail = &bot.Source{
-				FileID: msg.Document.Thumbnail.FileID,
-				Width:  msg.Document.Thumbnail.Width,
-				Height: msg.Document.Thumbnail.Height,
-				Size:   msg.Document.Thumbnail.FileSize,
-			}
-		}
-
-	case msg.Voice != nil:
-		message.Voice = &bot.Voice{
-			Duration: msg.Voice.Duration,
-			Sources: []bot.Source{
-				{
-					FileID: msg.Voice.FileID,
-					Type:   msg.Voice.MimeType,
-					Size:   msg.Voice.FileSize,
-				},
-				{
-					FileID: msg.Voice.FileID + ".mp3",
-					Type:   "audio/mp3",
-				},
-			},
-		}
-
-	case msg.Video != nil:
-		message.Video = &bot.Video{
-			FileID:   msg.Video.FileID,
-			Size:     msg.Video.FileSize,
-			MimeType: msg.Video.MimeType,
-			Duration: msg.Video.Duration,
-			Width:    msg.Video.Width,
-			Height:   msg.Video.Height,
-			Caption:  msg.Caption,
-		}
-
-		if msg.Video.Thumbnail != nil {
-			message.Video.Thumbnail = &bot.Source{
-				FileID: msg.Video.Thumbnail.FileID,
-				Width:  msg.Video.Thumbnail.Width,
-				Height: msg.Video.Thumbnail.Height,
-				Size:   msg.Video.Thumbnail.FileSize,
-			}
-		}
-
-	case msg.NewChatMembers != nil:
-		var users []bot.User
-		for _, user := range *msg.NewChatMembers {
-			users = append(users, bot.User{
-				Username:    user.UserName,
-				DisplayName: user.FirstName + " " + user.LastName,
-			})
-		}
-
-		message.From = bot.User{}
-		message.NewChatMembers = &users
-
-	case msg.LeftChatMember != nil:
-		message.From = bot.User{}
-		message.LeftChatMember = &bot.User{
-			Username:    msg.LeftChatMember.UserName,
-			DisplayName: msg.LeftChatMember.FirstName + " " + msg.LeftChatMember.LastName,
+			Entities: l.transformEntities(msg.CaptionEntities),
 		}
 	}
 
 	return &message
 }
 
-func (l *TelegramListener) transformPhotoSizes(sizes []tbapi.PhotoSize) []bot.Source {
-	var result []bot.Source
-
-	for _, size := range sizes {
-		result = append(
-			result,
-			bot.Source{
-				FileID: size.FileID,
-				Size:   size.FileSize,
-				Width:  size.Width,
-				Height: size.Height,
-			},
-		)
+func (l *TelegramListener) transformEntities(entities *[]tbapi.MessageEntity) *[]bot.Entity {
+	if entities == nil || len(*entities) == 0 {
+		return nil
 	}
 
-	return result
-}
+	var result []bot.Entity
+	for _, entity := range *entities {
+		e := bot.Entity{
+			Type:   entity.Type,
+			Offset: entity.Offset,
+			Length: entity.Length,
+			URL:    entity.URL,
+		}
+		if entity.User != nil {
+			e.User = &bot.User{
+				Username:    entity.User.UserName,
+				DisplayName: entity.User.FirstName + " " + entity.User.LastName,
+			}
+		}
+		result = append(result, e)
+	}
 
-func (l *TelegramListener) transformSticker(sticker tbapi.Sticker, extensionFrom string, extensionTo string) []bot.Source {
-	var result []bot.Source
-
-	result = append(
-		result,
-		bot.Source{
-			FileID: sticker.FileID,
-			Type:   extensionFrom,
-			Size:   sticker.FileSize,
-		},
-	)
-
-	result = append(
-		result,
-		bot.Source{
-			FileID: sticker.FileID + "." + extensionTo,
-			Type:   extensionTo,
-		},
-	)
-
-	return result
+	return &result
 }

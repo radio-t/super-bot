@@ -27,7 +27,6 @@ type Exporter struct {
 	ExporterParams
 	location      *time.Location
 	fileRecipient FileRecipient
-	converters    map[string]Converter
 	storage       Storage
 
 	fileIDToURL map[string]string
@@ -56,17 +55,11 @@ type Storage interface {
 }
 
 // NewExporter from params, initializes time.Location
-func NewExporter(
-	fileRecipient FileRecipient,
-	converters map[string]Converter,
-	storage Storage,
-	params ExporterParams,
-) *Exporter {
+func NewExporter(fileRecipient FileRecipient, storage Storage, params ExporterParams) *Exporter {
 	log.Printf("[INFO] exporter with %v", params)
 	result := Exporter{
 		ExporterParams: params,
 		fileRecipient:  fileRecipient,
-		converters:     converters,
 		storage:        storage,
 		fileIDToURL:    map[string]string{},
 	}
@@ -117,7 +110,9 @@ func (e *Exporter) toHTML(messages []bot.Message, num int) string {
 
 	data := Data{Num: num}
 	for _, msg := range messages {
-		e.maybeDownloadFiles(msg)
+		if msg.Image != nil {
+			e.maybeDownloadFile(msg.Image.FileID)
+		}
 
 		data.Records = append(
 			data.Records,
@@ -174,71 +169,13 @@ func (e *Exporter) timestampHuman(t time.Time) string {
 	return t.In(e.location).Format("15:04:05")
 }
 
-func (e *Exporter) maybeDownloadFiles(msg bot.Message) {
-	switch {
-	case msg.Picture != nil:
-		imageType := "png"
-		if msg.Picture.Class == "sticker" || msg.Picture.Class == "animated-sticker" {
-			imageType = "webp"
-		}
-
-		e.maybeDownloadFile(msg.Picture.Image.FileID, imageType)
-
-		if msg.Picture.Thumbnail != nil {
-
-			e.maybeDownloadFile(msg.Picture.Thumbnail.FileID, imageType)
-		}
-
-		for _, source := range (*msg.Picture).Image.Sources {
-			e.maybeDownloadFile(source.FileID, source.Type)
-		}
-
-		for _, source := range (*msg.Picture).Sources {
-			e.maybeDownloadFile(source.FileID, source.Type)
-		}
-
-	case msg.Document != nil:
-		e.maybeDownloadFile(msg.Document.FileID, "")
-
-		if msg.Document.Thumbnail != nil {
-			e.maybeDownloadFile(msg.Document.Thumbnail.FileID, "")
-		}
-
-	case msg.Animation != nil:
-		e.maybeDownloadFile(msg.Animation.FileID, "")
-
-		if msg.Animation.Thumbnail != nil {
-			e.maybeDownloadFile(msg.Animation.Thumbnail.FileID, "")
-		}
-
-	case msg.Voice != nil:
-		for _, source := range (*msg.Voice).Sources {
-			e.maybeDownloadFile(source.FileID, source.Type)
-		}
-
-	case msg.Video != nil:
-		e.maybeDownloadFile(msg.Video.FileID, "")
-
-		if msg.Video.Thumbnail != nil {
-			e.maybeDownloadFile(msg.Video.Thumbnail.FileID, "")
-		}
-	}
-}
-
-func (e *Exporter) maybeDownloadFile(fileID string, fileType string) {
+func (e *Exporter) maybeDownloadFile(fileID string) {
 	if fileID == "" {
 		return
 	}
 
 	if _, found := e.fileIDToURL[fileID]; found {
 		// already downloaded
-		return
-	}
-
-	if strings.Contains(fileID, ".") {
-		// hacky way to handle WebP & TGS stickers
-		// convertion to happens after image "FileID" download
-		e.fileIDToURL[fileID] = e.storage.BuildLink(fileID)
 		return
 	}
 
@@ -277,23 +214,6 @@ func (e *Exporter) maybeDownloadFile(fileID string, fileType string) {
 	e.fileIDToURL[fileID] = fileURL
 	// hacky: need to pass fileURL to template
 	// using this map in template FuncMap later
-
-	if fileType == "" {
-		return
-	}
-
-	converter, found := e.converters[fileType]
-	if !found {
-		log.Printf("[DEBUG] no convertion will happen (converter for type \"%s\" not found)", fileType)
-		return
-	}
-
-	log.Printf("[DEBUG] converting file %s (%s)", fileID, fileType)
-
-	err = converter.Convert(fileID)
-	if err != nil {
-		log.Printf("[ERROR] failed to convert file %s: %v", fileID, err)
-	}
 
 	return
 }
@@ -359,105 +279,26 @@ func format(text string, entities *[]bot.Entity) template.HTML {
 	}
 
 	runes := []rune(text)
-	offset := 0
-	length := len(runes)
+	result := ""
+	pos := 0
 
 	for _, entity := range *entities {
-		switch entity.Type {
-		case "bold":
-			runes = decorate(
-				runes,
-				entity.Offset+offset, entity.Length,
-				"<strong>", "</strong>",
-			)
+		before, after := getDecoration(
+			entity,
+			runes[entity.Offset:entity.Offset+entity.Length],
+		)
 
-		case "italic":
-			runes = decorate(
-				runes,
-				entity.Offset+offset, entity.Length,
-				"<em>", "</em>",
-			)
+		result += html.EscapeString(string(runes[pos:entity.Offset])) +
+			before +
+			html.EscapeString(string(runes[entity.Offset:entity.Offset+entity.Length])) +
+			after
 
-		case "underline":
-			runes = decorate(
-				runes,
-				entity.Offset+offset, entity.Length,
-				"<u>", "</u>",
-			)
-
-		case "strikethrough":
-			runes = decorate(
-				runes,
-				entity.Offset+offset, entity.Length,
-				"<s>", "</s>",
-			)
-
-		case "code":
-			runes = decorate(
-				runes,
-				entity.Offset+offset, entity.Length,
-				"<code>", "</code>",
-			)
-
-		case "pre":
-			runes = decorate(
-				runes,
-				entity.Offset+offset, entity.Length,
-				"<pre>", "</pre>",
-			)
-
-		case "text_link":
-			runes = decorate(
-				runes,
-				entity.Offset+offset, entity.Length,
-				"<a href=\"%s\">", "</a>",
-				entity.URL,
-			)
-
-		case "url":
-			runes = decorate(
-				runes,
-				entity.Offset+offset, entity.Length,
-				"<a href=\"%s\">", "</a>",
-				string(runes[entity.Offset+offset:entity.Offset+offset+entity.Length]),
-			)
-
-		case "mention":
-			runes = decorate(
-				runes,
-				entity.Offset+offset, entity.Length,
-				"<a href=\"https://t.me/%s\">", "</a>",
-				string(runes[entity.Offset+offset+1:entity.Offset+offset+entity.Length]),
-			)
-
-		case "email":
-			runes = decorate(
-				runes,
-				entity.Offset+offset, entity.Length,
-				"<a href=\"mailto:%s\">", "</a>",
-				string(runes[entity.Offset+offset:entity.Offset+offset+entity.Length]),
-			)
-
-		case "phone_number":
-			runes = decorate(
-				runes,
-				entity.Offset+offset, entity.Length,
-				"<a href=\"tel:%s\">", "</a>",
-				cleanPhoneNumber(string(runes[entity.Offset+offset:entity.Offset+offset+entity.Length])),
-			)
-
-		// intentiall ignored:
-		case "text_mention": // for users without usernames
-		case "bot_command": // "/start@jobs_bot"
-		case "hashtag": // "#hashtag"
-		case "cashtag": // "$USD"
-		}
-
-		offset += len(runes) - length
-		length = len(runes)
+		pos = entity.Offset + entity.Length
 	}
 
-	return template.HTML(strings.ReplaceAll(string(runes), "\n", "<br>"))
+	result += html.EscapeString(string(runes[pos:]))
+
+	return template.HTML(strings.ReplaceAll(result, "\n", "<br>"))
 }
 
 func substr(text string, offset int, length int) string {
@@ -474,21 +315,50 @@ func substr(text string, offset int, length int) string {
 	return string(runes[offset:length])
 }
 
-func decorate(runes []rune, offset int, length int, before string, after string, params ...interface{}) []rune {
-	if params != nil {
-		before = fmt.Sprintf(before, params...)
+func getDecoration(entity bot.Entity, body []rune) (string, string) {
+	switch entity.Type {
+	case "bold":
+		return "<strong>", "</strong>"
+
+	case "italic":
+		return "<em>", "</em>"
+
+	case "underline":
+		return "<u>", "</u>"
+
+	case "strikethrough":
+		return "<s>", "</s>"
+
+	case "code":
+		return "<code>", "</code>"
+
+	case "pre":
+		return "<pre>", "</pre>"
+
+	case "text_link":
+		return fmt.Sprintf("<a href=\"%s\">", entity.URL), "</a>"
+
+	case "url":
+		return fmt.Sprintf("<a href=\"%s\">", string(body)), "</a>"
+
+	case "mention":
+		return fmt.Sprintf("<a href=\"https://t.me/%s\">", string(body[1:])), "</a>"
+		// body[1:] because first symbol in mention is "@" it's not needed for link
+
+	case "email":
+		return fmt.Sprintf("<a href=\"mailto:%s\">", string(body)), "</a>"
+
+	case "phone_number":
+		return fmt.Sprintf("<a href=\"tel:%s\">", cleanPhoneNumber(string(body))), "</a>"
+
+	// intentiall ignored:
+	case "text_mention": // for users without usernames
+	case "bot_command": // "/start@jobs_bot"
+	case "hashtag": // "#hashtag"
+	case "cashtag": // "$USD"
 	}
-	beforeRunes := []rune(before)
-	afterRunes := []rune(after)
 
-	result := make([]rune, len(runes)+len(beforeRunes)+len(afterRunes))
-	copy(result[:], runes[0:offset])
-	copy(result[offset:], beforeRunes)
-	copy(result[offset+len(beforeRunes):], runes[offset:offset+length])
-	copy(result[offset+length+len(beforeRunes):], afterRunes)
-	copy(result[offset+length+len(beforeRunes)+len(afterRunes):], runes[offset+length:])
-
-	return result
+	return "", ""
 }
 
 func cleanPhoneNumber(phoneNumber string) string {

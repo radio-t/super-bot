@@ -13,7 +13,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/radio-t/gitter-rt-bot/app/bot"
 )
@@ -131,24 +130,6 @@ func (e *Exporter) toHTML(messages []bot.Message, num int) string {
 			}
 			return ""
 		},
-		"counter": func() func() int {
-			i := -1
-			return func() int {
-				i++
-				return i
-			}
-		},
-		"png": func(fileURL string) string {
-			return fileURL + ".png"
-		},
-		"trim": func(text string) string {
-			if utf8.RuneCountInString(text) > maxQuoteLength {
-				return substr(text, 0, maxQuoteLength) + "..."
-			}
-
-			return text
-		},
-		"sizeHuman":      sizeHuman,
 		"timestampHuman": e.timestampHuman,
 		"format":         format,
 	}
@@ -254,25 +235,6 @@ func filter(msg bot.Message) bool {
 	return contains([]string{"+1", "-1", ":+1:", ":-1:"}, msg.Text)
 }
 
-func sizeHuman(b int) string {
-	const unit = 1000
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
-	}
-
-	div, exp := int64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-
-	return fmt.Sprintf(
-		"%.1f %cB",
-		float64(b)/float64(div),
-		"kMGTPE"[exp],
-	)
-}
-
 func format(text string, entities *[]bot.Entity) template.HTML {
 	if entities == nil {
 		return template.HTML(html.EscapeString(text))
@@ -299,20 +261,6 @@ func format(text string, entities *[]bot.Entity) template.HTML {
 	result += html.EscapeString(string(runes[pos:]))
 
 	return template.HTML(strings.ReplaceAll(result, "\n", "<br>"))
-}
-
-func substr(text string, offset int, length int) string {
-	runes := []rune(text)
-
-	if len(runes) < offset || len(runes) < length {
-		return string(runes)
-	}
-
-	if length == -1 {
-		return string(runes[offset:])
-	}
-
-	return string(runes[offset:length])
 }
 
 func getDecoration(entity bot.Entity, body []rune) (string, string) {

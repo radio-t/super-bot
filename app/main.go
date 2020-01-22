@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -18,8 +19,8 @@ import (
 
 var opts struct {
 	Telegram struct {
-		Token       string `long:"token" env:"TOKEN" description:"telegram bot token" default:"test"`
-		Group       string `long:"group" env:"GROUP" description:"group name/id" default:"test"`
+		Token string `long:"token" env:"TOKEN" description:"telegram bot token" default:"test"`
+		Group string `long:"group" env:"GROUP" description:"group name/id" default:"test"`
 	} `group:"telegram" namespace:"telegram" env-namespace:"TELEGRAM"`
 
 	RtjcPort     int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
@@ -38,6 +39,8 @@ var opts struct {
 var revision = "local"
 
 func main() {
+	ctx := context.TODO()
+
 	fmt.Printf("radio-t bot, %s\n", revision)
 	if _, err := flags.Parse(&opts); err != nil {
 		os.Exit(1)
@@ -53,6 +56,13 @@ func main() {
 	rand.Seed(int64(time.Now().Nanosecond()))
 
 	multiBot := bot.MultiBot{
+		bot.NewBroadcastStatus(
+			ctx,
+			bot.BroadcastParams{
+				Url:          "https://stream.radio-t.com",
+				PingInterval: 10 * time.Second,
+				DelayToOff:   time.Minute,
+				Client:       http.Client{Timeout: 5 * time.Second}}),
 		bot.NewSys(opts.SysData),
 		bot.NewVotes(opts.SuperUsers),
 		bot.NewNews("https://news.radio-t.com/api"),
@@ -75,15 +85,14 @@ func main() {
 	}
 
 	tgListener := events.TelegramListener{
-		Terminator:  term,
-		Reporter:    reporter.NewLogger(opts.LogsPath),
-		Bots:        multiBot,
-		GroupID:     groupID,
-		Token:       opts.Telegram.Token,
-		Debug:       opts.Dbg,
+		Terminator: term,
+		Reporter:   reporter.NewLogger(opts.LogsPath),
+		Bots:       multiBot,
+		GroupID:    groupID,
+		Token:      opts.Telegram.Token,
+		Debug:      opts.Dbg,
 	}
 
-	ctx := context.TODO()
 	go events.Rtjc{Port: opts.RtjcPort, Submitter: &tgListener}.Listen(ctx)
 	if err := tgListener.Do(ctx); err != nil {
 		log.Fatalf("[ERROR] telegram listener failed, %v", err)

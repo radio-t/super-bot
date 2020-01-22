@@ -32,6 +32,7 @@ func TestBroadcastStatusTransitions(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusNotFound)
 	}))
+	defer ts.Close()
 
 	b := NewBroadcastStatus(ctx, BroadcastParams{
 		Url:          ts.URL,
@@ -76,6 +77,7 @@ func TestBroadcastStatusOffToOn(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
+	defer ts.Close()
 
 	b := &BroadcastStatus{}
 	b.check(ctx, time.Time{}, BroadcastParams{
@@ -93,6 +95,7 @@ func TestBroadcastStatusOffToOff(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
+	defer ts.Close()
 
 	b := &BroadcastStatus{}
 	b.status = false
@@ -111,6 +114,7 @@ func TestBroadcastStatusOnToOffNoDeadline(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
+	defer ts.Close()
 
 	b := &BroadcastStatus{}
 	b.status = true
@@ -130,6 +134,7 @@ func TestBroadcastStatusOnToOffWithDeadline(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
+	defer ts.Close()
 
 	b := &BroadcastStatus{}
 	b.status = true

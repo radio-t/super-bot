@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -55,7 +56,13 @@ func main() {
 	rand.Seed(int64(time.Now().Nanosecond()))
 
 	multiBot := bot.MultiBot{
-		bot.NewBroadcastStatus(ctx, "https://stream.radio-t.com", 10*time.Second, time.Minute),
+		bot.NewBroadcastStatus(
+			ctx,
+			bot.BroadcastParams{
+				Url:          "https://stream.radio-t.com",
+				PingInterval: 10 * time.Second,
+				DelayToOff:   time.Minute,
+				Client:       http.Client{Timeout: 5 * time.Second}}),
 		bot.NewSys(opts.SysData),
 		bot.NewVotes(opts.SuperUsers),
 		bot.NewNews("https://news.radio-t.com/api"),

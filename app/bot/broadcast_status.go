@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"net/http"
+	"sync"
 	"time"
 
 	log "github.com/go-pkgz/lgr"
@@ -13,100 +14,114 @@ const (
 	MsgBroadcastFinished = "Вещание завершилось"
 )
 
-// BroadcastStatus bot returns current broadcast status
+type BroadcastParams struct {
+	Url          string        // Url for "ping"
+	PingInterval time.Duration // Ping interval
+	DelayToOff   time.Duration // State will be switched to off in no ok replies from Url in this intrval
+	Client       http.Client   // http client
+}
+
+// BroadcastStatus bot replies with current broadcast status
 type BroadcastStatus struct {
-	// Params
-	broadcastUrl string        // Url for "ping"
-	pingInterval time.Duration // Ping interval
-	delayToOff   time.Duration // After this interval of not OK, status will be switcher to OFF
-
-	// State
-	status         bool  // current broadcast status
-	lastSentStatus *bool // by default this value is null to react on first message
-	offPeriod      time.Duration
-	lastCheck      time.Time
-
-	// ping func (for tests)
-	ping func(ctx context.Context, url string) bool
+	status         bool // current broadcast status
+	lastSentStatus bool // last status sent with OnMessage
+	fistMsgSent    bool
+	statusMx       sync.Mutex
 }
 
 // NewBroadcastStatus starts status checking goroutine and returns bot instance
-func NewBroadcastStatus(ctx context.Context, broadcastUrl string, pingInterval time.Duration, delayToOff time.Duration) *BroadcastStatus {
-	log.Printf("[INFO] BroadcastStatus bot with %v", broadcastUrl)
-	b := &BroadcastStatus{broadcastUrl: broadcastUrl, pingInterval: pingInterval, delayToOff: delayToOff, lastCheck: time.Now(), ping: ping}
-	go b.checker(ctx)
+func NewBroadcastStatus(ctx context.Context, params BroadcastParams) *BroadcastStatus {
+	log.Printf("[INFO] BroadcastStatus bot with %v", params.Url)
+	b := &BroadcastStatus{}
+	go b.checker(ctx, params)
 	return b
 }
 
-// OnMessage returns current broadcast status
+// OnMessage returns current broadcast status if it was changed
 func (b *BroadcastStatus) OnMessage(_ Message) (response string, answer bool) {
-	if b.lastSentStatus != nil && b.status == *b.lastSentStatus {
+	b.statusMx.Lock()
+	defer b.statusMx.Unlock()
+
+	if b.status == b.lastSentStatus && b.fistMsgSent {
 		return
 	}
 
+	b.fistMsgSent = true
 	answer = true
-	response = MsgBroadcastStarted
+	response = MsgBroadcastFinished
 
-	status := b.status
-	b.lastSentStatus = &status
-	if !b.status {
-		response = MsgBroadcastFinished
+	b.lastSentStatus = b.status
+	if b.status {
+		response = MsgBroadcastStarted
 	}
 	return
 }
 
-func (b *BroadcastStatus) checker(ctx context.Context) {
+func (b *BroadcastStatus) checker(ctx context.Context, params BroadcastParams) {
+	lastOn := time.Time{}
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(b.pingInterval):
-			b.check(ctx)
+		case <-time.After(params.PingInterval):
+			lastOn = b.check(ctx, lastOn, params)
 		}
 	}
 }
 
-func (b *BroadcastStatus) check(ctx context.Context) {
-	defer func() {
-		b.lastCheck = time.Now()
-	}()
+// check do ping to url and change current state
+func (b *BroadcastStatus) check(ctx context.Context, lastOn time.Time, params BroadcastParams) time.Time {
+	b.statusMx.Lock()
+	defer b.statusMx.Unlock()
 
-	newStatus := b.ping(ctx, b.broadcastUrl)
+	newStatus := ping(ctx, params.Client, params.Url)
 
+	// 0 -> 1
 	if !b.status && newStatus {
 		log.Print("[INFO] Broadcast started")
 		b.status = true
-		b.offPeriod = 0
-		return
+		return time.Now()
 	}
 
-	if b.status && !newStatus {
-		b.offPeriod += time.Now().Sub(b.lastCheck)
-		if b.offPeriod > b.delayToOff {
+	// 1 -> 0
+	// 0 -> 0
+	if !newStatus {
+		if b.status && lastOn.Add(params.DelayToOff).Before(time.Now()) {
 			log.Print("[INFO] Broadcast finished")
 			b.status = false
-			b.offPeriod = 0
-			return
 		}
+		return lastOn
 	}
+
+	// 1 -> 1
+	return time.Now()
 }
 
 // ping do get request to https://stream.radio-t.com and returns true on OK status and false for all other statuses
-func ping(ctx context.Context, url string) bool {
+func ping(ctx context.Context, client http.Client, url string) (status bool) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		log.Printf("[WARN] unable to created %v request, %v", url, err)
-		return false
+		return
 	}
 
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("[WARN] unable to do %v request, %v", url, err)
-		return false
+		return
 	}
 	defer resp.Body.Close()
 
-	return resp.StatusCode == http.StatusOK
+	if resp.StatusCode == http.StatusOK {
+		status = true
+	}
+	return
+}
+
+func (b *BroadcastStatus) getStatus() bool {
+	b.statusMx.Lock()
+	defer b.statusMx.Unlock()
+	return b.status
 }
 
 // ReactOn keys

@@ -231,7 +231,6 @@ func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) 
 			case bot.MsgBroadcastStarted:
 				if broadcastStartedIndex == 0 {
 					// record first occurance of MsgBroadcastFinished
-					// "+1" to exclude "MsgBroadcastStarted"
 					broadcastStartedIndex = currentIndex
 				}
 				continue

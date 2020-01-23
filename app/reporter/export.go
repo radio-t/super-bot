@@ -33,10 +33,13 @@ type Exporter struct {
 
 // ExporterParams for locations
 type ExporterParams struct {
-	OutputRoot   string
-	InputRoot    string
-	TemplateFile string
-	SuperUsers   SuperUser
+	OutputRoot     string
+	InputRoot      string
+	TemplateFile   string
+	SuperUsers     SuperUser
+	BroadcastUsers SuperUser // Users who can send "bot.MsgBroadcastStarted" and "bot.MsgBroadcastStarted" messages.
+	// it maybe just bot, or bot + some or all SuperUsers.
+	// Cannot use SuperUsers field for same purpose becase they used to mark messages as "from host" in template
 }
 
 // SuperUser knows which user is a superuser
@@ -79,7 +82,7 @@ func (e *Exporter) Export(showNum int, yyyymmdd int) {
 	}
 	to := fmt.Sprintf("%s/radio-t-%d.html", e.OutputRoot, showNum)
 
-	messages, err := readMessages(from)
+	messages, err := readMessages(from, e.ExporterParams.BroadcastUsers)
 	if err != nil {
 		log.Fatalf("[ERROR] failed to read messages from %s, %v", from, err)
 	}
@@ -199,7 +202,7 @@ func (e *Exporter) maybeDownloadFile(fileID string) {
 	return
 }
 
-func readMessages(path string) ([]bot.Message, error) {
+func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -207,6 +210,12 @@ func readMessages(path string) ([]bot.Message, error) {
 	defer file.Close()
 
 	messages := []bot.Message{}
+	var (
+		currentIndex           uint
+		broadcastStartedIndex  uint
+		broadcastFinishedIndex uint
+	)
+
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		msg := bot.Message{}
@@ -215,10 +224,41 @@ func readMessages(path string) ([]bot.Message, error) {
 			log.Printf("[ERROR] failed to unmarshal %s, error=%v", line, err)
 			continue
 		}
-		if !filter(msg) {
-			messages = append(messages, msg)
+
+		if broadcastUsers != nil && broadcastUsers.IsSuper(msg.From.Username) {
+			// if received message from bot/user who can send "broadcast" messages
+			switch msg.Text {
+			case bot.MsgBroadcastStarted:
+				if broadcastStartedIndex == 0 {
+					// record first occurance of MsgBroadcastFinished
+					// "+1" to exclude "MsgBroadcastStarted"
+					broadcastStartedIndex = currentIndex
+				}
+				continue
+			case bot.MsgBroadcastFinished:
+				// record last occurance of MsgBroadcastFinished
+				broadcastFinishedIndex = currentIndex
+				continue
+			}
 		}
+
+		if filter(msg) {
+			continue
+		}
+		messages = append(messages, msg)
+		currentIndex++
 	}
+
+	if broadcastStartedIndex == 0 {
+		log.Println("[WARN] \"BroadcastStarted\" message was not found, exporting messages from the beginning")
+	}
+	if broadcastFinishedIndex == 0 && len(messages) > 0 {
+		log.Println("[WARN] \"BroadcastFinished\" message was not found, exporting messages till the end")
+		broadcastFinishedIndex = uint(len(messages))
+	}
+
+	messages = messages[broadcastStartedIndex:broadcastFinishedIndex]
+
 	return messages, scanner.Err()
 }
 
@@ -299,7 +339,7 @@ func getDecoration(entity bot.Entity, body []rune) (string, string) {
 	case "phone_number":
 		return fmt.Sprintf("<a href=\"tel:%s\">", cleanPhoneNumber(string(body))), "</a>"
 
-	// intentiall ignored:
+	// intentially ignored:
 	case "text_mention": // for users without usernames
 	case "bot_command": // "/start@jobs_bot"
 	case "hashtag": // "#hashtag"

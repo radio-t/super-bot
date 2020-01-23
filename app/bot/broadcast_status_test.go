@@ -2,12 +2,13 @@ package bot
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 // Kind of integration test to check all workflow
@@ -35,7 +36,7 @@ func TestBroadcastStatusTransitions(t *testing.T) {
 	defer ts.Close()
 
 	b := NewBroadcastStatus(ctx, BroadcastParams{
-		Url:          ts.URL,
+		URL:          ts.URL,
 		PingInterval: time.Millisecond,
 		DelayToOff:   100 * time.Millisecond,
 		Client:       http.Client{},
@@ -81,7 +82,7 @@ func TestBroadcastStatusOffToOn(t *testing.T) {
 
 	b := &BroadcastStatus{}
 	b.check(ctx, time.Time{}, BroadcastParams{
-		Url:    ts.URL,
+		URL:    ts.URL,
 		Client: http.Client{},
 	})
 
@@ -100,7 +101,7 @@ func TestBroadcastStatusOffToOff(t *testing.T) {
 	b := &BroadcastStatus{}
 	b.status = false
 	b.check(ctx, time.Time{}, BroadcastParams{
-		Url:    ts.URL,
+		URL:    ts.URL,
 		Client: http.Client{},
 	})
 
@@ -119,7 +120,7 @@ func TestBroadcastStatusOnToOffNoDeadline(t *testing.T) {
 	b := &BroadcastStatus{}
 	b.status = true
 	b.check(ctx, time.Now(), BroadcastParams{
-		Url:        ts.URL,
+		URL:        ts.URL,
 		DelayToOff: time.Second,
 		Client:     http.Client{},
 	})
@@ -139,7 +140,7 @@ func TestBroadcastStatusOnToOffWithDeadline(t *testing.T) {
 	b := &BroadcastStatus{}
 	b.status = true
 	b.check(ctx, time.Now().Add(-2*time.Second), BroadcastParams{
-		Url:        ts.URL,
+		URL:        ts.URL,
 		DelayToOff: time.Second,
 		Client:     http.Client{},
 	})

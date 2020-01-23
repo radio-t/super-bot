@@ -102,11 +102,149 @@ func Test_readMessages(t *testing.T) {
 				defer os.Remove(testFile)
 				assert.NoError(t, err)
 			}
-			msgs, err := readMessages(testFile)
+			msgs, err := readMessages(testFile, nil)
 			if tt.fail {
 				assert.Error(t, err)
 			}
 			assert.Equal(t, tt.msgs, msgs)
+		})
+	}
+}
+
+func Test_readMessagesCheckBroadcastMessages(t *testing.T) {
+	tbl := []struct {
+		broadcastUsers SuperUserMock
+		in             []bot.Message
+		out            []bot.Message
+	}{
+		{
+			SuperUserMock{},
+			[]bot.Message{},
+			[]bot.Message{},
+		},
+		{
+			SuperUserMock{"radio-t-bot": true},
+			[]bot.Message{
+				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "radio-t-bot"}},
+				{Text: bot.MsgBroadcastFinished, From: bot.User{Username: "radio-t-bot"}},
+			},
+			[]bot.Message{},
+		},
+		{
+			SuperUserMock{"radio-t-bot": true},
+			[]bot.Message{
+				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+				{Text: bot.MsgBroadcastFinished, From: bot.User{Username: "radio-t-bot"}},
+			},
+			[]bot.Message{
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+			},
+		},
+		{
+			SuperUserMock{"radio-t-bot": true},
+			[]bot.Message{
+				{Text: "message-0", From: bot.User{Username: "user-0"}},
+				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+				{Text: bot.MsgBroadcastFinished, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-3", From: bot.User{Username: "user-3"}},
+			},
+			[]bot.Message{
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+			},
+		},
+		{
+			SuperUserMock{"radio-t-bot": true},
+			[]bot.Message{
+				{Text: "message-0", From: bot.User{Username: "user-0"}},
+				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "radio-t-bot"}},
+				{Text: bot.MsgBroadcastFinished, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "radio-t-bot"}},
+				{Text: bot.MsgBroadcastFinished, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-3", From: bot.User{Username: "user-3"}},
+			},
+			[]bot.Message{
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+			},
+		},
+		{
+			SuperUserMock{},
+			[]bot.Message{
+				{Text: "message-0", From: bot.User{Username: "user-0"}},
+				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+				{Text: bot.MsgBroadcastFinished, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-3", From: bot.User{Username: "user-3"}},
+			},
+			[]bot.Message{
+				{Text: "message-0", From: bot.User{Username: "user-0"}},
+				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+				{Text: bot.MsgBroadcastFinished, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-3", From: bot.User{Username: "user-3"}},
+			},
+		},
+		{
+			SuperUserMock{"radio-t-bot": true, "umputun": true},
+			[]bot.Message{
+				{Text: "message-0", From: bot.User{Username: "user-0"}},
+				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "umputun"}},
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+				{Text: bot.MsgBroadcastFinished, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-3", From: bot.User{Username: "user-3"}},
+			},
+			[]bot.Message{
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+			},
+		},
+		{
+			SuperUserMock{"radio-t-bot": true},
+			[]bot.Message{
+				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+			},
+			[]bot.Message{
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+			},
+		},
+		{
+			SuperUserMock{"radio-t-bot": true},
+			[]bot.Message{
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+				{Text: bot.MsgBroadcastFinished, From: bot.User{Username: "radio-t-bot"}},
+			},
+			[]bot.Message{
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+			},
+		},
+	}
+
+	for i, tt := range tbl {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			err := createFile(testFile, tt.in)
+			defer os.Remove(testFile)
+			assert.NoError(t, err)
+
+			msgs, err := readMessages(testFile, tt.broadcastUsers)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.out, msgs)
 		})
 	}
 }

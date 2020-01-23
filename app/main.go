@@ -31,12 +31,14 @@ var opts struct {
 	SuperUsers   events.SuperUser `long:"super" description:"super-users"`
 	MashapeToken string           `long:"mashape" env:"MASHAPE_TOKEN" description:"mashape token"`
 	SysData      string           `long:"sys-data" env:"SYS_DATA" default:"data" description:"location of sys data"`
-	ExportNum    int              `long:"export-num" description:"show number for export"`
-	ExportPath   string           `long:"export-path" default:"logs" description:"path to export directory"`
-	ExportDay    int              `long:"export-day" description:"day in yyyymmdd"`
-	TemplateFile string           `long:"export-template" default:"logs.html" description:"path to template file"`
 	ExternalAPI  string           `long:"external-api" default:"https://bot.radio-t.com" description:"external api"`
 	Dbg          bool             `long:"dbg" description:"debug mode"`
+
+	ExportNum            int              `long:"export-num" description:"show number for export"`
+	ExportPath           string           `long:"export-path" default:"logs" description:"path to export directory"`
+	ExportDay            int              `long:"export-day" description:"day in yyyymmdd"`
+	TemplateFile         string           `long:"export-template" default:"logs.html" description:"path to template file"`
+	ExportBroadcastUsers events.SuperUser `long:"broadcast" description:"broadcast-users"`
 }
 
 var revision = "local"
@@ -46,6 +48,7 @@ func main() {
 
 	fmt.Printf("radio-t bot, %s\n", revision)
 	if _, err := flags.Parse(&opts); err != nil {
+		log.Printf("[ERROR] failed to parse flags: %v", err)
 		os.Exit(1)
 	}
 
@@ -62,7 +65,7 @@ func main() {
 		bot.NewBroadcastStatus(
 			ctx,
 			bot.BroadcastParams{
-				Url:          "https://stream.radio-t.com",
+				URL:          "https://stream.radio-t.com",
 				PingInterval: 10 * time.Second,
 				DelayToOff:   time.Minute,
 				Client:       http.Client{Timeout: 5 * time.Second}}),
@@ -105,10 +108,11 @@ func main() {
 func export() {
 	log.Printf("[INFO] export mode, destination=%s, template=%s", opts.ExportPath, opts.TemplateFile)
 	params := reporter.ExporterParams{
-		InputRoot:    opts.LogsPath,
-		OutputRoot:   opts.ExportPath,
-		TemplateFile: opts.TemplateFile,
-		SuperUsers:   opts.SuperUsers,
+		InputRoot:      opts.LogsPath,
+		OutputRoot:     opts.ExportPath,
+		TemplateFile:   opts.TemplateFile,
+		SuperUsers:     opts.SuperUsers,
+		BroadcastUsers: opts.ExportBroadcastUsers,
 	}
 
 	botAPI, err := tbapi.NewBotAPI(opts.Telegram.Token)

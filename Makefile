@@ -21,8 +21,8 @@ lint:
 .PHONY: run
 ## run: runs app locally (don't forget to set all required environment variables)
 # examples:
-# make run ARGS="--super umputun"
-# make run ARGS="--super umputun --export-num 684 --export-path logs --export-day 20200104 --export-template data/logs.html"
+# make run ARGS="--super=umputun"
+# make run ARGS="--super=umputun --broadcast=umputun --export-num=684 --export-path=logs --export-day=20200104 --export-template=data/logs.html"
 run:
 	@go run -v -mod=vendor app/main.go --dbg ${ARGS}
 

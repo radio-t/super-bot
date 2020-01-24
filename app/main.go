@@ -107,18 +107,15 @@ func main() {
 
 func export() {
 	log.Printf("[INFO] export mode, destination=%s, template=%s", opts.ExportPath, opts.TemplateFile)
-	params := reporter.ExporterParams{
-		InputRoot:      opts.LogsPath,
-		OutputRoot:     opts.ExportPath,
-		TemplateFile:   opts.TemplateFile,
-		SuperUsers:     opts.SuperUsers,
-		BroadcastUsers: opts.ExportBroadcastUsers,
-	}
-
 	botAPI, err := tbapi.NewBotAPI(opts.Telegram.Token)
 	if err != nil {
 		log.Fatalf("[ERROR] telegram bot creation failed: %v", err)
 	}
+	botUser, err := botAPI.GetMe()
+	if err != nil {
+		log.Fatalf("[ERROR] failed to get bot username: %v", err)
+	}
+
 	fileRecipient := reporter.NewTelegramFileRecipient(botAPI, opts.Telegram.Timeout)
 
 	exportNum := strconv.Itoa(opts.ExportNum)
@@ -130,6 +127,18 @@ func export() {
 		log.Fatalf("[ERROR] storage creation failed: %v", err)
 	}
 
+	params := reporter.ExporterParams{
+		InputRoot:    opts.LogsPath,
+		OutputRoot:   opts.ExportPath,
+		TemplateFile: opts.TemplateFile,
+		SuperUsers:   opts.SuperUsers,
+		BroadcastUsers: events.SuperUser(
+			append(
+				[]string{botUser.UserName},
+				opts.ExportBroadcastUsers...,
+			),
+		),
+	}
 	reporter.NewExporter(fileRecipient, s, params).Export(opts.ExportNum, opts.ExportDay)
 }
 

@@ -499,15 +499,6 @@ func (sm *storageMock) BuildPath(fileName string) string {
 	return args.String(0)
 }
 
-type converterMock struct {
-	mock.Mock
-}
-
-func (cm *converterMock) Convert(fileID string) error {
-	args := cm.Called(fileID)
-	return args.Error(0)
-}
-
 // closingBuffer used in mocks to represent resp.Body, implements io.ReadCloser
 type closingBuffer struct {
 	*bytes.Buffer

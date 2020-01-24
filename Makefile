@@ -3,11 +3,6 @@
 build:
 	@cd app && go build -v -mod=vendor
 
-.PHONY: vet
-## vet: runs `go vet`
-vet:
-	@cd app && go vet ./...
-
 .PHONY: vendor
 ## vendor: runs `go mod vendor`
 vendor:
@@ -19,9 +14,9 @@ test:
 	@cd app && go test -mod=vendor ./... -coverprofile cover.out
 	
 .PHONY: lint
-## lint: runs `golint`
+## lint: runs `golangci-lint`
 lint:
-	@cd app && golint ./...
+	@cd app && golangci-lint run
 
 .PHONY: run
 ## run: runs app locally (don't forget to set all required environment variables)

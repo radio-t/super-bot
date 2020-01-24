@@ -17,10 +17,6 @@ import (
 	"github.com/radio-t/gitter-rt-bot/app/bot"
 )
 
-// magic number used to trim text in reply
-// 43 is the number that Telegram clients are using
-const maxQuoteLength = 43
-
 // Exporter performs conversion from log file to html
 type Exporter struct {
 	ExporterParams
@@ -88,11 +84,14 @@ func (e *Exporter) Export(showNum int, yyyymmdd int) {
 	}
 	fh, err := os.OpenFile(to, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
-		log.Fatalf("[ERROR] failed to export, %v", err)
+		log.Fatalf("[ERROR] failed to open file %s, %v", to, err)
 	}
 	defer fh.Close()
 
-	fh.WriteString(e.toHTML(messages, showNum))
+	_, err = fh.WriteString(e.toHTML(messages, showNum))
+	if err != nil {
+		log.Fatalf("[ERROR] failed to write HTML to file %s, %v", to, err)
+	}
 	log.Printf("[INFO] exported %d lines to %s", len(messages), to)
 
 }
@@ -198,8 +197,6 @@ func (e *Exporter) maybeDownloadFile(fileID string) {
 	e.fileIDToURL[fileID] = fileURL
 	// hacky: need to pass fileURL to template
 	// using this map in template FuncMap later
-
-	return
 }
 
 func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) {
@@ -349,6 +346,6 @@ func getDecoration(entity bot.Entity, body []rune) (string, string) {
 }
 
 func cleanPhoneNumber(phoneNumber string) string {
-	reg := regexp.MustCompile("[^\\d+]")
+	reg := regexp.MustCompile(`[^\d+]`)
 	return reg.ReplaceAllString(phoneNumber, "")
 }

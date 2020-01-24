@@ -29,7 +29,6 @@ type BroadcastParams struct {
 type BroadcastStatus struct {
 	status         bool // current broadcast status
 	lastSentStatus bool // last status sent with OnMessage
-	fistMsgSent    bool
 	statusMx       sync.Mutex
 }
 
@@ -46,17 +45,14 @@ func (b *BroadcastStatus) OnMessage(_ Message) (response string, answer bool) {
 	b.statusMx.Lock()
 	defer b.statusMx.Unlock()
 
-	if b.status == b.lastSentStatus && b.fistMsgSent {
-		return
-	}
-
-	b.fistMsgSent = true
-	answer = true
-	response = MsgBroadcastFinished
-
-	b.lastSentStatus = b.status
-	if b.status {
-		response = MsgBroadcastStarted
+	if b.lastSentStatus != b.status {
+		answer = true
+		if b.status {
+			response = MsgBroadcastStarted
+		} else {
+			response = MsgBroadcastFinished
+		}
+		b.lastSentStatus = b.status
 	}
 	return
 }

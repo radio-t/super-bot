@@ -32,7 +32,7 @@ func TestNewLogger(t *testing.T) {
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			for i = 0; i < tt.count; i++ {
-				reporter.Save(msg)
+				reporter.Save(&msg)
 			}
 			time.Sleep(tt.timeout)
 			logfile := fmt.Sprintf("%s/%s.log", logs, time.Now().Format("20060102"))

@@ -2,12 +2,13 @@ package bot
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 // Kind of integration test to check all workflow
@@ -35,23 +36,24 @@ func TestBroadcastStatusTransitions(t *testing.T) {
 	defer ts.Close()
 
 	b := NewBroadcastStatus(ctx, BroadcastParams{
-		Url:          ts.URL,
+		URL:          ts.URL,
 		PingInterval: time.Millisecond,
 		DelayToOff:   100 * time.Millisecond,
 		Client:       http.Client{},
 	})
 
 	// Test reacts on first message
-	resp, _ := b.OnMessage(Message{})
-	require.Equal(t, MsgBroadcastFinished, resp)
+	_, answer := b.OnMessage(Message{})
+	require.Equal(t, false, answer)
 
 	// Test do not react on second message because status not changed
-	resp, _ = b.OnMessage(Message{})
-	require.Equal(t, "", resp)
+	_, answer = b.OnMessage(Message{})
+	require.Equal(t, false, answer)
 
 	// Wait for off->on
 	time.Sleep(20 * time.Millisecond)
-	resp, _ = b.OnMessage(Message{})
+	resp, answer := b.OnMessage(Message{})
+	require.True(t, answer)
 	require.Equal(t, MsgBroadcastStarted, resp)
 	require.True(t, b.getStatus())
 
@@ -59,13 +61,14 @@ func TestBroadcastStatusTransitions(t *testing.T) {
 	setStatus(false)
 	// Still on, no deadline reached
 	time.Sleep(20 * time.Millisecond)
-	resp, _ = b.OnMessage(Message{})
-	require.Equal(t, "", resp)
+	_, answer = b.OnMessage(Message{})
+	require.False(t, answer)
 	require.True(t, b.getStatus())
 
 	// Deadline reached on->off
 	time.Sleep(110 * time.Millisecond)
-	resp, _ = b.OnMessage(Message{})
+	resp, answer = b.OnMessage(Message{})
+	require.True(t, answer)
 	require.Equal(t, MsgBroadcastFinished, resp)
 	require.False(t, b.getStatus())
 }
@@ -81,7 +84,7 @@ func TestBroadcastStatusOffToOn(t *testing.T) {
 
 	b := &BroadcastStatus{}
 	b.check(ctx, time.Time{}, BroadcastParams{
-		Url:    ts.URL,
+		URL:    ts.URL,
 		Client: http.Client{},
 	})
 
@@ -100,7 +103,7 @@ func TestBroadcastStatusOffToOff(t *testing.T) {
 	b := &BroadcastStatus{}
 	b.status = false
 	b.check(ctx, time.Time{}, BroadcastParams{
-		Url:    ts.URL,
+		URL:    ts.URL,
 		Client: http.Client{},
 	})
 
@@ -119,7 +122,7 @@ func TestBroadcastStatusOnToOffNoDeadline(t *testing.T) {
 	b := &BroadcastStatus{}
 	b.status = true
 	b.check(ctx, time.Now(), BroadcastParams{
-		Url:        ts.URL,
+		URL:        ts.URL,
 		DelayToOff: time.Second,
 		Client:     http.Client{},
 	})
@@ -139,7 +142,7 @@ func TestBroadcastStatusOnToOffWithDeadline(t *testing.T) {
 	b := &BroadcastStatus{}
 	b.status = true
 	b.check(ctx, time.Now().Add(-2*time.Second), BroadcastParams{
-		Url:        ts.URL,
+		URL:        ts.URL,
 		DelayToOff: time.Second,
 		Client:     http.Client{},
 	})
@@ -149,28 +152,27 @@ func TestBroadcastStatusOnToOffWithDeadline(t *testing.T) {
 
 func TestFirstOnMessageReturnsCurrentState(t *testing.T) {
 	b := &BroadcastStatus{}
-	response, answer := b.OnMessage(Message{})
-	require.True(t, answer)
-	require.Equal(t, MsgBroadcastFinished, response)
+	_, answer := b.OnMessage(Message{})
+	require.False(t, answer)
 }
 
 func TestOnMessageReturnsNothingIfStateNotChanged(t *testing.T) {
-	b := &BroadcastStatus{fistMsgSent: true}
+	b := &BroadcastStatus{}
 	_, answer := b.OnMessage(Message{})
 	require.False(t, answer)
 
-	b = &BroadcastStatus{fistMsgSent: true, status: true, lastSentStatus: true}
+	b = &BroadcastStatus{status: true, lastSentStatus: true}
 	_, answer = b.OnMessage(Message{})
 	require.False(t, answer)
 }
 
 func TestOnMessageReturnsReplyOnChange(t *testing.T) {
-	b := &BroadcastStatus{fistMsgSent: true, lastSentStatus: false, status: true} // OFF ->ON
+	b := &BroadcastStatus{lastSentStatus: false, status: true} // OFF ->ON
 	resp, answer := b.OnMessage(Message{})
 	require.True(t, answer)
 	require.Equal(t, MsgBroadcastStarted, resp)
 
-	b = &BroadcastStatus{fistMsgSent: true, lastSentStatus: true, status: false} // ON -> OFF
+	b = &BroadcastStatus{lastSentStatus: true, status: false} // ON -> OFF
 	resp, answer = b.OnMessage(Message{})
 	require.True(t, answer)
 	require.Equal(t, MsgBroadcastFinished, resp)

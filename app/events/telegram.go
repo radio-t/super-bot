@@ -2,8 +2,10 @@ package events
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	log "github.com/go-pkgz/lgr"
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -18,9 +20,9 @@ type TelegramListener struct {
 	Terminator
 	Token string
 	reporter.Reporter
-	Bots        bot.Interface
-	GroupID     string
-	Debug       bool
+	Bots    bot.Interface
+	GroupID string
+	Debug   bool
 
 	botAPI *tbapi.BotAPI
 
@@ -56,24 +58,22 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			if !ok {
 				return errors.Errorf("telegram update chan closed")
 			}
-			log.Printf("[INFO] receive update: %+v, %+v", update.Message, update)
+
+			log.Printf("[INFO] receive update: %+v", update)
 
 			if update.Message == nil {
 				log.Printf("[DEBUG] empty message body")
 				continue
 			}
 
-			// TODO multimedia
-			msg := bot.Message{
-				Text: update.Message.Text,
-				From: bot.User{
-					// ID:          strconv.Itoa(update.Message.From.ID),
-					Username:    update.Message.From.UserName,
-					DisplayName: update.Message.From.FirstName + " " + update.Message.From.LastName,
-				},
-				Sent: update.Message.Time(),
+			msgJSON, err := json.Marshal(update.Message)
+			if err != nil {
+				log.Printf("[ERROR] failed to marshal update.Message to JSON: %v", err)
+			} else {
+				log.Printf("[DEBUG] %s", string(msgJSON))
 			}
 
+			msg := l.transform(update.Message)
 			l.Save(msg) // save to report
 
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
@@ -81,38 +81,42 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			// check for ban
 			if b := l.check(msg.From); b.active {
 				if b.new {
-					m := fmt.Sprintf("@%s _тебя слишком много, отдохни ..._", msg.From.Username)
+					m := fmt.Sprintf("@%s _тебя слишком много, отдохни..._", msg.From.Username)
 					tbMsg := tbapi.NewMessage(update.Message.Chat.ID, m)
 					tbMsg.ParseMode = tbapi.ModeMarkdown
-					if res, e := l.botAPI.Send(tbMsg); e != nil {
-						log.Printf("[WARN] failed to send, %v", e)
+					if res, err := l.botAPI.Send(tbMsg); err != nil {
+						log.Printf("[WARN] failed to send, %v", err)
 					} else {
 						l.saveBotMessage(&res)
+					}
+
+					if err := l.banUser(update.Message.Chat.ID, update.Message.From.ID); err != nil {
+						log.Printf("[ERROR] failed to ban user %v: %v", msg.From, err)
 					}
 				}
 				continue
 			}
 
-			if resp, send := l.Bots.OnMessage(msg); send {
+			if resp, send := l.Bots.OnMessage(*msg); send {
 				log.Printf("[DEBUG] bot response - %+v", resp)
 				tbMsg := tbapi.NewMessage(update.Message.Chat.ID, resp)
 				tbMsg.ParseMode = tbapi.ModeMarkdown
-				if res, e := l.botAPI.Send(tbMsg); err != nil {
-					log.Printf("[WARN] can't send tbMsg to telegram, %v", e)
+				if res, err := l.botAPI.Send(tbMsg); err != nil {
+					log.Printf("[WARN] can't send tbMsg to telegram, %v", err)
 				} else {
 					l.saveBotMessage(&res)
 				}
 			}
 
 		case msg := <-l.msgs.ch: // publish messages from outside clients
-			chat, e := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: l.GroupID})
+			chat, err := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: l.GroupID})
 			if err != nil {
 				return errors.Wrapf(err, "can't get chat for %s", l.GroupID)
 			}
 			tbMsg := tbapi.NewMessage(chat.ID, msg)
 			tbMsg.ParseMode = tbapi.ModeMarkdown
 			if res, err := l.botAPI.Send(tbMsg); err != nil {
-				log.Printf("[WARN] can't send msg to telegram, %v", e)
+				log.Printf("[WARN] can't send msg to telegram, %v", err)
 			} else {
 				l.saveBotMessage(&res)
 			}
@@ -133,13 +137,101 @@ func (l *TelegramListener) Submit(ctx context.Context, text string) error {
 }
 
 func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {
-	m := bot.Message{
+	l.Save(l.transform(msg))
+}
+
+// The bot must be an administrator in the supergroup for this to work
+// and must have the appropriate admin rights.
+func (l *TelegramListener) banUser(chatID int64, userID int) error {
+	banDuration := l.BanDuration
+
+	// From Telegram Bot API documentation:
+	// > If user is restricted for more than 366 days or less than 30 seconds from the current time,
+	// > they are considered to be restricted forever
+	// Because the API query uses unix timestamp rather than "ban duration",
+	// you do not want to accidentally get into this 30-second window of a lifetime ban.
+	// In practice BanDuration is equal to ten minutes,
+	// so this `if` statement is unlikely to be evaluated to true.
+	if banDuration < 30*time.Second {
+		banDuration = 1 * time.Minute
+	}
+
+	resp, err := l.botAPI.RestrictChatMember(tbapi.RestrictChatMemberConfig{
+		ChatMemberConfig: tbapi.ChatMemberConfig{
+			ChatID: chatID,
+			UserID: userID,
+		},
+		UntilDate:             time.Now().Add(banDuration).Unix(),
+		CanSendMessages:       new(bool),
+		CanSendMediaMessages:  new(bool),
+		CanSendOtherMessages:  new(bool),
+		CanAddWebPagePreviews: new(bool),
+	})
+	if err != nil {
+		return err
+	}
+
+	if !resp.Ok {
+		return fmt.Errorf("response is not Ok: %v", string(resp.Result))
+	}
+
+	return nil
+}
+
+func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
+	message := bot.Message{
+		ID:   msg.MessageID,
+		Sent: msg.Time(),
 		Text: msg.Text,
-		From: bot.User{
+	}
+
+	if msg.From != nil {
+		message.From = bot.User{
 			Username:    msg.From.UserName,
 			DisplayName: msg.From.FirstName + " " + msg.From.LastName,
-		},
-		Sent: msg.Time(),
+		}
 	}
-	l.Save(m)
+
+	switch {
+	case msg.Entities != nil && len(*msg.Entities) > 0:
+		message.Entities = l.transformEntities(msg.Entities)
+
+	case msg.Photo != nil && len(*msg.Photo) > 0:
+		sizes := *msg.Photo
+		lastSize := sizes[len(sizes)-1]
+		message.Image = &bot.Image{
+			FileID:   lastSize.FileID,
+			Width:    lastSize.Width,
+			Height:   lastSize.Height,
+			Caption:  msg.Caption,
+			Entities: l.transformEntities(msg.CaptionEntities),
+		}
+	}
+
+	return &message
+}
+
+func (l *TelegramListener) transformEntities(entities *[]tbapi.MessageEntity) *[]bot.Entity {
+	if entities == nil || len(*entities) == 0 {
+		return nil
+	}
+
+	var result []bot.Entity
+	for _, entity := range *entities {
+		e := bot.Entity{
+			Type:   entity.Type,
+			Offset: entity.Offset,
+			Length: entity.Length,
+			URL:    entity.URL,
+		}
+		if entity.User != nil {
+			e.User = &bot.User{
+				Username:    entity.User.UserName,
+				DisplayName: entity.User.FirstName + " " + entity.User.LastName,
+			}
+		}
+		result = append(result, e)
+	}
+
+	return &result
 }

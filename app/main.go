@@ -75,7 +75,6 @@ func main() {
 		bot.NewAnecdote(),
 		bot.NewStackOverflow(),
 		bot.NewDuck(opts.MashapeToken),
-		bot.NewExcerpt("http://parser.ukeeper.com/api/content/v1/parser", "not-supported"),
 	}
 
 	term := events.Terminator{

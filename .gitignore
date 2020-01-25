@@ -2,3 +2,9 @@
 html/
 .DS_Store
 .idea/
+
+# code coverage report
+cover.out
+
+# app binary
+/app/app

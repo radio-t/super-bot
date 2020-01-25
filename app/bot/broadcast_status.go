@@ -10,14 +10,18 @@ import (
 )
 
 const (
-	MsgBroadcastStarted  = "Вещание началось"
+	// MsgBroadcastStarted defines text to be sent by the bot when the broadcast started
+	MsgBroadcastStarted = "Вещание началось"
+
+	// MsgBroadcastFinished defines text to be sent by the bot when the broadcast finished
 	MsgBroadcastFinished = "Вещание завершилось"
 )
 
+// BroadcastParams defines parameters for broadcast detection
 type BroadcastParams struct {
-	Url          string        // Url for "ping"
+	URL          string        // URL for "ping"
 	PingInterval time.Duration // Ping interval
-	DelayToOff   time.Duration // State will be switched to off in no ok replies from Url in this intrval
+	DelayToOff   time.Duration // State will be switched to off in no ok replies from URL in this intrval
 	Client       http.Client   // http client
 }
 
@@ -25,13 +29,12 @@ type BroadcastParams struct {
 type BroadcastStatus struct {
 	status         bool // current broadcast status
 	lastSentStatus bool // last status sent with OnMessage
-	fistMsgSent    bool
 	statusMx       sync.Mutex
 }
 
 // NewBroadcastStatus starts status checking goroutine and returns bot instance
 func NewBroadcastStatus(ctx context.Context, params BroadcastParams) *BroadcastStatus {
-	log.Printf("[INFO] BroadcastStatus bot with %v", params.Url)
+	log.Printf("[INFO] BroadcastStatus bot with %v", params.URL)
 	b := &BroadcastStatus{}
 	go b.checker(ctx, params)
 	return b
@@ -42,17 +45,14 @@ func (b *BroadcastStatus) OnMessage(_ Message) (response string, answer bool) {
 	b.statusMx.Lock()
 	defer b.statusMx.Unlock()
 
-	if b.status == b.lastSentStatus && b.fistMsgSent {
-		return
-	}
-
-	b.fistMsgSent = true
-	answer = true
-	response = MsgBroadcastFinished
-
-	b.lastSentStatus = b.status
-	if b.status {
-		response = MsgBroadcastStarted
+	if b.lastSentStatus != b.status {
+		answer = true
+		if b.status {
+			response = MsgBroadcastStarted
+		} else {
+			response = MsgBroadcastFinished
+		}
+		b.lastSentStatus = b.status
 	}
 	return
 }
@@ -74,7 +74,7 @@ func (b *BroadcastStatus) check(ctx context.Context, lastOn time.Time, params Br
 	b.statusMx.Lock()
 	defer b.statusMx.Unlock()
 
-	newStatus := ping(ctx, params.Client, params.Url)
+	newStatus := ping(ctx, params.Client, params.URL)
 
 	// 0 -> 1
 	if !b.status && newStatus {

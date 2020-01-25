@@ -24,15 +24,38 @@ type SuperUser interface {
 
 // Message is primary record to pass data from/to bots
 type Message struct {
-	Text string
-	HTML string
-	From User
-	Sent time.Time
+	ID       int
+	From     User
+	Sent     time.Time
+	HTML     string    `json:",omitempty"`
+	Text     string    `json:",omitempty"`
+	Entities *[]Entity `json:",omitempty"`
+	Image    *Image    `json:",omitempty"`
+}
+
+// Entity represents one special entity in a text message.
+// For example, hashtags, usernames, URLs, etc.
+type Entity struct {
+	Type   string
+	Offset int
+	Length int
+	URL    string `json:",omitempty"` // For “text_link” only, url that will be opened after user taps on the text
+	User   *User  `json:",omitempty"` // For “text_mention” only, the mentioned user
+}
+
+// Image represents image
+type Image struct {
+	// FileID corresponds to Telegram file_id
+	FileID   string
+	Width    int
+	Height   int
+	Caption  string    `json:",omitempty"`
+	Entities *[]Entity `json:",omitempty"`
 }
 
 // User defines user info of the Message
 type User struct {
-	ID          string
+	ID          string `json:",omitempty"`
 	Username    string
 	DisplayName string
 }
@@ -93,7 +116,7 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func makeHttpRequest(url string) (*http.Request, error) {
+func makeHTTPRequest(url string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to make request %s", url)

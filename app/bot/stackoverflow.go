@@ -40,7 +40,7 @@ func (s StackOverflow) OnMessage(msg Message) (response string, answer bool) {
 	reqURL := "https://api.stackexchange.com/2.2/questions?order=desc&sort=activity&site=stackoverflow"
 	client := http.Client{Timeout: 5 * time.Second}
 
-	req, err := makeHttpRequest(reqURL)
+	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
 		log.Printf("[WARN] failed to prep request %s, error=%v", reqURL, err)
 		return "", false

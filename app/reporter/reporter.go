@@ -26,7 +26,11 @@ func NewLogger(logs string) (result Reporter) {
 }
 
 // Save to log channel, non-blocking and skip if needed
-func (l Reporter) Save(msg bot.Message) {
+func (l Reporter) Save(msg *bot.Message) {
+	if msg.Text == "" && msg.Image == nil {
+		log.Print("[DEBUG] message not saved to log: no text or image = irrelevant")
+		return
+	}
 
 	bdata, err := json.Marshal(&msg)
 	if err != nil {

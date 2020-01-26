@@ -118,6 +118,12 @@ func ping(ctx context.Context, client http.Client, url string) (status bool) {
 	return
 }
 
+// nolint
+func (b *BroadcastStatus) getStatus() bool {
+	b.statusMx.Lock()
+	defer b.statusMx.Unlock()
+	return b.status
+}
 
 // ReactOn keys
 func (b *BroadcastStatus) ReactOn() []string {

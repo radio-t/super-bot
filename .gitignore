@@ -8,3 +8,4 @@ cover.out
 
 # app binary
 /app/app
+.env

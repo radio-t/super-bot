@@ -34,6 +34,7 @@ type TelegramListener struct {
 
 // Do process all events, blocked call
 func (l *TelegramListener) Do(ctx context.Context) (err error) {
+	log.Printf("[INFO] start telegram listener for %s", l.GroupID)
 	if l.botAPI, err = tbapi.NewBotAPI(l.Token); err != nil {
 		return errors.Wrap(err, "can't make telegram bot")
 	}

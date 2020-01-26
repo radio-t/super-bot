@@ -58,8 +58,8 @@ func (a Anecdote) rzhunemogu() (response string, answer bool) {
 
 	text := string(body)
 	// this json is not really json? body with \r
-	text = strings.TrimLeft(text, `{"content":"`)
-	text = strings.TrimRight(text, `"}`)
+	text = strings.TrimPrefix(text, `{"content":"`)
+	text = strings.TrimSuffix(text, `"}`)
 
 	tr := transform.NewReader(strings.NewReader(text), charmap.Windows1251.NewDecoder())
 	buf, err := ioutil.ReadAll(tr)

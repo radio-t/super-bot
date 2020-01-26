@@ -43,7 +43,7 @@ type SuperUser interface {
 	IsSuper(user string) bool
 }
 
-// Storage knows how to: create file, check for file existance
+// Storage knows how to: create file, check for file existence
 // and build a public-accessible link (relative in our case)
 type Storage interface {
 	FileExists(fileName string) (bool, error)
@@ -227,12 +227,12 @@ func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) 
 			switch msg.Text {
 			case bot.MsgBroadcastStarted:
 				if broadcastStartedIndex == 0 {
-					// record first occurance of MsgBroadcastFinished
+					// record first occurrence of MsgBroadcastFinished
 					broadcastStartedIndex = currentIndex
 				}
 				continue
 			case bot.MsgBroadcastFinished:
-				// record last occurance of MsgBroadcastFinished
+				// record last occurrence of MsgBroadcastFinished
 				broadcastFinishedIndex = currentIndex
 				continue
 			}
@@ -273,7 +273,7 @@ func filter(msg bot.Message) bool {
 
 func format(text string, entities *[]bot.Entity) template.HTML {
 	if entities == nil {
-		return template.HTML(html.EscapeString(text))
+		return template.HTML(html.EscapeString(text)) // nolint
 	}
 
 	runes := []rune(text)
@@ -296,7 +296,7 @@ func format(text string, entities *[]bot.Entity) template.HTML {
 
 	result += html.EscapeString(string(runes[pos:]))
 
-	return template.HTML(strings.ReplaceAll(result, "\n", "<br>"))
+	return template.HTML(strings.ReplaceAll(result, "\n", "<br>")) // nolint
 }
 
 func getDecoration(entity bot.Entity, body []rune) (string, string) {

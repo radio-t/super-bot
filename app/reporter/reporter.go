@@ -49,26 +49,25 @@ func (l Reporter) activate() {
 	log.Print("[INFO] activate reporter")
 	buffer := make([]string, 0, 100)
 
-	writeBuff := func() (wrote int, err error) {
+	writeBuff := func()  error {
 		if len(buffer) == 0 {
-			return 0, nil
+			return nil
 		}
 		fh, err := os.OpenFile(fmt.Sprintf("%s/%s.log", l.logsPath, time.Now().Format("20060102")),
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0660)
 
 		if err != nil {
 			log.Printf("[WARN] failed to log, %v", err)
-			return
+			return err
 		}
 		defer fh.Close()
 		for _, rec := range buffer {
 			fh.WriteString(rec)
 		}
 
-		wrote = len(buffer)
 		log.Printf("[DEBUG] wrote %d log entries", len(buffer))
 		buffer = buffer[:0]
-		return wrote, nil
+		return nil
 	}
 
 	for {
@@ -76,10 +75,14 @@ func (l Reporter) activate() {
 		case entry := <-l.messages:
 			buffer = append(buffer, entry)
 			if len(buffer) >= 100 { // forced flush every 100 records
-				writeBuff()
+				if  err := writeBuff(); err != nil {
+					log.Printf("[WARN] failed to write reporter buffer, %v", err)
+				}
 			}
 		case <-time.After(time.Second * 5): // flush on 5 seconds inactivity
-			writeBuff()
+			if  err := writeBuff(); err != nil {
+				log.Printf("[WARN] failed to write reporter buffer, %v", err)
+			}
 		}
 	}
 }

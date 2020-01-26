@@ -13,10 +13,10 @@ telegram-bot:
         - TELEGRAM_TOKEN
         - TELEGRAM_GROUP
         - MASHAPE_TOKEN
-
+        - DEBUG=true
     volumes:
         - ./logs:/srv/logs
-        - /srv/www/chat.radio-t.com/logs:/srv/html
+        - ./html:/srv/html
 
     ports:
         - "18001:18001" # RJTC_PORT

@@ -32,7 +32,7 @@ var opts struct {
 	MashapeToken string           `long:"mashape" env:"MASHAPE_TOKEN" description:"mashape token"`
 	SysData      string           `long:"sys-data" env:"SYS_DATA" default:"data" description:"location of sys data"`
 	ExternalAPI  string           `long:"external-api" default:"https://bot.radio-t.com" description:"external api"`
-	Dbg          bool             `long:"dbg" description:"debug mode"`
+	Dbg          bool             `long:"dbg" env:"DEBUG" description:"debug mode"`
 
 	ExportNum            int              `long:"export-num" description:"show number for export"`
 	ExportPath           string           `long:"export-path" default:"logs" description:"path to export directory"`
@@ -79,8 +79,8 @@ func main() {
 
 	term := events.Terminator{
 		BanDuration:   time.Minute * 10,
-		BanPenalty:    2,
-		AllowedPeriod: time.Minute * 2,
+		BanPenalty:    3,
+		AllowedPeriod: time.Second * 5,
 		Exclude:       opts.SuperUsers,
 	}
 

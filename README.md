@@ -1,5 +1,7 @@
 # Telegram бот подкаста Радио-Т
 
+[![Build Status](https://github.com/radio-t/gitter-rt-bot/workflows/build/badge.svg)](https://github.com/radio-t/gitter-rt-bot/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/radio-t/gitter-rt-bot)](https://goreportcard.com/report/github.com/radio-t/gitter-rt-bot) [![Coverage Status](https://coveralls.io/repos/github/radio-t/gitter-rt-bot/badge.svg?branch=master)](https://coveralls.io/github/radio-t/gitter-rt-bot?branch=master)
+
 ## Основная функциональность
 
 Бот слушает чат telegram и реагирует на определенные команды и фрагменты текста. Кроме этого, он слушает

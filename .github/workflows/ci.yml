@@ -17,7 +17,9 @@ jobs:
       uses: actions/checkout@v2
 
     - name: test
-      run: cd app && go test -v -mod=vendor ./...
+      run: |
+        cd app && go test -v -mod=vendor -timeout=60s -covermode=count -coverprofile=$GITHUB_WORKSPACE/profile.cov_tmp ./...
+        cat $GITHUB_WORKSPACE/profile.cov_tmp | grep -v "_mock.go" > $GITHUB_WORKSPACE/profile.cov
 
     - name: install golangci-lint and goveralls
       run: |

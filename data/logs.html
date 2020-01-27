@@ -73,14 +73,9 @@
 
         <table class="table table-striped table-hover table-condensed" id="table">
         {{ range .Records }}
-        <tr>
-            {{- if .IsHost }}
-                <td class="danger" align="left">{{ .Msg.Sent | timestampHuman }}</td>
-                <td class="success" align="left"><span title="{{ .Msg.From.Username }}">{{ .Msg.From.DisplayName }}</span></td>
-            {{ else }}
-                <td class="success" align="left">{{ .Msg.Sent | timestampHuman }}</td>
-                <td class="success" align="left"><span title="{{ .Msg.From.Username }}">{{ .Msg.From.DisplayName }}</span></td>
-            {{ end -}}
+        <tr class="{{ if .IsHost }}host{{ else }}{{ if .IsBot }}bot{{ end }}{{ end }}">
+            <td class="{{ if .IsHost }}danger{{ else }}success{{ end }}" align="left">{{ .Msg.Sent | timestampHuman }}</td>
+            <td class="success" align="left"><span title="{{ .Msg.From.Username }}">{{ .Msg.From.DisplayName }}</span></td>
             <td class="warning" align="left">
                 {{- format .Msg.Text .Msg.Entities }}
                 {{- if .Msg.Image }}
@@ -105,7 +100,7 @@
                         value: 0,
                         classname: 'host',
                         style: '.table tr { display: none; } .table tr.host { display: table-row; }',
-                        detect: function(row) { return row.getElementsByClassName('danger').length > 0; }
+                        detect: function(row) { return row.getElementsByClassName('host').length > 0; }
                     },
                     link: {
                         value: 0,
@@ -117,7 +112,7 @@
                         value: 0,
                         classname: 'bot',
                         style: '.table tr.bot { display: none; }',
-                        detect: function(row) { return row.children[1].textContent == 'радио-т бот' && row.children[2].textContent.indexOf('==> ') == -1; }
+                        detect: function(row) { return row.getElementsByClassName('bot').length > 0; }
                     }
                 };
                 var filtersInited = false;

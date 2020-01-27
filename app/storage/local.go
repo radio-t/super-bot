@@ -15,7 +15,7 @@ type Local struct {
 // NewLocal creates new Local storage
 func NewLocal(filesPath string, publicPath string) (*Local, error) {
 	if _, err := os.Stat(filesPath); os.IsNotExist(err) {
-		err = os.MkdirAll(filesPath, 0755)
+		err = os.MkdirAll(filesPath, 0755) // nolint
 		if err != nil {
 			return nil, err
 		}

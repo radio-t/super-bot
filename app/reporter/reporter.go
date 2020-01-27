@@ -53,6 +53,7 @@ func (l Reporter) activate() {
 		if len(buffer) == 0 {
 			return nil
 		}
+		// nolint
 		fh, err := os.OpenFile(fmt.Sprintf("%s/%s.log", l.logsPath, time.Now().Format("20060102")),
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0660)
 
@@ -62,7 +63,9 @@ func (l Reporter) activate() {
 		}
 		defer fh.Close()
 		for _, rec := range buffer {
-			fh.WriteString(rec)
+			if _, err = fh.WriteString(rec); err != nil {
+				log.Printf("[WARN] failed to write log, %v", err)
+			}
 		}
 
 		log.Printf("[DEBUG] wrote %d log entries", len(buffer))

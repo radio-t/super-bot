@@ -84,7 +84,7 @@ func (e *Exporter) Export(showNum int, yyyymmdd int) {
 	if err != nil {
 		log.Fatalf("[ERROR] failed to read messages from %s, %v", from, err)
 	}
-	fh, err := os.OpenFile(to, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	fh, err := os.OpenFile(to, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666) // nolint
 	if err != nil {
 		log.Fatalf("[ERROR] failed to open file %s, %v", to, err)
 	}
@@ -204,7 +204,7 @@ func (e *Exporter) maybeDownloadFile(fileID string) error {
 }
 
 func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) {
-	file, err := os.Open(path)
+	file, err := os.Open(path) // nolint
 	if err != nil {
 		return nil, err
 	}

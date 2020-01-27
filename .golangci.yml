@@ -4,6 +4,7 @@ run:
     format: tab
   skip-dirs:
     - vendor
+
 linters:
   enable:
     - unconvert
@@ -20,3 +21,6 @@ linters:
     - ineffassign
     - varcheck
   disable-all: true
+
+issues:
+  exclude-use-default: false

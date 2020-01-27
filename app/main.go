@@ -130,6 +130,7 @@ func export() {
 		InputRoot:    opts.LogsPath,
 		OutputRoot:   opts.ExportPath,
 		TemplateFile: opts.TemplateFile,
+		BotUsername:  botUser.UserName,
 		SuperUsers:   opts.SuperUsers,
 		BroadcastUsers: events.SuperUser(
 			append(

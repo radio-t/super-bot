@@ -32,6 +32,7 @@ type ExporterParams struct {
 	OutputRoot     string
 	InputRoot      string
 	TemplateFile   string
+	BotUsername    string
 	SuperUsers     SuperUser
 	BroadcastUsers SuperUser // Users who can send "bot.MsgBroadcastStarted" and "bot.MsgBroadcastStarted" messages.
 	// it maybe just bot, or bot + some or all SuperUsers.
@@ -100,8 +101,9 @@ func (e *Exporter) toHTML(messages []bot.Message, num int) string {
 
 	type Record struct {
 		Time   string
-		IsHost bool
 		Msg    bot.Message
+		IsHost bool
+		IsBot  bool
 	}
 
 	type Data struct {
@@ -119,8 +121,9 @@ func (e *Exporter) toHTML(messages []bot.Message, num int) string {
 			data.Records,
 			Record{
 				Time:   msg.Sent.In(e.location).Format("15:04:05"),
-				IsHost: e.SuperUsers.IsSuper(msg.From.Username),
 				Msg:    msg,
+				IsHost: e.SuperUsers.IsSuper(msg.From.Username),
+				IsBot:  msg.From.Username == e.BotUsername,
 			},
 		)
 	}

@@ -80,7 +80,7 @@ func (p *Sys) loadSayData() {
 
 func readLines(path string) ([]string, error) {
 
-	data, err := ioutil.ReadFile(path)
+	data, err := ioutil.ReadFile(path) // nolint
 	if err != nil {
 		log.Printf("[WARN] can't load data from %s,  %v", path, err)
 		return nil, err

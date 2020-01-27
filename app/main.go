@@ -84,16 +84,11 @@ func main() {
 		Exclude:       opts.SuperUsers,
 	}
 
-	groupID := opts.Telegram.Group
-	if _, err := strconv.ParseInt(groupID, 10, 64); err != nil {
-		groupID = "@" + groupID // if channelID not a number enforce @ prefix
-	}
-
 	tgListener := events.TelegramListener{
 		Terminator: term,
 		Reporter:   reporter.NewLogger(opts.LogsPath),
 		Bots:       multiBot,
-		GroupID:    groupID,
+		Group:      opts.Telegram.Group,
 		Token:      opts.Telegram.Token,
 		Debug:      opts.Dbg,
 	}

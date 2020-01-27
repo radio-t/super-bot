@@ -8,12 +8,13 @@ import (
 	"html"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
+	log "github.com/go-pkgz/lgr"
+	"github.com/pkg/errors"
 	"github.com/radio-t/gitter-rt-bot/app/bot"
 )
 
@@ -113,8 +114,11 @@ func (e *Exporter) toHTML(messages []bot.Message, num int) string {
 
 	data := Data{Num: num}
 	for _, msg := range messages {
+
 		if msg.Image != nil {
-			e.maybeDownloadFile(msg.Image.FileID)
+			if err := e.maybeDownloadFile(msg.Image.FileID); err != nil {
+				log.Printf("[WARN] failed to download, %v", err)
+			}
 		}
 
 		data.Records = append(
@@ -155,51 +159,48 @@ func (e *Exporter) timestampHuman(t time.Time) string {
 	return t.In(e.location).Format("15:04:05")
 }
 
-func (e *Exporter) maybeDownloadFile(fileID string) {
+func (e *Exporter) maybeDownloadFile(fileID string) error {
 	if fileID == "" {
-		return
+		return nil
 	}
 
 	if _, found := e.fileIDToURL[fileID]; found {
 		// already downloaded
-		return
+		return nil
 	}
 
 	fileExists, err := e.storage.FileExists(fileID)
 	if err != nil {
-		log.Printf("[ERROR] failed to check if file exists alredy: %s: %v", fileID, err)
-		return
+		return errors.Wrapf(err, "failed to check if file %s exists", fileID)
 	}
 
 	if fileExists {
 		e.fileIDToURL[fileID] = e.storage.BuildLink(fileID)
-		return
+		return nil
 	}
 
 	log.Printf("[DEBUG] downloading file %s", fileID)
 	body, err := e.fileRecipient.GetFile(fileID)
 	if err != nil {
-		log.Printf("[ERROR] failed to get file body for %s: %v", fileID, err)
-		return
+		return errors.Wrapf(err, "failed to get file body for %s", fileID)
 	}
 	defer body.Close()
 
 	bodyBytes, err := ioutil.ReadAll(body)
 	if err != nil {
-		log.Printf("[ERROR] failed to read file body for %s: %v", fileID, err)
-		return
+		return errors.Wrapf(err, "failed to read file body for %s", fileID)
 	}
 	log.Printf("[DEBUG] downloaded file %s", fileID)
 
 	fileURL, err := e.storage.CreateFile(fileID, bodyBytes)
 	if err != nil {
-		log.Printf("[ERROR] failed to create file %s: %v", fileID, err)
-		return
+		return errors.Wrapf(err, "failed to create file %s", fileID)
 	}
 
 	e.fileIDToURL[fileID] = fileURL
 	// hacky: need to pass fileURL to template
 	// using this map in template FuncMap later
+	return nil
 }
 
 func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) {
@@ -249,10 +250,10 @@ func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) 
 	}
 
 	if broadcastStartedIndex == 0 {
-		log.Println("[WARN] \"BroadcastStarted\" message was not found, exporting messages from the beginning")
+		log.Print(`[WARN] "BroadcastStarted" message not found, exporting messages from the beginning`)
 	}
 	if broadcastFinishedIndex == 0 && len(messages) > 0 {
-		log.Println("[WARN] \"BroadcastFinished\" message was not found, exporting messages till the end")
+		log.Print(`[WARN] "BroadcastFinished" message not found, exporting messages till the end`)
 		broadcastFinishedIndex = uint(len(messages))
 	}
 
@@ -338,7 +339,7 @@ func getDecoration(entity bot.Entity, body []rune) (string, string) {
 	case "phone_number":
 		return fmt.Sprintf("<a href=\"tel:%s\">", cleanPhoneNumber(string(body))), "</a>"
 
-	// intentially ignored:
+	// intentionally ignored:
 	case "text_mention": // for users without usernames
 	case "bot_command": // "/start@jobs_bot"
 	case "hashtag": // "#hashtag"

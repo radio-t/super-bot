@@ -13,7 +13,7 @@ import (
 	log "github.com/go-pkgz/lgr"
 )
 
-// Excerpt bot, returns link's excerpt
+// Excerpt bot, returns link excerpt
 type Excerpt struct {
 	api   string
 	token string

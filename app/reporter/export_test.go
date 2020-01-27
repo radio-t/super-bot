@@ -397,7 +397,7 @@ func TestExporter_format(t *testing.T) {
 	}
 }
 
-//setup creates Exporter with temp folders
+// setup creates Exporter with temp folders
 func setup(fileRecipient FileRecipient, storage Storage) (*Exporter, error) {
 	err := os.MkdirAll(testExportParams.InputRoot, os.ModePerm)
 	if err != nil {
@@ -431,7 +431,7 @@ func setup(fileRecipient FileRecipient, storage Storage) (*Exporter, error) {
 	return e, nil
 }
 
-// teardown remove all temp folders
+// teardown removes all temp folders
 func teardown() {
 	_ = os.RemoveAll(testExportParams.InputRoot)
 	_ = os.RemoveAll(testExportParams.OutputRoot)

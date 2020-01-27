@@ -3,19 +3,17 @@ package storage
 import (
 	"io/ioutil"
 	"os"
-
-	"github.com/radio-t/gitter-rt-bot/app/reporter"
 )
 
 // Local implements Storage interface
-// operating with local filesystem (possibly mounted to the container)
+// operating with the local filesystem (possibly mounted to the container)
 type Local struct {
 	filesPath  string
 	publicPath string
 }
 
 // NewLocal creates new Local storage
-func NewLocal(filesPath string, publicPath string) (reporter.Storage, error) {
+func NewLocal(filesPath string, publicPath string) (*Local, error) {
 	if _, err := os.Stat(filesPath); os.IsNotExist(err) {
 		err = os.MkdirAll(filesPath, 0755)
 		if err != nil {
@@ -23,10 +21,7 @@ func NewLocal(filesPath string, publicPath string) (reporter.Storage, error) {
 		}
 	}
 
-	return &Local{
-		filesPath:  filesPath,
-		publicPath: publicPath,
-	}, nil
+	return &Local{filesPath: filesPath, publicPath: publicPath}, nil
 }
 
 // FileExists checks if file exists in `filesPath` directory

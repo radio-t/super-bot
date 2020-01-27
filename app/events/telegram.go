@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -20,11 +21,12 @@ type TelegramListener struct {
 	Terminator
 	Token string
 	reporter.Reporter
-	Bots    bot.Interface
-	GroupID string
-	Debug   bool
+	Bots  bot.Interface
+	Group string // can be int64 or public group username (without "@" prefix)
+	Debug bool
 
 	botAPI *tbapi.BotAPI
+	chatID int64
 
 	msgs struct {
 		once sync.Once
@@ -34,9 +36,13 @@ type TelegramListener struct {
 
 // Do process all events, blocked call
 func (l *TelegramListener) Do(ctx context.Context) (err error) {
-	log.Printf("[INFO] start telegram listener for %s", l.GroupID)
+	log.Printf("[INFO] start telegram listener for %q", l.Group)
+
 	if l.botAPI, err = tbapi.NewBotAPI(l.Token); err != nil {
 		return errors.Wrap(err, "can't make telegram bot")
+	}
+	if l.chatID, err = l.getChatID(l.Group); err != nil {
+		return errors.Wrapf(err, "failed to get chat ID for group %q", l.Group)
 	}
 	l.botAPI.Debug = l.Debug
 	l.msgs.once.Do(func() { l.msgs.ch = make(chan string, 100) })
@@ -63,7 +69,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			log.Printf("[INFO] receive update: %+v", update)
 
 			if update.Message == nil {
-				log.Printf("[DEBUG] empty message body")
+				log.Print("[DEBUG] empty message body")
 				continue
 			}
 
@@ -72,6 +78,16 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				log.Printf("[ERROR] failed to marshal update.Message to JSON: %v", err)
 			} else {
 				log.Printf("[DEBUG] %s", string(msgJSON))
+			}
+
+			if update.Message.Chat == nil {
+				log.Print("[DEBUG] ignoring message not from chat")
+				continue
+			}
+
+			if update.Message.Chat.ID != l.chatID {
+				log.Printf("[DEBUG] ignoring message from chat %d:%q (%q), must be %d:%q", update.Message.Chat.ID, update.Message.Chat.UserName, update.Message.Chat.Title, l.chatID, l.Group)
+				continue
 			}
 
 			msg := l.transform(update.Message)
@@ -110,11 +126,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			}
 
 		case msg := <-l.msgs.ch: // publish messages from outside clients
-			chat, err := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: l.GroupID})
-			if err != nil {
-				return errors.Wrapf(err, "can't get chat for %s", l.GroupID)
-			}
-			tbMsg := tbapi.NewMessage(chat.ID, msg)
+			tbMsg := tbapi.NewMessage(l.chatID, msg)
 			tbMsg.ParseMode = tbapi.ModeMarkdown
 			if res, err := l.botAPI.Send(tbMsg); err != nil {
 				log.Printf("[WARN] can't send msg to telegram, %v", err)
@@ -135,6 +147,20 @@ func (l *TelegramListener) Submit(ctx context.Context, text string) error {
 	case l.msgs.ch <- text:
 	}
 	return nil
+}
+
+func (l *TelegramListener) getChatID(group string) (int64, error) {
+	chatID, err := strconv.ParseInt(l.Group, 10, 64)
+	if err == nil {
+		return chatID, nil
+	}
+
+	chat, err := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: "@" + group})
+	if err != nil {
+		return 0, errors.Wrapf(err, "can't get chat for %s", group)
+	}
+
+	return chat.ID, nil
 }
 
 func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {

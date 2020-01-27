@@ -3,9 +3,7 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
-	"time"
 
 	log "github.com/go-pkgz/lgr"
 )
@@ -13,23 +11,24 @@ import (
 // Duck bot, returns from duckduckgo via mashape
 type Duck struct {
 	mashapeKey string
+	client     HttpClient
 }
 
 // NewDuck makes a bot for duckduckgo
-func NewDuck(key string) *Duck {
+func NewDuck(key string, client HttpClient) *Duck {
 	log.Printf("[INFO] Duck bot with duckduckgo-duckduckgo-zero-click-info.p.mashape.com")
-	return &Duck{mashapeKey: key}
+	return &Duck{mashapeKey: key, client: client}
 }
 
 // OnMessage pass msg to all bots and collects responses
 func (d *Duck) OnMessage(msg Message) (response string, answer bool) {
-	if !strings.HasPrefix(msg.Text, "??") {
+
+	ok, reqText := d.request(msg.Text)
+	if !ok {
 		return "", false
 	}
-	reqText := strings.Replace(strings.TrimSpace(strings.TrimPrefix(msg.Text, "??")), " ", "+", -1)
-	reqURL := fmt.Sprintf("https://duckduckgo-duckduckgo-zero-click-info.p.mashape.com/?format=json&no_html=1&no_redirect=1&q=%s&skip_disambig=1", reqText)
 
-	client := http.Client{Timeout: time.Second * 5}
+	reqURL := fmt.Sprintf("https://duckduckgo-duckduckgo-zero-click-info.p.mashape.com/?format=json&no_html=1&no_redirect=1&q=%s&skip_disambig=1", reqText)
 
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
@@ -37,12 +36,12 @@ func (d *Duck) OnMessage(msg Message) (response string, answer bool) {
 		return "", false
 	}
 	req.Header.Set("X-Mashape-Key", d.mashapeKey)
-	resp, err := client.Do(req)
+	resp, err := d.client.Do(req)
 	if err != nil {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
 		return "", false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	duckResp := struct {
 		AbstractText   string `json:"AbstractText"`
@@ -69,7 +68,17 @@ func (d *Duck) OnMessage(msg Message) (response string, answer bool) {
 	return respMD, true
 }
 
+func (d *Duck) request(text string) (react bool, reqText string) {
+
+	for _, prefix := range d.ReactOn() {
+		if strings.HasPrefix(text, prefix) {
+			return true, strings.Replace(strings.TrimSpace(strings.TrimPrefix(text, prefix)), " ", "+", -1)
+		}
+	}
+	return false, ""
+}
+
 // ReactOn keys
-func (d Duck) ReactOn() []string {
-	return []string{"??"}
+func (d *Duck) ReactOn() []string {
+	return []string{"ddg!", "??"}
 }

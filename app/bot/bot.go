@@ -11,10 +11,17 @@ import (
 	"github.com/pkg/errors"
 )
 
+//go:generate mockery -inpkg -name HttpClient -case snake
+
 // Interface is a bot reactive spec. response will be sent if "send" result is true
 type Interface interface {
 	OnMessage(msg Message) (response string, send bool)
 	ReactOn() []string
+}
+
+// HttpClient wrap http.Client to allow mocking
+type HttpClient interface {
+	Do(req *http.Request) (*http.Response, error)
 }
 
 // SuperUser defines interface checking ig user name in su list

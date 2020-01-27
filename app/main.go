@@ -74,7 +74,7 @@ func main() {
 		bot.NewNews("https://news.radio-t.com/api"),
 		bot.NewAnecdote(),
 		bot.NewStackOverflow(),
-		bot.NewDuck(opts.MashapeToken),
+		bot.NewDuck(opts.MashapeToken, &http.Client{Timeout: 5 * time.Second}),
 	}
 
 	term := events.Terminator{

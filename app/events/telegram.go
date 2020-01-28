@@ -97,11 +97,9 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			// check for ban
 			if b := l.check(msg.From); b.active {
 				if b.new {
-					var mention string
+					mention := "@" + msg.From.Username
 					if msg.From.Username == "" {
 						mention = fmt.Sprintf("[%s](tg://user?id=%d)", msg.From.DisplayName, update.Message.From.ID)
-					} else {
-						mention = "@" + msg.From.Username
 					}
 					m := fmt.Sprintf("%s _тебя слишком много, отдохни..._", mention)
 					tbMsg := tbapi.NewMessage(update.Message.Chat.ID, m)

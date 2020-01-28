@@ -51,3 +51,5 @@ jobs:
         docker build -t radiot/super-bot:${GIT_TAG} .
         docker login --username ${{ secrets.DOCKERHUB_USER }} --password ${{ secrets.DOCKERHUB_PASSWD }}
         docker push radiot/super-bot:${GIT_TAG}
+        docker tag radiot/super-bot:${GIT_TAG} radiot/super-bot:latest
+        docker push radiot/super-bot:latest

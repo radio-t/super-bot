@@ -66,8 +66,6 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				return errors.Errorf("telegram update chan closed")
 			}
 
-			log.Printf("[DEBUG] receive update: %+v", update)
-
 			if update.Message == nil {
 				log.Print("[DEBUG] empty message body")
 				continue
@@ -75,10 +73,10 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			msgJSON, err := json.Marshal(update.Message)
 			if err != nil {
-				log.Printf("[ERROR] failed to marshal update.Message to JSON: %v", err)
-			} else {
-				log.Printf("[DEBUG] %s", string(msgJSON))
+				log.Printf("[ERROR] failed to marshal update.Message to json: %v", err)
+				continue
 			}
+			log.Printf("[DEBUG] %s", string(msgJSON))
 
 			if update.Message.Chat == nil {
 				log.Print("[DEBUG] ignoring message not from chat")
@@ -86,7 +84,8 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			}
 
 			if update.Message.Chat.ID != l.chatID {
-				log.Printf("[DEBUG] ignoring message from chat %d:%q (%q), must be %d:%q", update.Message.Chat.ID, update.Message.Chat.UserName, update.Message.Chat.Title, l.chatID, l.Group)
+				log.Printf("[DEBUG] ignoring message from chat %d:%q (%q), must be %d:%q",
+					update.Message.Chat.ID, update.Message.Chat.UserName, update.Message.Chat.Title, l.chatID, l.Group)
 				continue
 			}
 

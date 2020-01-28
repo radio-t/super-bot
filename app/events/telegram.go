@@ -66,7 +66,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				return errors.Errorf("telegram update chan closed")
 			}
 
-			log.Printf("[INFO] receive update: %+v", update)
+			log.Printf("[DEBUG] receive update: %+v", update)
 
 			if update.Message == nil {
 				log.Print("[DEBUG] empty message body")

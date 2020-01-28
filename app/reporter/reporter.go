@@ -49,7 +49,7 @@ func (l Reporter) activate() {
 	log.Print("[INFO] activate reporter")
 	buffer := make([]string, 0, 100)
 
-	writeBuff := func()  error {
+	writeBuff := func() error {
 		if len(buffer) == 0 {
 			return nil
 		}
@@ -78,12 +78,12 @@ func (l Reporter) activate() {
 		case entry := <-l.messages:
 			buffer = append(buffer, entry)
 			if len(buffer) >= 100 { // forced flush every 100 records
-				if  err := writeBuff(); err != nil {
+				if err := writeBuff(); err != nil {
 					log.Printf("[WARN] failed to write reporter buffer, %v", err)
 				}
 			}
 		case <-time.After(time.Second * 5): // flush on 5 seconds inactivity
-			if  err := writeBuff(); err != nil {
+			if err := writeBuff(); err != nil {
 				log.Printf("[WARN] failed to write reporter buffer, %v", err)
 			}
 		}

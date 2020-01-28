@@ -36,3 +36,10 @@ jobs:
       run: $(go env GOPATH)/bin/goveralls -service="github" -coverprofile=$GITHUB_WORKSPACE/profile.cov
       env:
         COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: build and push image
+      if: github.event_name == 'push' && github.ref == 'master'
+      run: |
+        docker build -t radiot/super-bot:master .
+        docker login --username ${{ secrets.DOCKERHUB_USER }} --password ${{ secrets.DOCKERHUB_PASSWD }}
+        docker push radiot/super-bot:master

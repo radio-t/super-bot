@@ -37,9 +37,17 @@ jobs:
       env:
         COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: build and push image
+    - name: build and push master image
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       run: |
         docker build -t radiot/super-bot:master .
         docker login --username ${{ secrets.DOCKERHUB_USER }} --password ${{ secrets.DOCKERHUB_PASSWD }}
         docker push radiot/super-bot:master
+
+    - name: build and push tagged image
+      if: github.event_name == 'push' && github.event.ref_type == 'tag'
+      run: |
+        GIT_TAG="${GITHUB_REF#refs/tags/}"
+        docker build -t radiot/super-bot:${GIT_TAG} .
+        docker login --username ${{ secrets.DOCKERHUB_USER }} --password ${{ secrets.DOCKERHUB_PASSWD }}
+        docker push radiot/super-bot:${GIT_TAG}

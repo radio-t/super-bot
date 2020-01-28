@@ -1,4 +1,4 @@
-module github.com/radio-t/gitter-rt-bot
+module github.com/radio-t/super-bot
 
 go 1.13
 

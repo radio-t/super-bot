@@ -7,7 +7,7 @@ import (
 	"time"
 
 	log "github.com/go-pkgz/lgr"
-	"github.com/radio-t/gitter-rt-bot/app/bot"
+	"github.com/radio-t/super-bot/app/bot"
 )
 
 // Reporter collects all messages and saves to plain file

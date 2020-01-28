@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/radio-t/gitter-rt-bot/app/bot"
+	"github.com/radio-t/super-bot/app/bot"
 )
 
 var logs = "logs"

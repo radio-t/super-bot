@@ -15,7 +15,7 @@ import (
 
 	log "github.com/go-pkgz/lgr"
 	"github.com/pkg/errors"
-	"github.com/radio-t/gitter-rt-bot/app/bot"
+	"github.com/radio-t/super-bot/app/bot"
 )
 
 // Exporter performs conversion from log file to html

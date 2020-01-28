@@ -12,8 +12,8 @@ import (
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 
-	"github.com/radio-t/gitter-rt-bot/app/bot"
-	"github.com/radio-t/gitter-rt-bot/app/reporter"
+	"github.com/radio-t/super-bot/app/bot"
+	"github.com/radio-t/super-bot/app/reporter"
 )
 
 // TelegramListener listens to tg update, forward to bots and send back responses

@@ -61,6 +61,7 @@ func main() {
 	}
 	rand.Seed(int64(time.Now().Nanosecond()))
 
+	httpClient := &http.Client{Timeout: 5 * time.Second}
 	multiBot := bot.MultiBot{
 		bot.NewBroadcastStatus(
 			ctx,
@@ -72,9 +73,9 @@ func main() {
 		bot.NewSys(opts.SysData),
 		bot.NewVotes(opts.SuperUsers),
 		bot.NewNews("https://news.radio-t.com/api"),
-		bot.NewAnecdote(),
+		bot.NewAnecdote(httpClient),
 		bot.NewStackOverflow(),
-		bot.NewDuck(opts.MashapeToken, &http.Client{Timeout: 5 * time.Second}),
+		bot.NewDuck(opts.MashapeToken, httpClient),
 	}
 
 	term := events.Terminator{

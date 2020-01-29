@@ -3,7 +3,6 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 
 // News bot, returns 5 last articles in MD from https://news.radio-t.com/api/v1/news/lastmd/5
 type News struct {
+	client  HttpClient
 	newsAPI string
 }
 
@@ -22,9 +22,9 @@ type newsArticle struct {
 }
 
 // NewNews makes new News bot
-func NewNews(api string) *News {
+func NewNews(client HttpClient, api string) *News {
 	log.Printf("[INFO] news bot with api %s", api)
-	return &News{newsAPI: api}
+	return &News{client: client, newsAPI: api}
 }
 
 // OnMessage returns 5 last news articles
@@ -35,8 +35,14 @@ func (n News) OnMessage(msg Message) (response string, answer bool) {
 
 	reqURL := fmt.Sprintf("%s/v1/news/last/5", n.newsAPI)
 	log.Printf("[DEBUG] request %s", reqURL)
-	client := http.Client{Timeout: time.Second * 5}
-	resp, err := client.Get(reqURL)
+
+	req, err := makeHTTPRequest(reqURL)
+	if err != nil {
+		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
+		return "", false
+	}
+
+	resp, err := n.client.Do(req)
 	if err != nil {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
 		return "", false

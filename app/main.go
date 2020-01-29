@@ -72,7 +72,7 @@ func main() {
 				Client:       http.Client{Timeout: 5 * time.Second}}),
 		bot.NewSys(opts.SysData),
 		bot.NewVotes(opts.SuperUsers),
-		bot.NewNews("https://news.radio-t.com/api"),
+		bot.NewNews(httpClient, "https://news.radio-t.com/api"),
 		bot.NewAnecdote(httpClient),
 		bot.NewStackOverflow(),
 		bot.NewDuck(opts.MashapeToken, httpClient),

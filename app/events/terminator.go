@@ -27,7 +27,7 @@ type ban struct {
 }
 
 // check if user bothered bot too often and ban for BanDuration
-func (t *Terminator) check(user bot.User) ban {
+func (t *Terminator) check(user bot.User, sent time.Time) ban {
 
 	noBan := ban{active: false, new: false}
 	if t.Exclude.IsSuper(user.Username) {
@@ -41,7 +41,7 @@ func (t *Terminator) check(user bot.User) ban {
 
 	info, found := t.users[user]
 	if !found {
-		t.users[user] = activity{lastActivity: time.Now()}
+		t.users[user] = activity{lastActivity: sent}
 		return noBan
 	}
 
@@ -70,7 +70,7 @@ func (t *Terminator) check(user bot.User) ban {
 		info.penalty = 0
 	}
 
-	info.lastActivity = time.Now()
+	info.lastActivity = sent
 	t.users[user] = info
 	return noBan
 }

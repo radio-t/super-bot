@@ -95,7 +95,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
 
 			// check for ban
-			if b := l.check(msg.From); b.active {
+			if b := l.check(msg.From, msg.Sent); b.active {
 				if b.new {
 					mention := "@" + msg.From.Username
 					if msg.From.Username == "" {

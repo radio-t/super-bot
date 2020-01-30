@@ -1,12 +1,13 @@
 package bot
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
-func TestStartVoting(t *testing.T) {
+func TestVotes_StartVoting(t *testing.T) {
 	su := &MockSuperUser{}
 	su.On("IsSuper", mock.Anything).Return(true)
 
@@ -19,7 +20,7 @@ func TestStartVoting(t *testing.T) {
 	require.Equal(t, "topic", b.topic)
 }
 
-func TestFinishVoteNoVotes(t *testing.T) {
+func TestVotes_FinishVoteNoVotes(t *testing.T) {
 	su := &MockSuperUser{}
 	su.On("IsSuper", mock.Anything).Return(true)
 
@@ -32,7 +33,7 @@ func TestFinishVoteNoVotes(t *testing.T) {
 	require.False(t, b.started)
 }
 
-func TestVotes(t *testing.T) {
+func TestVotes_Votes(t *testing.T) {
 	su := &MockSuperUser{}
 	su.On("IsSuper", mock.Anything).Return(true)
 
@@ -47,7 +48,7 @@ func TestVotes(t *testing.T) {
 	require.Equal(t, "голосование завершено - __\n- *за: 50% (2)*\n- *против: 50% (2) *", resp)
 }
 
-func TestFinishVote(t *testing.T) {
+func TestVotes_FinishVote(t *testing.T) {
 	su := &MockSuperUser{}
 	su.On("IsSuper", mock.Anything).Return(true)
 
@@ -74,7 +75,7 @@ func TestFinishVote(t *testing.T) {
 	require.False(t, b.started)
 }
 
-func TestIgnoreStartVoteByProles(t *testing.T) {
+func TestVotes_IgnoreStartVoteByProles(t *testing.T) {
 	su := &MockSuperUser{}
 	su.On("IsSuper", mock.Anything).Return(false)
 
@@ -84,7 +85,7 @@ func TestIgnoreStartVoteByProles(t *testing.T) {
 	require.False(t, answer)
 }
 
-func TestIgnoreFinishVoteByProles(t *testing.T) {
+func TestVotes_IgnoreFinishVoteByProles(t *testing.T) {
 	su := &MockSuperUser{}
 	su.On("IsSuper", mock.Anything).Return(false)
 

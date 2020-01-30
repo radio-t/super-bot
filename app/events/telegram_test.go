@@ -10,7 +10,7 @@ import (
 	"github.com/radio-t/super-bot/app/bot"
 )
 
-func Test_transformTextMessage(t *testing.T) {
+func TestTelegram_transformTextMessage(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -38,7 +38,7 @@ func Test_transformTextMessage(t *testing.T) {
 	)
 }
 
-func Test_transformPhoto(t *testing.T) {
+func TestTelegram_transformPhoto(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,
@@ -94,7 +94,7 @@ func Test_transformPhoto(t *testing.T) {
 	)
 }
 
-func Test_transformEntities(t *testing.T) {
+func TestTelegram_transformEntities(t *testing.T) {
 	l := TelegramListener{}
 	assert.Equal(
 		t,

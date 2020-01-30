@@ -12,7 +12,7 @@ import (
 )
 
 // Kind of integration test to check all workflow
-func TestBroadcastStatusTransitions(t *testing.T) {
+func TestBroadcast_StatusTransitions(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -73,7 +73,7 @@ func TestBroadcastStatusTransitions(t *testing.T) {
 	require.False(t, b.getStatus())
 }
 
-func TestBroadcastStatusOffToOn(t *testing.T) {
+func TestBroadcast_StatusOffToOn(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -91,7 +91,7 @@ func TestBroadcastStatusOffToOn(t *testing.T) {
 	require.True(t, b.status)
 }
 
-func TestBroadcastStatusOffToOff(t *testing.T) {
+func TestBroadcast_StatusOffToOff(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -110,7 +110,7 @@ func TestBroadcastStatusOffToOff(t *testing.T) {
 	require.False(t, b.status)
 }
 
-func TestBroadcastStatusOnToOffNoDeadline(t *testing.T) {
+func TestBroadcast_StatusOnToOffNoDeadline(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -130,7 +130,7 @@ func TestBroadcastStatusOnToOffNoDeadline(t *testing.T) {
 	require.True(t, b.status)
 }
 
-func TestBroadcastStatusOnToOffWithDeadline(t *testing.T) {
+func TestBroadcast_StatusOnToOffWithDeadline(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -150,13 +150,13 @@ func TestBroadcastStatusOnToOffWithDeadline(t *testing.T) {
 	require.False(t, b.status)
 }
 
-func TestFirstOnMessageReturnsCurrentState(t *testing.T) {
+func TestBroadcast_FirstOnMessageReturnsCurrentState(t *testing.T) {
 	b := &BroadcastStatus{}
 	_, answer := b.OnMessage(Message{})
 	require.False(t, answer)
 }
 
-func TestOnMessageReturnsNothingIfStateNotChanged(t *testing.T) {
+func TestBroadcast_OnMessageReturnsNothingIfStateNotChanged(t *testing.T) {
 	b := &BroadcastStatus{}
 	_, answer := b.OnMessage(Message{})
 	require.False(t, answer)
@@ -166,7 +166,7 @@ func TestOnMessageReturnsNothingIfStateNotChanged(t *testing.T) {
 	require.False(t, answer)
 }
 
-func TestOnMessageReturnsReplyOnChange(t *testing.T) {
+func TestBroadcast_OnMessageReturnsReplyOnChange(t *testing.T) {
 	b := &BroadcastStatus{lastSentStatus: false, status: true} // OFF ->ON
 	resp, answer := b.OnMessage(Message{})
 	require.True(t, answer)
@@ -178,7 +178,7 @@ func TestOnMessageReturnsReplyOnChange(t *testing.T) {
 	require.Equal(t, MsgBroadcastFinished, resp)
 }
 
-func TestPingReturnsTrueOn200Status(t *testing.T) {
+func TestBroadcast_PingReturnsTrueOn200Status(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -190,7 +190,7 @@ func TestPingReturnsTrueOn200Status(t *testing.T) {
 	require.True(t, ping(ctx, http.Client{}, ts.URL))
 }
 
-func TestPingReturnsFalseOnNot200Status(t *testing.T) {
+func TestBroadcast_PingReturnsFalseOnNot200Status(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -202,16 +202,16 @@ func TestPingReturnsFalseOnNot200Status(t *testing.T) {
 	require.False(t, ping(ctx, http.Client{}, ts.URL))
 }
 
-func TestPingReturnsFalseOnUnableToDoRequest(t *testing.T) {
+func TestBroadcast_PingReturnsFalseOnUnableToDoRequest(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	require.False(t, ping(ctx, http.Client{}, "http://localhost:9873"))
 }
 
-func TestPingReturnsFalseOnUnableToCreateReq(t *testing.T) {
+func TestBroadcast_PingReturnsFalseOnUnableToCreateReq(t *testing.T) {
 	require.False(t, ping(nil, http.Client{}, "http://localhost:9873"))
 }
 
-func TestReactOnAnyMessage(t *testing.T) {
+func TestBroadcast_ReactOnAnyMessage(t *testing.T) {
 	require.Empty(t, (&BroadcastStatus{}).ReactOn())
 }

@@ -28,7 +28,7 @@ func (a Anecdote) OnMessage(msg Message) (response string, answer bool) {
 		return "", false
 	}
 
-	if contains([]string{"chuck!"}, msg.Text) {
+	if contains([]string{"chuck!", "/chuck"}, msg.Text) {
 		return a.chuck()
 	}
 
@@ -102,5 +102,5 @@ func (a Anecdote) chuck() (response string, answer bool) {
 
 // ReactOn keys
 func (a Anecdote) ReactOn() []string {
-	return []string{"анекдот!", "анкедот!", "joke!", "chuck!"}
+	return []string{"анекдот!", "анкедот!", "joke!", "chuck!", "/анекдот", "/joke", "/chuck"}
 }

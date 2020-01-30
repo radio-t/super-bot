@@ -68,5 +68,5 @@ func (s StackOverflow) OnMessage(msg Message) (response string, answer bool) {
 
 // ReactOn keys
 func (s StackOverflow) ReactOn() []string {
-	return []string{"so!"}
+	return []string{"so!", "/so"}
 }

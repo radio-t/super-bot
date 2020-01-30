@@ -35,6 +35,7 @@ func TestDuck_request(t *testing.T) {
 		{"blah", false, ""},
 		{"?? something", true, "something"},
 		{"ddg! something", true, "something"},
+		{"/ddg something", true, "something"},
 	}
 
 	d := &Duck{}

@@ -80,5 +80,5 @@ func (d *Duck) request(text string) (react bool, reqText string) {
 
 // ReactOn keys
 func (d *Duck) ReactOn() []string {
-	return []string{"ddg!", "??"}
+	return []string{"ddg!", "??", "/ddg"}
 }

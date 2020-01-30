@@ -3,20 +3,22 @@ package bot
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
-	"net/http"
-	"testing"
 )
 
-func TestAnecdotReactsOnJokeRequest(t *testing.T) {
+func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
 	mockHttp := &MockHttpClient{}
 	b := NewAnecdote(mockHttp)
 
 	mockHttp.On("Do", mock.Anything).Return(&http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader([]byte("joke"))),
+		Body: ioutil.NopCloser(strings.NewReader("joke")),
 	}, nil)
 
 	response, answer := b.OnMessage(Message{Text: "joke!"})
@@ -24,7 +26,20 @@ func TestAnecdotReactsOnJokeRequest(t *testing.T) {
 	require.Equal(t, "joke", response)
 }
 
-func TestAnecdotRshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
+func TestAnecdot_ReactsOnJokeRequestAlt(t *testing.T) {
+	mockHttp := &MockHttpClient{}
+	b := NewAnecdote(mockHttp)
+
+	mockHttp.On("Do", mock.Anything).Return(&http.Response{
+		Body: ioutil.NopCloser(strings.NewReader("joke")),
+	}, nil)
+
+	response, answer := b.OnMessage(Message{Text: "/joke"})
+	require.True(t, answer)
+	require.Equal(t, "joke", response)
+}
+
+func TestAnecdot_RshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
 	mockHttp := &MockHttpClient{}
 	b := NewAnecdote(mockHttp)
 

@@ -33,7 +33,7 @@ func (p Sys) OnMessage(msg Message) (response string, answer bool) {
 		return "", false
 	}
 
-	if msg.Text == "say!" {
+	if msg.Text == "say!" || msg.Text == "/say" {
 		if p.say != nil && len(p.say) > 0 {
 			return fmt.Sprintf("_%s_", p.say[rand.Intn(len(p.say))]), true
 		}
@@ -91,7 +91,7 @@ func readLines(path string) ([]string, error) {
 
 // ReactOn keys
 func (p Sys) ReactOn() []string {
-	res := []string{"say!"}
+	res := []string{"say!", "/say"}
 	for key := range p.basic {
 		res = append(res, key)
 	}

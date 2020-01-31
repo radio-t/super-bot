@@ -94,15 +94,21 @@ func (e *Exporter) Export(showNum int, yyyymmdd int) error {
 		}
 	}()
 
-	_, err = fh.WriteString(e.toHTML(messages, showNum))
+	h, err := e.toHTML(messages, showNum)
 	if err != nil {
-		log.Fatalf("[ERROR] failed to write HTML to file %s, %v", to, err)
+		return errors.Wrapf(err, "can't export #%d", showNum)
 	}
+
+	_, err = fh.WriteString(h)
+	if err != nil {
+		return errors.Wrapf(err, "failed to write HTML to file %s", to)
+	}
+
 	log.Printf("[INFO] exported %d lines to %s", len(messages), to)
 	return nil
 }
 
-func (e *Exporter) toHTML(messages []bot.Message, num int) string {
+func (e *Exporter) toHTML(messages []bot.Message, num int) (string, error) {
 
 	type Record struct {
 		Time   string
@@ -149,14 +155,14 @@ func (e *Exporter) toHTML(messages []bot.Message, num int) string {
 	name := e.TemplateFile[strings.LastIndex(e.TemplateFile, "/")+1:]
 	t, err := template.New(name).Funcs(funcMap).ParseFiles(e.TemplateFile)
 	if err != nil {
-		log.Fatalf("[ERROR] failed to parse, %v", err)
+		return "", errors.Wrap(err, "failed to parse template")
 	}
 
 	var h bytes.Buffer
 	if err := t.ExecuteTemplate(&h, name, data); err != nil {
-		log.Fatalf("[ERROR] failed, error %v", err)
+		return "", errors.Wrap(err, "failed to process template")
 	}
-	return h.String()
+	return h.String(), nil
 }
 
 func (e *Exporter) timestampHuman(t time.Time) string {

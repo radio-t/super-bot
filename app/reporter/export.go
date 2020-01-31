@@ -73,7 +73,7 @@ func NewExporter(fileRecipient FileRecipient, storage Storage, params ExporterPa
 }
 
 // Export to html with showNum
-func (e *Exporter) Export(showNum int, yyyymmdd int) {
+func (e *Exporter) Export(showNum int, yyyymmdd int) error {
 	from := fmt.Sprintf("%s/%s.log", e.InputRoot, time.Now().Format("20060102")) // current day by default
 	if yyyymmdd != 0 {
 		from = fmt.Sprintf("%s/%d.log", e.InputRoot, yyyymmdd)
@@ -82,20 +82,24 @@ func (e *Exporter) Export(showNum int, yyyymmdd int) {
 
 	messages, err := readMessages(from, e.ExporterParams.BroadcastUsers)
 	if err != nil {
-		log.Fatalf("[ERROR] failed to read messages from %s, %v", from, err)
+		return errors.Wrapf(err, "failed to read messages from %s", from)
 	}
 	fh, err := os.OpenFile(to, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666) // nolint
 	if err != nil {
-		log.Fatalf("[ERROR] failed to open file %s, %v", to, err)
+		return errors.Wrapf(err, "failed to open destination file %s", to)
 	}
-	defer fh.Close()
+	defer func() {
+		if err := fh.Close(); err != nil {
+			log.Printf("[WARN] failed to close %s, %v", fh.Name(), err)
+		}
+	}()
 
 	_, err = fh.WriteString(e.toHTML(messages, showNum))
 	if err != nil {
 		log.Fatalf("[ERROR] failed to write HTML to file %s, %v", to, err)
 	}
 	log.Printf("[INFO] exported %d lines to %s", len(messages), to)
-
+	return nil
 }
 
 func (e *Exporter) toHTML(messages []bot.Message, num int) string {

@@ -135,7 +135,10 @@ func export() {
 			),
 		),
 	}
-	reporter.NewExporter(fileRecipient, s, params).Export(opts.ExportNum, opts.ExportDay)
+	err = reporter.NewExporter(fileRecipient, s, params).Export(opts.ExportNum, opts.ExportDay)
+	if err != nil {
+		log.Fatalf("[ERROR] export failed: %v", err)
+	}
 }
 
 func setupLog(dbg bool) {

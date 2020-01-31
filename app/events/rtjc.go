@@ -10,7 +10,7 @@ import (
 	log "github.com/go-pkgz/lgr"
 )
 
-// Rtjc is a listeners for incoming rtjc commands. Publishes whatever it got from the socket
+// Rtjc is a listener for incoming rtjc commands. Publishes whatever it got from the socket
 // compatible with the legacy rtjc bot. Primarily use case is to push news events from news.radio-t.com
 type Rtjc struct {
 	Port      int

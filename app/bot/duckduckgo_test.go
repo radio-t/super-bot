@@ -13,7 +13,7 @@ import (
 )
 
 func TestDuck_OnMessage(t *testing.T) {
-	mockHttp := &MockHttpClient{}
+	mockHttp := &MockHTTPClient{}
 	d := NewDuck("key", mockHttp)
 
 	mockHttp.On("Do", mock.Anything).Return(&http.Response{

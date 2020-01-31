@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewsBot_ReactionOnNewsRequest(t *testing.T) {
-	mockHttp := &MockHttpClient{}
+	mockHttp := &MockHTTPClient{}
 	b := NewNews(mockHttp, "")
 
 	article := newsArticle{
@@ -32,7 +32,7 @@ func TestNewsBot_ReactionOnNewsRequest(t *testing.T) {
 }
 
 func TestNewsBot_ReactionOnNewsRequestAlt(t *testing.T) {
-	mockHttp := &MockHttpClient{}
+	mockHttp := &MockHTTPClient{}
 	b := NewNews(mockHttp, "")
 
 	article := newsArticle{
@@ -52,7 +52,7 @@ func TestNewsBot_ReactionOnNewsRequestAlt(t *testing.T) {
 }
 
 func TestNewsBot_ReactionOnUnexpectedMessage(t *testing.T) {
-	mockHttp := &MockHttpClient{}
+	mockHttp := &MockHTTPClient{}
 	b := NewNews(mockHttp, "")
 
 	response, answer := b.OnMessage(Message{Text: "unexpected"})

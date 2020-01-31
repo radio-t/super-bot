@@ -14,7 +14,7 @@ import (
 )
 
 func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
-	mockHttp := &MockHttpClient{}
+	mockHttp := &MockHTTPClient{}
 	b := NewAnecdote(mockHttp)
 
 	mockHttp.On("Do", mock.Anything).Return(&http.Response{
@@ -27,7 +27,7 @@ func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
 }
 
 func TestAnecdot_ReactsOnJokeRequestAlt(t *testing.T) {
-	mockHttp := &MockHttpClient{}
+	mockHttp := &MockHTTPClient{}
 	b := NewAnecdote(mockHttp)
 
 	mockHttp.On("Do", mock.Anything).Return(&http.Response{
@@ -40,7 +40,7 @@ func TestAnecdot_ReactsOnJokeRequestAlt(t *testing.T) {
 }
 
 func TestAnecdot_RshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
-	mockHttp := &MockHttpClient{}
+	mockHttp := &MockHTTPClient{}
 	b := NewAnecdote(mockHttp)
 
 	mockHttp.On("Do", mock.Anything).Return(nil, errors.New("err"))
@@ -51,7 +51,7 @@ func TestAnecdot_RshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
 }
 
 func TestAnecdotReactsOnUnexpectedMessage(t *testing.T) {
-	mockHttp := &MockHttpClient{}
+	mockHttp := &MockHTTPClient{}
 	b := NewAnecdote(mockHttp)
 
 	result, answer := b.OnMessage(Message{Text: "unexpected msg"})
@@ -60,7 +60,7 @@ func TestAnecdotReactsOnUnexpectedMessage(t *testing.T) {
 }
 
 func TestAnecdotReactsOnBadChuckMessage(t *testing.T) {
-	mockHttp := &MockHttpClient{}
+	mockHttp := &MockHTTPClient{}
 	b := NewAnecdote(mockHttp)
 
 	mockHttp.On("Do", mock.Anything).Return(&http.Response{
@@ -73,7 +73,7 @@ func TestAnecdotReactsOnBadChuckMessage(t *testing.T) {
 }
 
 func TestAnecdotReactsOnChuckMessageUnableToDoReq(t *testing.T) {
-	mockHttp := &MockHttpClient{}
+	mockHttp := &MockHTTPClient{}
 	b := NewAnecdote(mockHttp)
 
 	mockHttp.On("Do", mock.Anything).Return(nil, errors.New("err"))
@@ -84,7 +84,7 @@ func TestAnecdotReactsOnChuckMessageUnableToDoReq(t *testing.T) {
 }
 
 func TestAnecdotReactsOnChuckMessage(t *testing.T) {
-	mockHttp := &MockHttpClient{}
+	mockHttp := &MockHTTPClient{}
 	b := NewAnecdote(mockHttp)
 
 	mockHttp.On("Do", mock.Anything).Return(&http.Response{

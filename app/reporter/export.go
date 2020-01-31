@@ -84,10 +84,12 @@ func (e *Exporter) Export(showNum int, yyyymmdd int) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to read messages from %s", from)
 	}
+
 	fh, err := os.OpenFile(to, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666) // nolint
 	if err != nil {
 		return errors.Wrapf(err, "failed to open destination file %s", to)
 	}
+
 	defer func() {
 		if err := fh.Close(); err != nil {
 			log.Printf("[WARN] failed to close %s, %v", fh.Name(), err)
@@ -99,8 +101,7 @@ func (e *Exporter) Export(showNum int, yyyymmdd int) error {
 		return errors.Wrapf(err, "can't export #%d", showNum)
 	}
 
-	_, err = fh.WriteString(h)
-	if err != nil {
+	if _, err = fh.WriteString(h); err != nil {
 		return errors.Wrapf(err, "failed to write HTML to file %s", to)
 	}
 

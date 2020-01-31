@@ -76,6 +76,7 @@ func main() {
 		bot.NewAnecdote(httpClient),
 		bot.NewStackOverflow(),
 		bot.NewDuck(opts.MashapeToken, httpClient),
+		bot.NewPodcasts(httpClient, "https://radio-t.com/site-api", 5),
 	}
 
 	term := events.Terminator{

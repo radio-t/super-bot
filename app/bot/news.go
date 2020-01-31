@@ -11,7 +11,7 @@ import (
 
 // News bot, returns 5 last articles in MD from https://news.radio-t.com/api/v1/news/lastmd/5
 type News struct {
-	client  HttpClient
+	client  HTTPClient
 	newsAPI string
 }
 
@@ -22,7 +22,7 @@ type newsArticle struct {
 }
 
 // NewNews makes new News bot
-func NewNews(client HttpClient, api string) *News {
+func NewNews(client HTTPClient, api string) *News {
 	log.Printf("[INFO] news bot with api %s", api)
 	return &News{client: client, newsAPI: api}
 }

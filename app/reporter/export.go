@@ -152,11 +152,11 @@ func (e *Exporter) toHTML(messages []bot.Message, num int) string {
 		log.Fatalf("[ERROR] failed to parse, %v", err)
 	}
 
-	var html bytes.Buffer
-	if err := t.ExecuteTemplate(&html, name, data); err != nil {
+	var h bytes.Buffer
+	if err := t.ExecuteTemplate(&h, name, data); err != nil {
 		log.Fatalf("[ERROR] failed, error %v", err)
 	}
-	return html.String()
+	return h.String()
 }
 
 func (e *Exporter) timestampHuman(t time.Time) string {
@@ -212,7 +212,11 @@ func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("[WARN] can't close %s", file.Name())
+		}
+	}()
 
 	messages := []bot.Message{}
 	var (

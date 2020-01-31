@@ -11,11 +11,11 @@ import (
 // Duck bot, returns from duckduckgo via mashape
 type Duck struct {
 	mashapeKey string
-	client     HttpClient
+	client     HTTPClient
 }
 
 // NewDuck makes a bot for duckduckgo
-func NewDuck(key string, client HttpClient) *Duck {
+func NewDuck(key string, client HTTPClient) *Duck {
 	log.Printf("[INFO] Duck bot with duckduckgo-duckduckgo-zero-click-info.p.mashape.com")
 	return &Duck{mashapeKey: key, client: client}
 }

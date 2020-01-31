@@ -12,11 +12,11 @@ import (
 
 // Anecdote bot, returns from http://rzhunemogu.ru/RandJSON.aspx?CType=1
 type Anecdote struct {
-	client HttpClient
+	client HTTPClient
 }
 
 // NewAnecdote makes a bot for http://rzhunemogu.ru
-func NewAnecdote(client HttpClient) *Anecdote {
+func NewAnecdote(client HTTPClient) *Anecdote {
 	log.Printf("[INFO] anecdote bot with http://rzhunemogu.ru/RandJSON.aspx?CType=1 and http://api.icndb.com/jokes/random")
 	return &Anecdote{client: client}
 }

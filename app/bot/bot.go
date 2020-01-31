@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate mockery -inpkg -name HttpClient -case snake
+//go:generate mockery -inpkg -name HTTPClient -case snake
 //go:generate mockery -inpkg -name Interface -case snake
 //go:generate mockery -inpkg -name SuperUser -case snake
 
@@ -21,8 +21,8 @@ type Interface interface {
 	ReactOn() []string
 }
 
-// HttpClient wrap http.Client to allow mocking
-type HttpClient interface {
+// HTTPClient wrap http.Client to allow mocking
+type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 

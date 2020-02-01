@@ -104,6 +104,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 					m := fmt.Sprintf("%s _тебя слишком много, отдохни..._", mention)
 					tbMsg := tbapi.NewMessage(update.Message.Chat.ID, m)
 					tbMsg.ParseMode = tbapi.ModeMarkdown
+					tbMsg.DisableWebPagePreview = true
 					if res, err := l.botAPI.Send(tbMsg); err != nil {
 						log.Printf("[WARN] failed to send, %v", err)
 					} else {

@@ -39,6 +39,9 @@ func TestPodcasts_OnMessage(t *testing.T) {
 	result, answer := d.OnMessage(Message{Text: "/search something"})
 	require.True(t, answer)
 	assert.Equal(t, "[Радио-Т #123](http://example.com) _31 Jan 20_\n\n- Go 2 начинается - 00:01:31.\n- AWS Transfer for SFTP - 00:19:39.\n- AWS App Mesh - 00:33:39.\n- Amazon DynamoDB On-Demand - 00:46:50.\n- ALB сможет вызвать Lambda - 00:54:45.\n- Слои общего кода в AWS Lambda - 01:15:46.\n- Drone Cloud и бесплатно - 01:21:39.\n- FoundationDB Document Layer совместим с mongo - 01:41:31.\n- Темы наших слушателей\n- Спонсор этого выпуска DigitalOcean\n\n", result)
+
+	_, answer = d.OnMessage(Message{Text: "/search something"})
+	require.True(t, answer)
 }
 
 func TestPodcasts_OnMessageIgnore(t *testing.T) {

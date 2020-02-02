@@ -334,6 +334,11 @@ func TestExporter_format(t *testing.T) {
 			"<strong>text</strong>",
 		},
 		{
+			"- У нас дыра в безопасности\n- Ну хоть что-то у нас в безопасности",
+			nil,
+			"- У нас дыра в безопасности<br>- Ну хоть что-то у нас в безопасности",
+		},
+		{
 			"some text here",
 			&[]bot.Entity{{Type: "italic", Offset: 5, Length: 4}},
 			"some <em>text</em> here",
@@ -341,7 +346,12 @@ func TestExporter_format(t *testing.T) {
 		{
 			"@chuhlomin тебя слишком много, отдохни...",
 			&[]bot.Entity{{Type: "mention", Offset: 0, Length: 10}, {Type: "italic", Offset: 11, Length: 30}},
-			"<a href=\"https://t.me/chuhlomin\">@chuhlomin</a> <em>тебя слишком много, отдохни...</em>",
+			"<a class=\"mention\" href=\"https://t.me/chuhlomin\">@chuhlomin</a> <em>тебя слишком много, отдохни...</em>",
+		},
+		{
+			"Меня url заинтересовал... do.co",
+			&[]bot.Entity{{Type: "url", Offset: 26, Length: 5}},
+			"Меня url заинтересовал... <a href=\"https://do.co\">do.co</a>",
 		},
 		{
 			"inline",

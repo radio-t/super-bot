@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	log "github.com/go-pkgz/lgr"
@@ -92,6 +93,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 	}
 
 	resps := make(chan string)
+	var pin int32 = 0
 
 	wg := syncs.NewSizedGroup(4)
 	for _, bot := range b {
@@ -99,6 +101,9 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		wg.Go(func(ctx context.Context) {
 			if resp := bot.OnMessage(msg); resp.Send {
 				resps <- resp.Text
+				if resp.Pin {
+					atomic.AddInt32(&pin, 1)
+				}
 			}
 		})
 	}
@@ -118,7 +123,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 	return Response{
 		Text: strings.Join(lines, "\n"),
 		Send: len(lines) > 0,
-		Pin:  false,
+		Pin:  atomic.LoadInt32(&pin) != 0,
 	}
 }
 

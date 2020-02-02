@@ -45,16 +45,17 @@ func (b *BroadcastStatus) OnMessage(_ Message) (response Response) {
 	b.statusMx.Lock()
 	defer b.statusMx.Unlock()
 
+	response.Pin = false
 	if b.lastSentStatus != b.status {
 		response.Send = true
 		if b.status {
 			response.Text = MsgBroadcastStarted
+			response.Pin = true
 		} else {
 			response.Text = MsgBroadcastFinished
 		}
 		b.lastSentStatus = b.status
 	}
-	response.Pin = false
 	return
 }
 

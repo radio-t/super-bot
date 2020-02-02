@@ -55,6 +55,7 @@ func TestBroadcast_StatusTransitions(t *testing.T) {
 	resp = b.OnMessage(Message{})
 	require.True(t, resp.Send)
 	require.Equal(t, MsgBroadcastStarted, resp.Text)
+	require.True(t, resp.Pin)
 	require.True(t, b.getStatus())
 
 	// off

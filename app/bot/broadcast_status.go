@@ -41,19 +41,20 @@ func NewBroadcastStatus(ctx context.Context, params BroadcastParams) *BroadcastS
 }
 
 // OnMessage returns current broadcast status if it was changed
-func (b *BroadcastStatus) OnMessage(_ Message) (response string, answer bool) {
+func (b *BroadcastStatus) OnMessage(_ Message) (response Response) {
 	b.statusMx.Lock()
 	defer b.statusMx.Unlock()
 
 	if b.lastSentStatus != b.status {
-		answer = true
+		response.Send = true
 		if b.status {
-			response = MsgBroadcastStarted
+			response.Text = MsgBroadcastStarted
 		} else {
-			response = MsgBroadcastFinished
+			response.Text = MsgBroadcastFinished
 		}
 		b.lastSentStatus = b.status
 	}
+	response.Pin = false
 	return
 }
 

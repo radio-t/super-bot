@@ -10,24 +10,17 @@ type MockInterface struct {
 }
 
 // OnMessage provides a mock function with given fields: msg
-func (_m *MockInterface) OnMessage(msg Message) (string, bool) {
+func (_m *MockInterface) OnMessage(msg Message) Response {
 	ret := _m.Called(msg)
 
-	var r0 string
-	if rf, ok := ret.Get(0).(func(Message) string); ok {
+	var r0 Response
+	if rf, ok := ret.Get(0).(func(Message) Response); ok {
 		r0 = rf(msg)
 	} else {
-		r0 = ret.Get(0).(string)
+		r0 = ret.Get(0).(Response)
 	}
 
-	var r1 bool
-	if rf, ok := ret.Get(1).(func(Message) bool); ok {
-		r1 = rf(msg)
-	} else {
-		r1 = ret.Get(1).(bool)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // ReactOn provides a mock function with given fields:

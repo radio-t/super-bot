@@ -21,9 +21,9 @@ func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
 		Body: ioutil.NopCloser(strings.NewReader("joke")),
 	}, nil)
 
-	response, answer := b.OnMessage(Message{Text: "joke!"})
-	require.True(t, answer)
-	require.Equal(t, "joke", response)
+	response := b.OnMessage(Message{Text: "joke!"})
+	require.True(t, response.Send)
+	require.Equal(t, "joke", response.Text)
 }
 
 func TestAnecdot_ReactsOnJokeRequestAlt(t *testing.T) {
@@ -34,9 +34,9 @@ func TestAnecdot_ReactsOnJokeRequestAlt(t *testing.T) {
 		Body: ioutil.NopCloser(strings.NewReader("joke")),
 	}, nil)
 
-	response, answer := b.OnMessage(Message{Text: "/joke"})
-	require.True(t, answer)
-	require.Equal(t, "joke", response)
+	response := b.OnMessage(Message{Text: "/joke"})
+	require.True(t, response.Send)
+	require.Equal(t, "joke", response.Text)
 }
 
 func TestAnecdot_RshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
@@ -45,18 +45,18 @@ func TestAnecdot_RshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
 
 	mockHttp.On("Do", mock.Anything).Return(nil, errors.New("err"))
 
-	response, answer := b.rzhunemogu()
-	require.False(t, answer)
-	require.Empty(t, response)
+	response := b.rzhunemogu()
+	require.False(t, response.Send)
+	require.Empty(t, response.Text)
 }
 
 func TestAnecdotReactsOnUnexpectedMessage(t *testing.T) {
 	mockHttp := &MockHTTPClient{}
 	b := NewAnecdote(mockHttp)
 
-	result, answer := b.OnMessage(Message{Text: "unexpected msg"})
-	require.False(t, answer)
-	assert.Empty(t, result)
+	result := b.OnMessage(Message{Text: "unexpected msg"})
+	require.False(t, result.Send)
+	assert.Empty(t, result.Text)
 }
 
 func TestAnecdotReactsOnBadChuckMessage(t *testing.T) {
@@ -67,9 +67,9 @@ func TestAnecdotReactsOnBadChuckMessage(t *testing.T) {
 		Body: ioutil.NopCloser(bytes.NewReader([]byte(`not a json`))),
 	}, nil)
 
-	result, answer := b.OnMessage(Message{Text: "chuck!"})
-	require.False(t, answer)
-	assert.Empty(t, result)
+	result := b.OnMessage(Message{Text: "chuck!"})
+	require.False(t, result.Send)
+	assert.Empty(t, result.Text)
 }
 
 func TestAnecdotReactsOnChuckMessageUnableToDoReq(t *testing.T) {
@@ -78,9 +78,9 @@ func TestAnecdotReactsOnChuckMessageUnableToDoReq(t *testing.T) {
 
 	mockHttp.On("Do", mock.Anything).Return(nil, errors.New("err"))
 
-	result, answer := b.OnMessage(Message{Text: "chuck!"})
-	require.False(t, answer)
-	assert.Empty(t, result)
+	result := b.OnMessage(Message{Text: "chuck!"})
+	require.False(t, result.Send)
+	assert.Empty(t, result.Text)
 }
 
 func TestAnecdotReactsOnChuckMessage(t *testing.T) {
@@ -91,7 +91,7 @@ func TestAnecdotReactsOnChuckMessage(t *testing.T) {
 		Body: ioutil.NopCloser(bytes.NewReader([]byte(`{"Value" : {"Joke" : "&quot;joke&quot;"}}`))),
 	}, nil)
 
-	result, answer := b.OnMessage(Message{Text: "chuck!"})
-	require.True(t, answer)
-	assert.Equal(t, "- \"joke\"", result)
+	result := b.OnMessage(Message{Text: "chuck!"})
+	require.True(t, result.Send)
+	assert.Equal(t, "- \"joke\"", result.Text)
 }

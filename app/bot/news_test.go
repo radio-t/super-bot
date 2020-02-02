@@ -26,9 +26,9 @@ func TestNewsBot_ReactionOnNewsRequest(t *testing.T) {
 		Body: ioutil.NopCloser(bytes.NewReader(articleJson)),
 	}, nil)
 
-	response, answer := b.OnMessage(Message{Text: "news!"})
-	require.True(t, answer)
-	require.Equal(t, "- [title](link) 0001-01-01\n- [все новости и темы](https://news.radio-t.com)", response)
+	response := b.OnMessage(Message{Text: "news!"})
+	require.True(t, response.Send)
+	require.Equal(t, "- [title](link) 0001-01-01\n- [все новости и темы](https://news.radio-t.com)", response.Text)
 }
 
 func TestNewsBot_ReactionOnNewsRequestAlt(t *testing.T) {
@@ -46,16 +46,16 @@ func TestNewsBot_ReactionOnNewsRequestAlt(t *testing.T) {
 		Body: ioutil.NopCloser(bytes.NewReader(articleJson)),
 	}, nil)
 
-	response, answer := b.OnMessage(Message{Text: "/news"})
-	require.True(t, answer)
-	require.Equal(t, "- [title](link) 0001-01-01\n- [все новости и темы](https://news.radio-t.com)", response)
+	response := b.OnMessage(Message{Text: "/news"})
+	require.True(t, response.Send)
+	require.Equal(t, "- [title](link) 0001-01-01\n- [все новости и темы](https://news.radio-t.com)", response.Text)
 }
 
 func TestNewsBot_ReactionOnUnexpectedMessage(t *testing.T) {
 	mockHttp := &MockHTTPClient{}
 	b := NewNews(mockHttp, "")
 
-	response, answer := b.OnMessage(Message{Text: "unexpected"})
-	require.False(t, answer)
-	require.Empty(t, response)
+	response := b.OnMessage(Message{Text: "unexpected"})
+	require.False(t, response.Send)
+	require.Empty(t, response.Text)
 }

@@ -20,9 +20,9 @@ func TestDuck_OnMessage(t *testing.T) {
 		Body: ioutil.NopCloser(bytes.NewReader([]byte(`{"AbstractText":"the answer", "AbstractSource":"test", "AbstractURL":"http://example.com"}`))),
 	}, nil)
 
-	result, answer := d.OnMessage(Message{Text: "?? search"})
-	require.True(t, answer)
-	assert.Equal(t, "- the answer\n[test](http://example.com)", result)
+	result := d.OnMessage(Message{Text: "?? search"})
+	require.True(t, result.Send)
+	assert.Equal(t, "- the answer\n[test](http://example.com)", result.Text)
 }
 
 func TestDuck_request(t *testing.T) {

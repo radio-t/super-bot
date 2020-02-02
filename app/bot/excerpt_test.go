@@ -55,10 +55,10 @@ func TestExcerpt(t *testing.T) {
 
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			r, ok := ex.OnMessage(Message{Text: tt.link})
-			require.Equal(t, tt.fail, !ok)
+			r := ex.OnMessage(Message{Text: tt.link})
+			require.Equal(t, tt.fail, !r.Send)
 			if !tt.fail {
-				assert.Equal(t, tt.excerpt, r)
+				assert.Equal(t, tt.excerpt, r.Text)
 			}
 		})
 	}

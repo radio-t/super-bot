@@ -31,10 +31,10 @@ func NewStackOverflow() *StackOverflow {
 }
 
 // OnMessage returns one entry
-func (s StackOverflow) OnMessage(msg Message) (response string, answer bool) {
+func (s StackOverflow) OnMessage(msg Message) (response Response) {
 
 	if !contains(s.ReactOn(), msg.Text) {
-		return "", false
+		return Response{Text: "", Send: false, Pin: false}
 	}
 
 	reqURL := "https://api.stackexchange.com/2.2/questions?order=desc&sort=activity&site=stackoverflow"
@@ -43,12 +43,12 @@ func (s StackOverflow) OnMessage(msg Message) (response string, answer bool) {
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
 		log.Printf("[WARN] failed to prep request %s, error=%v", reqURL, err)
-		return "", false
+		return Response{Text: "", Send: false, Pin: false}
 	}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
-		return "", false
+		return Response{Text: "", Send: false, Pin: false}
 	}
 	defer resp.Body.Close()
 
@@ -56,14 +56,18 @@ func (s StackOverflow) OnMessage(msg Message) (response string, answer bool) {
 
 	if err := json.NewDecoder(resp.Body).Decode(&soRecs); err != nil {
 		log.Printf("[WARN] failed to parse response, error %v", err)
-		return "", false
+		return Response{Text: "", Send: false, Pin: false}
 	}
 	if len(soRecs.Items) == 0 {
-		return "", false
+		return Response{Text: "", Send: false, Pin: false}
 	}
 
 	r := soRecs.Items[rand.Intn(len(soRecs.Items))]
-	return fmt.Sprintf("[%s](%s) %s", r.Title, r.Link, strings.Join(r.Tags, ",")), true
+	return Response{
+		Text: fmt.Sprintf("[%s](%s) %s", r.Title, r.Link, strings.Join(r.Tags, ",")),
+		Send: true,
+		Pin:  false,
+	}
 }
 
 // ReactOn keys

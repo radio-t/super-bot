@@ -305,6 +305,10 @@ func format(text string, entities *[]bot.Entity) template.HTML {
 			runes[entity.Offset:entity.Offset+entity.Length],
 		)
 
+		if before == "" && after == "" {
+			continue
+		}
+
 		result += html.EscapeString(string(runes[pos:entity.Offset])) +
 			before +
 			html.EscapeString(string(runes[entity.Offset:entity.Offset+entity.Length])) +

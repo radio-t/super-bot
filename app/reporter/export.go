@@ -353,10 +353,11 @@ func getDecoration(entity bot.Entity, body []rune) (string, string) {
 		u, err := url.Parse(urlRaw)
 		if err != nil {
 			log.Printf("[ERROR] failed parse URL %s", urlRaw)
-		}
-		if u.Scheme == "" {
-			u.Scheme = "https"
-			urlRaw = u.String()
+		} else {
+			if u.Scheme == "" {
+				u.Scheme = "https"
+				urlRaw = u.String()
+			}
 		}
 
 		return fmt.Sprintf("<a href=\"%s\">", urlRaw), "</a>"

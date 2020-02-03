@@ -44,11 +44,11 @@ func TestBroadcast_StatusTransitions(t *testing.T) {
 
 	// Test reacts on first message
 	resp := b.OnMessage(Message{})
-	require.Equal(t, false, resp.Send)
+	require.False(t, resp.Send)
 
 	// Test do not react on second message because status not changed
 	resp = b.OnMessage(Message{})
-	require.Equal(t, false, resp.Send)
+	require.False(t, resp.Send)
 
 	// Wait for off->on
 	time.Sleep(20 * time.Millisecond)

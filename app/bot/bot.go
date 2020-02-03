@@ -122,7 +122,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 	return Response{
 		Text: strings.Join(lines, "\n"),
 		Send: len(lines) > 0,
-		Pin:  atomic.LoadInt32(&pin) != 0,
+		Pin:  atomic.LoadInt32(&pin) > 0,
 	}
 }
 

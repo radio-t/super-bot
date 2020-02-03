@@ -25,7 +25,7 @@ func NewAnecdote(client HTTPClient) *Anecdote {
 func (a Anecdote) OnMessage(msg Message) (response Response) {
 
 	if !contains(a.ReactOn(), msg.Text) {
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 
 	if contains([]string{"chuck!", "/chuck"}, msg.Text) {
@@ -41,18 +41,18 @@ func (a Anecdote) rzhunemogu() (response Response) {
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
 		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 	resp, err := a.client.Do(req)
 	if err != nil {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("[WARN] failed to read body, error=%v", err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 
 	text := string(body)
@@ -64,10 +64,10 @@ func (a Anecdote) rzhunemogu() (response Response) {
 	buf, err := ioutil.ReadAll(tr)
 	if err != nil {
 		log.Printf("[WARN] failed to convert string to utf, error=%v", err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 
-	return Response{Text: string(buf), Send: true, Pin: false}
+	return Response{Text: string(buf), Send: true}
 }
 
 func (a Anecdote) chuck() (response Response) {
@@ -84,23 +84,22 @@ func (a Anecdote) chuck() (response Response) {
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
 		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 	resp, err := a.client.Do(req)
 	if err != nil {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 	defer resp.Body.Close()
 
 	if err = json.NewDecoder(resp.Body).Decode(&chuckResp); err != nil {
 		log.Printf("[WARN] failed to convert from json, error=%v", err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 	return Response{
 		Text: "- " + strings.Replace(chuckResp.Value.Joke, "&quot;", "\"", -1),
 		Send: true,
-		Pin:  false,
 	}
 }
 

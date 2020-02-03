@@ -30,7 +30,7 @@ func NewSys(dataLocation string) *Sys {
 func (p Sys) OnMessage(msg Message) (response Response) {
 
 	if !contains(p.ReactOn(), msg.Text) {
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 
 	if msg.Text == "say!" || msg.Text == "/say" {
@@ -38,17 +38,16 @@ func (p Sys) OnMessage(msg Message) (response Response) {
 			return Response{
 				Text: fmt.Sprintf("_%s_", p.say[rand.Intn(len(p.say))]),
 				Send: true,
-				Pin:  false,
 			}
 		}
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 
 	if val, found := p.basic[strings.ToLower(msg.Text)]; found {
-		return Response{Text: val, Send: true, Pin: false}
+		return Response{Text: val, Send: true}
 	}
 
-	return Response{Text: "", Send: false, Pin: false}
+	return Response{}
 }
 
 func (p *Sys) loadBasicData() {

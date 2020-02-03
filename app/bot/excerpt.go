@@ -35,7 +35,7 @@ func (e *Excerpt) OnMessage(msg Message) (response Response) {
 
 	link, err := e.link(msg.Text)
 	if err != nil {
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 
 	client := http.Client{Timeout: 5 * time.Second}
@@ -43,13 +43,13 @@ func (e *Excerpt) OnMessage(msg Message) (response Response) {
 	resp, err := client.Get(url)
 	if err != nil {
 		log.Printf("[WARN] can't send request to parse article to %s, %v", url, err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		log.Printf("[WARN] parser error code %d for %v", resp.StatusCode, url)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 
 	r := struct {
@@ -60,7 +60,7 @@ func (e *Excerpt) OnMessage(msg Message) (response Response) {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("[WARN] can't read response for %s, %v", url, err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 
 	if err := json.Unmarshal(body, &r); err != nil {
@@ -70,7 +70,6 @@ func (e *Excerpt) OnMessage(msg Message) (response Response) {
 	return Response{
 		Text: fmt.Sprintf("%s\n\n_%s_", r.Excerpt, r.Title),
 		Send: true,
-		Pin:  false,
 	}
 }
 

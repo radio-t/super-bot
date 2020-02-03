@@ -26,14 +26,12 @@ func TestMultiBotCombinesAllBotResponses(t *testing.T) {
 	b1.On("OnMessage", msg).Return(Response{
 		Text: "b1 resp",
 		Send: true,
-		Pin:  false,
 	})
 	b2 := &MockInterface{}
 	b2.On("ReactOn").Return([]string{"cmd"})
 	b2.On("OnMessage", msg).Return(Response{
 		Text: "b2 resp",
 		Send: true,
-		Pin:  false,
 	})
 
 	mb := MultiBot{b1, b2}

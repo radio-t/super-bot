@@ -42,7 +42,6 @@ func (v *Votes) OnMessage(msg Message) (response Response) {
 			Text: fmt.Sprintf("голосование завершено - _%s_\n- *за: %d%% (%d)*\n- *против: %d%% (%d) *",
 				v.topic, positivePerc, positiveNum, negativePerc, negativeNum),
 			Send: true,
-			Pin:  false,
 		}
 	case (msg.Text == "+1" || strings.Contains(msg.Text, ":+1:")) && v.started:
 		if _, found := v.votes[msg.From.Username]; !found {
@@ -55,7 +54,7 @@ func (v *Votes) OnMessage(msg Message) (response Response) {
 			log.Printf("[DEBUG] vote +1 from %s", msg.From.DisplayName)
 		}
 	}
-	return Response{Text: "", Send: false, Pin: false}
+	return Response{}
 }
 
 // ReactOn keys

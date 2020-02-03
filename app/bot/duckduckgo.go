@@ -25,7 +25,7 @@ func (d *Duck) OnMessage(msg Message) (response Response) {
 
 	ok, reqText := d.request(msg.Text)
 	if !ok {
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 
 	reqURL := fmt.Sprintf("https://duckduckgo-duckduckgo-zero-click-info.p.mashape.com/?format=json&no_html=1&no_redirect=1&q=%s&skip_disambig=1", reqText)
@@ -33,13 +33,13 @@ func (d *Duck) OnMessage(msg Message) (response Response) {
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
 		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 	req.Header.Set("X-Mashape-Key", d.mashapeKey)
 	resp, err := d.client.Do(req)
 	if err != nil {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -51,7 +51,7 @@ func (d *Duck) OnMessage(msg Message) (response Response) {
 	}{}
 	if err = json.NewDecoder(resp.Body).Decode(&duckResp); err != nil {
 		log.Printf("[WARN] failed to convert from json, error=%v", err)
-		return Response{Text: "", Send: false, Pin: false}
+		return Response{}
 	}
 
 	mdLink := func(inp string) string {
@@ -64,7 +64,6 @@ func (d *Duck) OnMessage(msg Message) (response Response) {
 		return Response{
 			Text: fmt.Sprintf("_не в силах. но могу помочь_ [это поискать](https://duckduckgo.com/?q=%s)", mdLink(reqText)),
 			Send: true,
-			Pin:  false,
 		}
 	}
 
@@ -72,7 +71,6 @@ func (d *Duck) OnMessage(msg Message) (response Response) {
 	return Response{
 		Text: respMD,
 		Send: true,
-		Pin:  false,
 	}
 }
 

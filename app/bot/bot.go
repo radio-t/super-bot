@@ -88,7 +88,6 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		return Response{
 			Text: "_" + strings.Join(b.ReactOn(), " ") + "_",
 			Send: true,
-			Pin:  false,
 		}
 	}
 

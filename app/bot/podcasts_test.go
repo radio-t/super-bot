@@ -15,7 +15,7 @@ func TestPodcasts_OnMessage(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/search" {
-			assert.Equal(t, "limit=5&q=something", r.URL.RawQuery)
+			assert.Equal(t, "limit=5&q=Lambda", r.URL.RawQuery)
 			sr := []siteAPIResp{
 				{
 					URL:       "http://example.com",
@@ -36,12 +36,12 @@ func TestPodcasts_OnMessage(t *testing.T) {
 	client := http.Client{Timeout: time.Second}
 	d := NewPodcasts(&client, ts.URL, 5)
 
-	result, answer := d.OnMessage(Message{Text: "/search something"})
+	result, answer := d.OnMessage(Message{Text: "/search Lambda"})
 	require.True(t, answer)
-	assert.Equal(t, "[Радио-Т #123](http://example.com) _31 Jan 20_\n\n- Go 2 начинается - 00:01:31.\n- AWS Transfer for SFTP - 00:19:39.\n- AWS App Mesh - 00:33:39.\n- Amazon DynamoDB On-Demand - 00:46:50.\n- ALB сможет вызвать Lambda - 00:54:45.\n- Слои общего кода в AWS Lambda - 01:15:46.\n- Drone Cloud и бесплатно - 01:21:39.\n- FoundationDB Document Layer совместим с mongo - 01:41:31.\n- Темы наших слушателей\n- Спонсор этого выпуска DigitalOcean\n\n", result)
+	assert.Equal(t, "[Радио-Т #123](http://example.com) _31 Jan 20_\n- ALB сможет вызвать Lambda - 00:54:45.\n- Слои общего кода в AWS Lambda - 01:15:46.\n\n", result)
 
-	_, answer = d.OnMessage(Message{Text: "/search something"})
-	require.True(t, answer)
+	_, answer = d.OnMessage(Message{Text: "/search Lambda"})
+	require.True(t, answer, "second call ok too")
 }
 
 func TestPodcasts_OnMessageIgnore(t *testing.T) {

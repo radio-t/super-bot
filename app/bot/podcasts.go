@@ -76,9 +76,12 @@ func (p *Podcasts) makeBotResponse(sr []siteAPIResp, reqText string) string {
 	}
 	var res string
 	for _, s := range sr {
-		res += fmt.Sprintf("[Радио-Т #%d](%s) _%s_\n\n", s.ShowNum, s.URL, s.Date.Format("02 Jan 06"))
+		res += fmt.Sprintf("[Радио-Т #%d](%s) _%s_\n", s.ShowNum, s.URL, s.Date.Format("02 Jan 06"))
 		for _, s := range strings.Split(s.ShowNotes, "\n") {
 			if len(s) < 2 || strings.Contains(s, " лог чата") {
+				continue
+			}
+			if !strings.Contains(s, reqText) {
 				continue
 			}
 			res += fmt.Sprintf("- %s\n", s)

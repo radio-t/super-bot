@@ -38,7 +38,7 @@ func TestPodcasts_OnMessage(t *testing.T) {
 
 	result, answer := d.OnMessage(Message{Text: "/search Lambda"})
 	require.True(t, answer)
-	assert.Equal(t, "[Радио-Т #123](http://example.com) _31 Jan 20_\n- ALB сможет вызвать Lambda - 00:54:45.\n- Слои общего кода в AWS Lambda - 01:15:46.\n\n", result)
+	assert.Equal(t, "[Радио-Т #123](http://example.com) _31 Jan 20_\n✳️ ALB сможет вызвать Lambda - 00:54:45.\n✳️ Слои общего кода в AWS Lambda - 01:15:46.\n\n", result)
 
 	_, answer = d.OnMessage(Message{Text: "/search Lambda"})
 	require.True(t, answer, "second call ok too")
@@ -71,7 +71,7 @@ func TestPodcasts_OnMessageWithLinks(t *testing.T) {
 
 	result, answer := d.OnMessage(Message{Text: "/search mongo"})
 	require.True(t, answer)
-	assert.Equal(t, "[Радио-Т #123](http://example.com) _31 Jan 20_\n- [Mongo в облаке — чем это хорошо.](https://www.mongodb.com/cloud)\n- [xxxx в облаке — чем это хорошо](https://www.mongodb.com/cloud) 🔅\n\n", result)
+	assert.Equal(t, "[Радио-Т #123](http://example.com) _31 Jan 20_\n✳️ [Mongo в облаке — чем это хорошо.](https://www.mongodb.com/cloud)\n✴️ [xxxx в облаке — чем это хорошо](https://www.mongodb.com/cloud)\n\n", result)
 }
 
 func TestPodcasts_OnMessageIgnore(t *testing.T) {

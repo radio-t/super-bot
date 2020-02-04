@@ -76,9 +76,9 @@ func (p *Podcasts) makeBotResponse(sr []siteAPIResp, reqText string) string {
 
 	makeRepLine := func(nl noteWithLink) string {
 		if nl.link != "" {
-			return fmt.Sprintf("- [%s](%s)", nl.text, nl.link)
+			return fmt.Sprintf("[%s](%s)", nl.text, nl.link)
 		}
-		return fmt.Sprintf("- %s", nl.text)
+		return nl.text
 	}
 
 	if len(sr) == 0 {
@@ -92,12 +92,12 @@ func (p *Podcasts) makeBotResponse(sr []siteAPIResp, reqText string) string {
 		for _, nl := range nls {
 
 			if strings.Contains(strings.ToLower(nl.text), strings.ToLower(reqText)) {
-				res += makeRepLine(nl) + "\n"
+				res += "✳️ " + makeRepLine(nl) + "\n"
 				continue
 			}
 
 			if strings.Contains(strings.ToLower(nl.link), strings.ToLower(reqText)) {
-				res += makeRepLine(nl) + " 🔅\n"
+				res += "✴️ " + makeRepLine(nl) + "\n"
 				continue
 			}
 		}

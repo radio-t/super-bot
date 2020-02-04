@@ -99,17 +99,16 @@ func (p *Podcasts) makeBotResponse(sr []siteAPIResp, reqText string) string {
 		for _, nl := range nls {
 
 			if strings.Contains(strings.ToLower(nl.text), strings.ToLower(reqText)) {
-				res += "✳️ " + makeRepLine(nl) + "\n"
+				res += "● " + makeRepLine(nl) + "\n"
 				continue
 			}
 
 			if strings.Contains(strings.ToLower(nl.link), strings.ToLower(reqText)) {
-				res += "✴️ " + makeRepLine(nl) + "\n"
+				res += "○ " + makeRepLine(nl) + "\n"
 				continue
 			}
 		}
 		res += "\n"
-
 	}
 	return res
 }

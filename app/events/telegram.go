@@ -122,6 +122,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				log.Printf("[DEBUG] bot response - %+v", resp)
 				tbMsg := tbapi.NewMessage(update.Message.Chat.ID, resp)
 				tbMsg.ParseMode = tbapi.ModeMarkdown
+				tbMsg.DisableWebPagePreview = true
 				if res, err := l.botAPI.Send(tbMsg); err != nil {
 					log.Printf("[WARN] can't send tbMsg to telegram, %v", err)
 				} else {

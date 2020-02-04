@@ -81,7 +81,7 @@ func (p *Podcasts) makeBotResponse(sr []siteAPIResp, reqText string) string {
 			if len(s) < 2 || strings.Contains(s, " лог чата") {
 				continue
 			}
-			if !strings.Contains(s, reqText) {
+			if !strings.Contains(strings.ToLower(s), strings.ToLower(reqText)) {
 				continue
 			}
 			res += fmt.Sprintf("- %s\n", s)

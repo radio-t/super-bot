@@ -40,6 +40,13 @@ func NewPodcasts(client HTTPClient, api string, maxResults int) *Podcasts {
 // OnMessage returns result of search via https://radio-t.com/site-api/search?
 func (p *Podcasts) OnMessage(msg Message) (response string, answer bool) {
 
+	defer func() { // to catch possible panics from potentially dangerous makeBotResponse
+		if r := recover(); r != nil {
+			response = ""
+			answer = false
+		}
+	}()
+
 	ok, reqText := p.request(msg.Text)
 	if !ok {
 		return "", false

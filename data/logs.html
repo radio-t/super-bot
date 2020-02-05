@@ -106,7 +106,15 @@
                         value: 0,
                         classname: 'link',
                         style: '.table tr { display: none; } .table tr.link { display: table-row; }',
-                        detect: function(row) { return row.getElementsByTagName('a').length > 0; }
+                        detect: function(row) {
+                            let links = row.getElementsByTagName('a');
+                            for (let i = 0; i < links.length; i++) {
+                                if (!links[i].classList.contains("mention")) {
+                                    return true
+                                }
+                            }
+                            return false;
+                        }
                     },
                     bot: {
                         value: 0,

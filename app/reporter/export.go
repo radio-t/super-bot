@@ -8,6 +8,7 @@ import (
 	"html"
 	"html/template"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -292,7 +293,7 @@ func filter(msg bot.Message) bool {
 
 func format(text string, entities *[]bot.Entity) template.HTML {
 	if entities == nil {
-		return template.HTML(html.EscapeString(text)) // nolint
+		return template.HTML(strings.ReplaceAll(html.EscapeString(text), "\n", "<br>")) // nolint
 	}
 
 	runes := []rune(text)
@@ -304,6 +305,10 @@ func format(text string, entities *[]bot.Entity) template.HTML {
 			entity,
 			runes[entity.Offset:entity.Offset+entity.Length],
 		)
+
+		if before == "" && after == "" {
+			continue
+		}
 
 		result += html.EscapeString(string(runes[pos:entity.Offset])) +
 			before +
@@ -342,10 +347,23 @@ func getDecoration(entity bot.Entity, body []rune) (string, string) {
 		return fmt.Sprintf("<a href=\"%s\">", entity.URL), "</a>"
 
 	case "url":
-		return fmt.Sprintf("<a href=\"%s\">", string(body)), "</a>"
+		urlRaw := string(body)
+
+		// fix links without scheme so they will be non-relative in browser
+		u, err := url.Parse(urlRaw)
+		if err != nil {
+			log.Printf("[ERROR] failed parse URL %s", urlRaw)
+		} else {
+			if u.Scheme == "" {
+				u.Scheme = "https"
+				urlRaw = u.String()
+			}
+		}
+
+		return fmt.Sprintf("<a href=\"%s\">", urlRaw), "</a>"
 
 	case "mention":
-		return fmt.Sprintf("<a href=\"https://t.me/%s\">", string(body[1:])), "</a>"
+		return fmt.Sprintf("<a class=\"mention\" href=\"https://t.me/%s\">", string(body[1:])), "</a>"
 		// body[1:] because first symbol in mention is "@" it's not needed for link
 
 	case "email":

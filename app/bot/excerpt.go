@@ -30,6 +30,10 @@ func NewExcerpt(api string, token string) *Excerpt {
 	return &Excerpt{api: api, token: token}
 }
 
+func (e *Excerpt) Help() string {
+	return ""
+}
+
 // OnMessage pass msg to all bots and collects responses
 func (e *Excerpt) OnMessage(msg Message) (response Response) {
 

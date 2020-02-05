@@ -9,13 +9,14 @@ import (
 
 func TestMultiBotReactsOnHelp(t *testing.T) {
 	b := &MockInterface{}
-	b.On("ReactOn").Return([]string{"cmd1", "cmd2"})
+	b.On("ReactOn").Return([]string{"help"})
+	b.On("Help").Return("help")
 
 	mb := MultiBot{b}
 	resp := mb.OnMessage(Message{Text: "help"})
 
 	require.True(t, resp.Send)
-	require.Equal(t, "_cmd1 cmd2_", resp.Text)
+	require.Equal(t, "help\n\n", resp.Text)
 }
 
 func TestMultiBotCombinesAllBotResponses(t *testing.T) {

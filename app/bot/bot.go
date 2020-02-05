@@ -84,7 +84,10 @@ type MultiBot []Interface
 func (b MultiBot) Help() string {
 	sb := strings.Builder{}
 	for _, child := range b {
-		sb.WriteString(child.Help() + "\n\n")
+		help := child.Help()
+		if help != "" {
+			sb.WriteString(help + "\n\n")
+		}
 	}
 	return sb.String()
 }

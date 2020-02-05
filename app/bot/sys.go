@@ -26,6 +26,7 @@ func NewSys(dataLocation string) *Sys {
 	return &res
 }
 
+// Help returns help message
 func (p Sys) Help() string {
 	return ""
 }

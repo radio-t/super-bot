@@ -30,6 +30,7 @@ func NewExcerpt(api string, token string) *Excerpt {
 	return &Excerpt{api: api, token: token}
 }
 
+// Help returns help message
 func (e *Excerpt) Help() string {
 	return ""
 }

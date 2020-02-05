@@ -27,6 +27,7 @@ func NewNews(client HTTPClient, api string) *News {
 	return &News{client: client, newsAPI: api}
 }
 
+// Help returns help message
 func (n News) Help() string {
 	return "*" + strings.Join(n.ReactOn(), "*, *") + "*\nпокажет 5 последних новостей"
 }

@@ -37,6 +37,7 @@ func NewPodcasts(client HTTPClient, api string, maxResults int) *Podcasts {
 	return &Podcasts{client: client, siteAPI: api, maxResults: maxResults}
 }
 
+// Help returns help message
 func (p *Podcasts) Help() string {
 	return "*" + strings.Join(p.ReactOn(), "*, *") + "*\nпоищет в шоунотах"
 }

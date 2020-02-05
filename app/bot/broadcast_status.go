@@ -40,6 +40,7 @@ func NewBroadcastStatus(ctx context.Context, params BroadcastParams) *BroadcastS
 	return b
 }
 
+// Help returns help message
 func (b *BroadcastStatus) Help() string {
 	return ""
 }

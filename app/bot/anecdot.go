@@ -21,6 +21,7 @@ func NewAnecdote(client HTTPClient) *Anecdote {
 	return &Anecdote{client: client}
 }
 
+// Help returns help message
 func (a Anecdote) Help() string {
 	return "*" + strings.Join(a.ReactOn(), "*, *") + "*\nрасскажет анекдот или шутку"
 }

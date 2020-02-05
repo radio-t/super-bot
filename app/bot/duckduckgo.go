@@ -20,6 +20,7 @@ func NewDuck(key string, client HTTPClient) *Duck {
 	return &Duck{mashapeKey: key, client: client}
 }
 
+// Help returns help message
 func (d *Duck) Help() string {
 	return "*" + strings.Join(d.ReactOn(), "*, *") + "*\nпоищет в duckduckgo"
 }

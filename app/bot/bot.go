@@ -81,6 +81,7 @@ type User struct {
 // MultiBot combines many bots to one virtual
 type MultiBot []Interface
 
+// Help returns help message
 func (b MultiBot) Help() string {
 	sb := strings.Builder{}
 	for _, child := range b {

@@ -30,6 +30,10 @@ func NewStackOverflow() *StackOverflow {
 	return &StackOverflow{}
 }
 
+func (s StackOverflow) Help() string {
+	return "*" + strings.Join(s.ReactOn(), "*, *") + "*\nпоищет на stackoverflow"
+}
+
 // OnMessage returns one entry
 func (s StackOverflow) OnMessage(msg Message) (response Response) {
 

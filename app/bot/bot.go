@@ -20,6 +20,7 @@ import (
 type Interface interface {
 	OnMessage(msg Message) (response Response)
 	ReactOn() []string
+	Help() string
 }
 
 // Response describes bot's answer on particular message
@@ -80,13 +81,20 @@ type User struct {
 // MultiBot combines many bots to one virtual
 type MultiBot []Interface
 
+func (b MultiBot) Help() string {
+	sb := strings.Builder{}
+	for _, child := range b {
+		sb.WriteString(child.Help() + "\n\n")
+	}
+	return sb.String()
+}
+
 // OnMessage pass msg to all bots and collects reposnses (combining all of them)
 //noinspection GoShadowedVar
 func (b MultiBot) OnMessage(msg Message) (response Response) {
-
 	if contains([]string{"help", "/help", "help!"}, msg.Text) {
 		return Response{
-			Text: "_" + strings.Join(b.ReactOn(), " ") + "_",
+			Text: b.Help(),
 			Send: true,
 		}
 	}

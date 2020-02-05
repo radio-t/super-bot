@@ -27,6 +27,10 @@ func NewNews(client HTTPClient, api string) *News {
 	return &News{client: client, newsAPI: api}
 }
 
+func (n News) Help() string {
+	return "*" + strings.Join(n.ReactOn(), "*, *") + "*\nпокажет 5 последних новостей"
+}
+
 // OnMessage returns 5 last news articles
 func (n News) OnMessage(msg Message) (response Response) {
 	if !contains(n.ReactOn(), msg.Text) {

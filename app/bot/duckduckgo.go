@@ -20,6 +20,10 @@ func NewDuck(key string, client HTTPClient) *Duck {
 	return &Duck{mashapeKey: key, client: client}
 }
 
+func (d *Duck) Help() string {
+	return "*" + strings.Join(d.ReactOn(), "*, *") + "*\nпоищет в duckduckgo"
+}
+
 // OnMessage pass msg to all bots and collects responses
 func (d *Duck) OnMessage(msg Message) (response Response) {
 

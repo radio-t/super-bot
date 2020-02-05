@@ -118,15 +118,25 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				continue
 			}
 
-			if resp, send := l.Bots.OnMessage(*msg); send {
-				log.Printf("[DEBUG] bot response - %+v", resp)
-				tbMsg := tbapi.NewMessage(update.Message.Chat.ID, resp)
+			if resp := l.Bots.OnMessage(*msg); resp.Send {
+				log.Printf("[DEBUG] bot response - %+v, pin: %t", resp.Text, resp.Pin)
+				tbMsg := tbapi.NewMessage(update.Message.Chat.ID, resp.Text)
 				tbMsg.ParseMode = tbapi.ModeMarkdown
 				tbMsg.DisableWebPagePreview = true
-				if res, err := l.botAPI.Send(tbMsg); err != nil {
+				res, err := l.botAPI.Send(tbMsg)
+				if err != nil {
 					log.Printf("[WARN] can't send tbMsg to telegram, %v", err)
 				} else {
 					l.saveBotMessage(&res)
+				}
+				if resp.Pin {
+					if _, err = l.botAPI.PinChatMessage(tbapi.PinChatMessageConfig{
+						ChatID:              update.Message.Chat.ID,
+						MessageID:           res.MessageID,
+						DisableNotification: false,
+					}); err != nil {
+						log.Printf("[WARN] can't pin tbMsg to telegram, %v", err)
+					}
 				}
 			}
 

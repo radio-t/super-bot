@@ -22,10 +22,10 @@ func NewAnecdote(client HTTPClient) *Anecdote {
 }
 
 // OnMessage returns one entry
-func (a Anecdote) OnMessage(msg Message) (response string, answer bool) {
+func (a Anecdote) OnMessage(msg Message) (response Response) {
 
 	if !contains(a.ReactOn(), msg.Text) {
-		return "", false
+		return Response{}
 	}
 
 	if contains([]string{"chuck!", "/chuck"}, msg.Text) {
@@ -35,24 +35,24 @@ func (a Anecdote) OnMessage(msg Message) (response string, answer bool) {
 	return a.rzhunemogu()
 }
 
-func (a Anecdote) rzhunemogu() (response string, answer bool) {
+func (a Anecdote) rzhunemogu() (response Response) {
 	reqURL := "http://rzhunemogu.ru/RandJSON.aspx?CType=1"
 
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
 		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
-		return "", false
+		return Response{}
 	}
 	resp, err := a.client.Do(req)
 	if err != nil {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
-		return "", false
+		return Response{}
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("[WARN] failed to read body, error=%v", err)
-		return "", false
+		return Response{}
 	}
 
 	text := string(body)
@@ -64,13 +64,13 @@ func (a Anecdote) rzhunemogu() (response string, answer bool) {
 	buf, err := ioutil.ReadAll(tr)
 	if err != nil {
 		log.Printf("[WARN] failed to convert string to utf, error=%v", err)
-		return "", false
+		return Response{}
 	}
 
-	return string(buf), true
+	return Response{Text: string(buf), Send: true}
 }
 
-func (a Anecdote) chuck() (response string, answer bool) {
+func (a Anecdote) chuck() (response Response) {
 
 	chuckResp := struct {
 		Type  string
@@ -84,20 +84,23 @@ func (a Anecdote) chuck() (response string, answer bool) {
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
 		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
-		return "", false
+		return Response{}
 	}
 	resp, err := a.client.Do(req)
 	if err != nil {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
-		return "", false
+		return Response{}
 	}
 	defer resp.Body.Close()
 
 	if err = json.NewDecoder(resp.Body).Decode(&chuckResp); err != nil {
 		log.Printf("[WARN] failed to convert from json, error=%v", err)
-		return "", false
+		return Response{}
 	}
-	return "- " + strings.Replace(chuckResp.Value.Joke, "&quot;", "\"", -1), true
+	return Response{
+		Text: "- " + strings.Replace(chuckResp.Value.Joke, "&quot;", "\"", -1),
+		Send: true,
+	}
 }
 
 // ReactOn keys

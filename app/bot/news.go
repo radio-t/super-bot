@@ -28,9 +28,9 @@ func NewNews(client HTTPClient, api string) *News {
 }
 
 // OnMessage returns 5 last news articles
-func (n News) OnMessage(msg Message) (response string, answer bool) {
+func (n News) OnMessage(msg Message) (response Response) {
 	if !contains(n.ReactOn(), msg.Text) {
-		return "", false
+		return Response{}
 	}
 
 	reqURL := fmt.Sprintf("%s/v1/news/last/5", n.newsAPI)
@@ -39,27 +39,30 @@ func (n News) OnMessage(msg Message) (response string, answer bool) {
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
 		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
-		return "", false
+		return Response{}
 	}
 
 	resp, err := n.client.Do(req)
 	if err != nil {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
-		return "", false
+		return Response{}
 	}
 	defer resp.Body.Close()
 
 	articles := []newsArticle{}
 	if err = json.NewDecoder(resp.Body).Decode(&articles); err != nil {
 		log.Printf("[WARN] failed to parse response, error %v", err)
-		return "", false
+		return Response{}
 	}
 
 	var lines []string
 	for _, a := range articles {
 		lines = append(lines, fmt.Sprintf("- [%s](%s) %s", a.Title, a.Link, a.Ts.Format("2006-01-02")))
 	}
-	return strings.Join(lines, "\n") + "\n- [все новости и темы](https://news.radio-t.com)", true
+	return Response{
+		Text: strings.Join(lines, "\n") + "\n- [все новости и темы](https://news.radio-t.com)",
+		Send: true,
+	}
 }
 
 // ReactOn keys

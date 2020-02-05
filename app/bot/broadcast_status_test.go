@@ -43,33 +43,34 @@ func TestBroadcast_StatusTransitions(t *testing.T) {
 	})
 
 	// Test reacts on first message
-	_, answer := b.OnMessage(Message{})
-	require.Equal(t, false, answer)
+	resp := b.OnMessage(Message{})
+	require.False(t, resp.Send)
 
 	// Test do not react on second message because status not changed
-	_, answer = b.OnMessage(Message{})
-	require.Equal(t, false, answer)
+	resp = b.OnMessage(Message{})
+	require.False(t, resp.Send)
 
 	// Wait for off->on
 	time.Sleep(20 * time.Millisecond)
-	resp, answer := b.OnMessage(Message{})
-	require.True(t, answer)
-	require.Equal(t, MsgBroadcastStarted, resp)
+	resp = b.OnMessage(Message{})
+	require.True(t, resp.Send)
+	require.Equal(t, MsgBroadcastStarted, resp.Text)
+	require.True(t, resp.Pin)
 	require.True(t, b.getStatus())
 
 	// off
 	setStatus(false)
 	// Still on, no deadline reached
 	time.Sleep(20 * time.Millisecond)
-	_, answer = b.OnMessage(Message{})
-	require.False(t, answer)
+	resp = b.OnMessage(Message{})
+	require.False(t, resp.Send)
 	require.True(t, b.getStatus())
 
 	// Deadline reached on->off
 	time.Sleep(110 * time.Millisecond)
-	resp, answer = b.OnMessage(Message{})
-	require.True(t, answer)
-	require.Equal(t, MsgBroadcastFinished, resp)
+	resp = b.OnMessage(Message{})
+	require.True(t, resp.Send)
+	require.Equal(t, MsgBroadcastFinished, resp.Text)
 	require.False(t, b.getStatus())
 }
 
@@ -152,30 +153,30 @@ func TestBroadcast_StatusOnToOffWithDeadline(t *testing.T) {
 
 func TestBroadcast_FirstOnMessageReturnsCurrentState(t *testing.T) {
 	b := &BroadcastStatus{}
-	_, answer := b.OnMessage(Message{})
-	require.False(t, answer)
+	response := b.OnMessage(Message{})
+	require.False(t, response.Send)
 }
 
 func TestBroadcast_OnMessageReturnsNothingIfStateNotChanged(t *testing.T) {
 	b := &BroadcastStatus{}
-	_, answer := b.OnMessage(Message{})
-	require.False(t, answer)
+	response := b.OnMessage(Message{})
+	require.False(t, response.Send)
 
 	b = &BroadcastStatus{status: true, lastSentStatus: true}
-	_, answer = b.OnMessage(Message{})
-	require.False(t, answer)
+	response = b.OnMessage(Message{})
+	require.False(t, response.Send)
 }
 
 func TestBroadcast_OnMessageReturnsReplyOnChange(t *testing.T) {
 	b := &BroadcastStatus{lastSentStatus: false, status: true} // OFF ->ON
-	resp, answer := b.OnMessage(Message{})
-	require.True(t, answer)
-	require.Equal(t, MsgBroadcastStarted, resp)
+	resp := b.OnMessage(Message{})
+	require.True(t, resp.Send)
+	require.Equal(t, MsgBroadcastStarted, resp.Text)
 
 	b = &BroadcastStatus{lastSentStatus: true, status: false} // ON -> OFF
-	resp, answer = b.OnMessage(Message{})
-	require.True(t, answer)
-	require.Equal(t, MsgBroadcastFinished, resp)
+	resp = b.OnMessage(Message{})
+	require.True(t, resp.Send)
+	require.Equal(t, MsgBroadcastFinished, resp.Text)
 }
 
 func TestBroadcast_PingReturnsTrueOn200Status(t *testing.T) {

@@ -31,11 +31,11 @@ func NewExcerpt(api string, token string) *Excerpt {
 }
 
 // OnMessage pass msg to all bots and collects responses
-func (e *Excerpt) OnMessage(msg Message) (response string, answered bool) {
+func (e *Excerpt) OnMessage(msg Message) (response Response) {
 
 	link, err := e.link(msg.Text)
 	if err != nil {
-		return "", false
+		return Response{}
 	}
 
 	client := http.Client{Timeout: 5 * time.Second}
@@ -43,13 +43,13 @@ func (e *Excerpt) OnMessage(msg Message) (response string, answered bool) {
 	resp, err := client.Get(url)
 	if err != nil {
 		log.Printf("[WARN] can't send request to parse article to %s, %v", url, err)
-		return "", false
+		return Response{}
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		log.Printf("[WARN] parser error code %d for %v", resp.StatusCode, url)
-		return "", false
+		return Response{}
 	}
 
 	r := struct {
@@ -60,14 +60,17 @@ func (e *Excerpt) OnMessage(msg Message) (response string, answered bool) {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("[WARN] can't read response for %s, %v", url, err)
-		return "", false
+		return Response{}
 	}
 
 	if err := json.Unmarshal(body, &r); err != nil {
 		log.Printf("[WARN] can't decode response for %s, %v", url, err)
 	}
 
-	return fmt.Sprintf("%s\n\n_%s_", r.Excerpt, r.Title), true
+	return Response{
+		Text: fmt.Sprintf("%s\n\n_%s_", r.Excerpt, r.Title),
+		Send: true,
+	}
 }
 
 func (e *Excerpt) link(input string) (link string, err error) {

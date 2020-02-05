@@ -38,45 +38,48 @@ func NewPodcasts(client HTTPClient, api string, maxResults int) *Podcasts {
 }
 
 // OnMessage returns result of search via https://radio-t.com/site-api/search?
-func (p *Podcasts) OnMessage(msg Message) (response string, answer bool) {
+func (p *Podcasts) OnMessage(msg Message) (response Response) {
 
 	defer func() { // to catch possible panics from potentially dangerous makeBotResponse
 		if r := recover(); r != nil {
-			response = ""
-			answer = false
+			response.Text = ""
+			response.Send = false
 		}
 	}()
 
 	ok, reqText := p.request(msg.Text)
 	if !ok {
-		return "", false
+		return Response{}
 	}
 
 	reqURL := fmt.Sprintf("%s/search?limit=%d&q=%s", p.siteAPI, p.maxResults, reqText)
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
-		return "", false
+		return Response{}
 	}
 
 	resp, err := p.client.Do(req)
 	if err != nil {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
-		return "", false
+		return Response{}
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("[WARN] request %s returned %s", reqURL, resp.Status)
-		return "", false
+		return Response{}
 	}
 
 	sr := []siteAPIResp{}
 	if err := json.NewDecoder(resp.Body).Decode(&sr); err != nil {
 		log.Printf("[WARN] failed to parse response from %s, error=%v", reqURL, err)
-		return "", false
+		return Response{}
 	}
-	return p.makeBotResponse(sr, reqText), true
+	return Response{
+		Text: p.makeBotResponse(sr, reqText),
+		Send: true,
+	}
 }
 
 func (p *Podcasts) makeBotResponse(sr []siteAPIResp, reqText string) string {

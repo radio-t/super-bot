@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	log "github.com/go-pkgz/lgr"
@@ -17,8 +18,15 @@ import (
 
 // Interface is a bot reactive spec. response will be sent if "send" result is true
 type Interface interface {
-	OnMessage(msg Message) (response string, send bool)
+	OnMessage(msg Message) (response Response)
 	ReactOn() []string
+}
+
+// Response describes bot's answer on particular message
+type Response struct {
+	Text string
+	Send bool
+	Pin  bool
 }
 
 // HTTPClient wrap http.Client to allow mocking
@@ -74,20 +82,27 @@ type MultiBot []Interface
 
 // OnMessage pass msg to all bots and collects reposnses (combining all of them)
 //noinspection GoShadowedVar
-func (b MultiBot) OnMessage(msg Message) (response string, send bool) {
+func (b MultiBot) OnMessage(msg Message) (response Response) {
 
 	if contains([]string{"help", "/help", "help!"}, msg.Text) {
-		return "_" + strings.Join(b.ReactOn(), " ") + "_", true
+		return Response{
+			Text: "_" + strings.Join(b.ReactOn(), " ") + "_",
+			Send: true,
+		}
 	}
 
 	resps := make(chan string)
+	var pin int32 = 0
 
 	wg := syncs.NewSizedGroup(4)
 	for _, bot := range b {
 		bot := bot
 		wg.Go(func(ctx context.Context) {
-			if resp, ok := bot.OnMessage(msg); ok {
-				resps <- resp
+			if resp := bot.OnMessage(msg); resp.Send {
+				resps <- resp.Text
+				if resp.Pin {
+					atomic.AddInt32(&pin, 1)
+				}
 			}
 		})
 	}
@@ -104,7 +119,11 @@ func (b MultiBot) OnMessage(msg Message) (response string, send bool) {
 	}
 
 	log.Printf("[DEBUG] answers %d, send %v", len(lines), len(lines) > 0)
-	return strings.Join(lines, "\n"), len(lines) > 0
+	return Response{
+		Text: strings.Join(lines, "\n"),
+		Send: len(lines) > 0,
+		Pin:  atomic.LoadInt32(&pin) > 0,
+	}
 }
 
 // ReactOn returns combined list of all keywords

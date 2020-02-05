@@ -12,10 +12,10 @@ func TestVotes_StartVoting(t *testing.T) {
 	su.On("IsSuper", mock.Anything).Return(true)
 
 	b := NewVotes(su)
-	resp, answer := b.OnMessage(Message{Text: "++topic"})
+	resp := b.OnMessage(Message{Text: "++topic"})
 
-	require.True(t, answer)
-	require.Equal(t, "голосование началось! (+1/-1) *topic*", resp)
+	require.True(t, resp.Send)
+	require.Equal(t, "голосование началось! (+1/-1) *topic*", resp.Text)
 	require.True(t, b.started)
 	require.Equal(t, "topic", b.topic)
 }
@@ -26,10 +26,10 @@ func TestVotes_FinishVoteNoVotes(t *testing.T) {
 
 	b := NewVotes(su)
 	b.OnMessage(Message{Text: "++"})
-	resp, answer := b.OnMessage(Message{Text: "!!"})
-	require.True(t, answer)
+	resp := b.OnMessage(Message{Text: "!!"})
+	require.True(t, resp.Send)
 	// strange behaviour
-	require.Equal(t, "голосование завершено - __\n- *за: 100% (1)*\n- *против: 0% (0) *", resp)
+	require.Equal(t, "голосование завершено - __\n- *за: 100% (1)*\n- *против: 0% (0) *", resp.Text)
 	require.False(t, b.started)
 }
 
@@ -43,9 +43,9 @@ func TestVotes_Votes(t *testing.T) {
 	b.OnMessage(Message{Text: "+1", From: User{Username: "u2"}})
 	b.OnMessage(Message{Text: "-1", From: User{Username: "u3"}})
 	b.OnMessage(Message{Text: "-1", From: User{Username: "u4"}})
-	resp, answer := b.OnMessage(Message{Text: "!!"})
-	require.True(t, answer)
-	require.Equal(t, "голосование завершено - __\n- *за: 50% (2)*\n- *против: 50% (2) *", resp)
+	resp := b.OnMessage(Message{Text: "!!"})
+	require.True(t, resp.Send)
+	require.Equal(t, "голосование завершено - __\n- *за: 50% (2)*\n- *против: 50% (2) *", resp.Text)
 }
 
 func TestVotes_FinishVote(t *testing.T) {
@@ -59,9 +59,9 @@ func TestVotes_FinishVote(t *testing.T) {
 	b.votes["u2"] = true
 	b.votes["u3"] = false
 
-	resp, answer := b.OnMessage(Message{Text: "!!"})
-	require.True(t, answer)
-	require.Equal(t, "голосование завершено - __\n- *за: 66% (2)*\n- *против: 33% (1) *", resp)
+	resp := b.OnMessage(Message{Text: "!!"})
+	require.True(t, resp.Send)
+	require.Equal(t, "голосование завершено - __\n- *за: 66% (2)*\n- *против: 33% (1) *", resp.Text)
 	require.False(t, b.started)
 
 	b.OnMessage(Message{Text: "+1", From: User{Username: "u1"}})
@@ -69,9 +69,9 @@ func TestVotes_FinishVote(t *testing.T) {
 	b.OnMessage(Message{Text: "-1", From: User{Username: "u2"}})
 	b.OnMessage(Message{Text: "unexpected", From: User{Username: "u3"}})
 
-	resp, answer = b.OnMessage(Message{Text: "!!"})
-	require.True(t, answer)
-	require.Equal(t, "голосование завершено - __\n- *за: 66% (2)*\n- *против: 33% (1) *", resp)
+	resp = b.OnMessage(Message{Text: "!!"})
+	require.True(t, resp.Send)
+	require.Equal(t, "голосование завершено - __\n- *за: 66% (2)*\n- *против: 33% (1) *", resp.Text)
 	require.False(t, b.started)
 }
 
@@ -80,9 +80,9 @@ func TestVotes_IgnoreStartVoteByProles(t *testing.T) {
 	su.On("IsSuper", mock.Anything).Return(false)
 
 	b := NewVotes(su)
-	_, answer := b.OnMessage(Message{Text: "++"})
+	resp := b.OnMessage(Message{Text: "++"})
 
-	require.False(t, answer)
+	require.False(t, resp.Send)
 }
 
 func TestVotes_IgnoreFinishVoteByProles(t *testing.T) {
@@ -90,7 +90,7 @@ func TestVotes_IgnoreFinishVoteByProles(t *testing.T) {
 	su.On("IsSuper", mock.Anything).Return(false)
 
 	b := NewVotes(su)
-	_, answer := b.OnMessage(Message{Text: "!!"})
+	resp := b.OnMessage(Message{Text: "!!"})
 
-	require.False(t, answer)
+	require.False(t, resp.Send)
 }

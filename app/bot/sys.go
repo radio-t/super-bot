@@ -27,24 +27,27 @@ func NewSys(dataLocation string) *Sys {
 }
 
 // OnMessage implements bot.Interface
-func (p Sys) OnMessage(msg Message) (response string, answer bool) {
+func (p Sys) OnMessage(msg Message) (response Response) {
 
 	if !contains(p.ReactOn(), msg.Text) {
-		return "", false
+		return Response{}
 	}
 
 	if msg.Text == "say!" || msg.Text == "/say" {
 		if p.say != nil && len(p.say) > 0 {
-			return fmt.Sprintf("_%s_", p.say[rand.Intn(len(p.say))]), true
+			return Response{
+				Text: fmt.Sprintf("_%s_", p.say[rand.Intn(len(p.say))]),
+				Send: true,
+			}
 		}
-		return "", false
+		return Response{}
 	}
 
 	if val, found := p.basic[strings.ToLower(msg.Text)]; found {
-		return val, true
+		return Response{Text: val, Send: true}
 	}
 
-	return "", false
+	return Response{}
 }
 
 func (p *Sys) loadBasicData() {

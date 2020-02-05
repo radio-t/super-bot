@@ -71,5 +71,10 @@ func (s StackOverflow) OnMessage(msg Message) (response Response) {
 
 // ReactOn keys
 func (s StackOverflow) ReactOn() []string {
-	return []string{"so!", "/so"}
+	return []string{"/so", "so!"}
+}
+
+func (s StackOverflow) Help() string {
+	var comment string = "_ - 1 вопрос со StackOverflow_"
+	return strings.Join(s.ReactOn(), ", ") + comment
 }

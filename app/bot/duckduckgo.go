@@ -86,5 +86,9 @@ func (d *Duck) request(text string) (react bool, reqText string) {
 
 // ReactOn keys
 func (d *Duck) ReactOn() []string {
-	return []string{"ddg!", "??", "/ddg"}
+	return []string{"/ddg", "ddg!", "??"}
 }
+
+func (d *Duck) Help() string {
+	var comment string = "_ - поискать на DuckDuckGo, например:_ `/ddg lambda`"
+	return strings.Join(d.ReactOn(), ", ") + comment

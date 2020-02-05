@@ -14,6 +14,8 @@ import (
 type Sys struct {
 	say          []string
 	basic        map[string]string
+	basicDesc    map[string]string
+	com          []string // track order while ranging basicDesc
 	dataLocation string
 }
 
@@ -57,17 +59,31 @@ func (p *Sys) loadBasicData() {
 	}
 
 	basic := make(map[string]string)
+	basicDesc := make(map[string]string)
+	com := make([]string, 0)
 	for _, line := range bdata {
 		elems := strings.Split(line, "|")
-		if len(elems) != 2 {
+		// add '/say;say' to basicDesc
+		if len(elems) == 2 {
+			for _, key := range strings.Split(elems[0], ";") {
+				basicDesc[key] = elems[1]
+				com = append(com, key)
+			}
+			continue
+		}
+		if len(elems) != 3 {
 			log.Printf("[DEBUG] bad format %s, ignored", line)
 			continue
 		}
 		for _, key := range strings.Split(elems[0], ";") {
-			basic[key] = elems[1]
+			basic[key] = elems[2]
+			basicDesc[key] = elems[1]
+			com = append(com, key)
 		}
 	}
 	p.basic = basic
+	p.basicDesc = basicDesc
+	p.com = com
 	log.Printf("[DEBUG] loaded basic set of responses, %v", basic)
 }
 
@@ -94,9 +110,23 @@ func readLines(path string) ([]string, error) {
 
 // ReactOn keys
 func (p Sys) ReactOn() []string {
-	res := []string{"say!", "/say"}
-	for key := range p.basic {
-		res = append(res, key)
+	return p.com
+}
+
+func (p Sys) Help() (line string) {
+	var s []string = p.ReactOn()
+	// walk through all keys in p.com, group by response and add responce to each group
+	for i := 0; i < len(s); i++ {
+		var desc = p.basicDesc[s[i]]
+		var a []string
+		for j := i; j < len(s); j++ {
+			if p.basicDesc[s[j]] != desc {
+				break
+			}
+			a = append(a, s[j])
+			i = j
+		}
+		line = line + "\n" + strings.Join(a, ", ") + " _- " + desc + "_"
 	}
-	return res
+	return line
 }

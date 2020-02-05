@@ -105,5 +105,9 @@ func (a Anecdote) chuck() (response Response) {
 
 // ReactOn keys
 func (a Anecdote) ReactOn() []string {
-	return []string{"анекдот!", "анкедот!", "joke!", "chuck!", "/анекдот", "/joke", "/chuck"}
+	return []string{"/joke", "/chuck", "/анекдот", "анекдот!", "анкедот!", "joke!", "chuck!"}
 }
+
+func (a Anecdote) Help() string {
+	var comment string = "_ - расскажет анекдот с rzhunemogu.ru или icndb.com_"
+	return strings.Join(a.ReactOn(), ", ") + comment

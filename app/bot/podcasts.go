@@ -163,5 +163,9 @@ func (p *Podcasts) request(text string) (react bool, reqText string) {
 
 // ReactOn keys
 func (p *Podcasts) ReactOn() []string {
-	return []string{"search!", "/search"}
+	return []string{"/search", "search!"}
 }
+
+func (p *Podcasts) Help() string {
+	comment := "_ - искать в описаниях подкастов, например:_ `/search lambda`"
+	return strings.Join(p.ReactOn(), ", ") + comment

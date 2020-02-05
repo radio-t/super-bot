@@ -131,3 +131,7 @@ func (b *BroadcastStatus) getStatus() bool {
 func (b *BroadcastStatus) ReactOn() []string {
 	return []string{}
 }
+
+func (b *BroadcastStatus) Help() string {
+	return strings.Join(b.ReactOn(), ", ")
+}

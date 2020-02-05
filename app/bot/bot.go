@@ -20,6 +20,7 @@ import (
 type Interface interface {
 	OnMessage(msg Message) (response Response)
 	ReactOn() []string
+	Help()    string
 }
 
 // Response describes bot's answer on particular message
@@ -86,7 +87,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 
 	if contains([]string{"help", "/help", "help!"}, msg.Text) {
 		return Response{
-			Text: "_" + strings.Join(b.ReactOn(), " ") + "_",
+			Text: b.Help(),
 			Send: true,
 		}
 	}
@@ -132,6 +133,13 @@ func (b MultiBot) ReactOn() (res []string) {
 		res = append(res, bot.ReactOn()...)
 	}
 	return res
+}
+
+func (b MultiBot) Help() (line string) {
+	for _, bot := range b {
+		line = line + bot.Help() + "\n"
+	}
+	return line
 }
 
 func contains(s []string, e string) bool {

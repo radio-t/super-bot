@@ -67,5 +67,9 @@ func (n News) OnMessage(msg Message) (response Response) {
 
 // ReactOn keys
 func (n News) ReactOn() []string {
-	return []string{"news!", "новости!", "/news", "/новости"}
+	return []string{"/news", "/новости", "news!", "новости!"}
 }
+
+func (n News) Help() string {
+	var comment string = "_ - 5 последних новостей для Радио-Т_"
+	return strings.Join(n.ReactOn(), ", ") + comment

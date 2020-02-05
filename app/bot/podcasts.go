@@ -37,6 +37,11 @@ func NewPodcasts(client HTTPClient, api string, maxResults int) *Podcasts {
 	return &Podcasts{client: client, siteAPI: api, maxResults: maxResults}
 }
 
+// Help returns help message
+func (p *Podcasts) Help() string {
+	return genHelpMsg(p, "поищет в шоунотах")
+}
+
 // OnMessage returns result of search via https://radio-t.com/site-api/search?
 func (p *Podcasts) OnMessage(msg Message) (response Response) {
 

@@ -16,10 +16,17 @@ import (
 //go:generate mockery -inpkg -name Interface -case snake
 //go:generate mockery -inpkg -name SuperUser -case snake
 
+// genHelpMsg construct help message from bot's ReactOn
+func genHelpMsg(bot Interface, msg string) string {
+	return "*" + strings.Join(bot.ReactOn(), "*, *") + "*\n" + msg
+
+}
+
 // Interface is a bot reactive spec. response will be sent if "send" result is true
 type Interface interface {
 	OnMessage(msg Message) (response Response)
 	ReactOn() []string
+	Help() string
 }
 
 // Response describes bot's answer on particular message
@@ -80,13 +87,25 @@ type User struct {
 // MultiBot combines many bots to one virtual
 type MultiBot []Interface
 
+// Help returns help message
+func (b MultiBot) Help() string {
+	sb := strings.Builder{}
+	for _, child := range b {
+		help := child.Help()
+		if help != "" {
+			// WriteString always returns nil err
+			_, _ = sb.WriteString(help + "\n\n")
+		}
+	}
+	return sb.String()
+}
+
 // OnMessage pass msg to all bots and collects reposnses (combining all of them)
 //noinspection GoShadowedVar
 func (b MultiBot) OnMessage(msg Message) (response Response) {
-
 	if contains([]string{"help", "/help", "help!"}, msg.Text) {
 		return Response{
-			Text: "_" + strings.Join(b.ReactOn(), " ") + "_",
+			Text: b.Help(),
 			Send: true,
 		}
 	}

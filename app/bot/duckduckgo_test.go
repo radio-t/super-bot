@@ -12,6 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestDuck_Help(t *testing.T) {
+	require.Equal(t, "*ddg!*, *??*, */ddg*\nпоищет в duckduckgo", (&Duck{}).Help())
+}
+
 func TestDuck_OnMessage(t *testing.T) {
 	mockHttp := &MockHTTPClient{}
 	d := NewDuck("key", mockHttp)

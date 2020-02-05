@@ -26,9 +26,13 @@ func NewSys(dataLocation string) *Sys {
 	return &res
 }
 
+// Help returns help message
+func (p Sys) Help() string {
+	return ""
+}
+
 // OnMessage implements bot.Interface
 func (p Sys) OnMessage(msg Message) (response Response) {
-
 	if !contains(p.ReactOn(), msg.Text) {
 		return Response{}
 	}

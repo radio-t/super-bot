@@ -40,6 +40,11 @@ func NewBroadcastStatus(ctx context.Context, params BroadcastParams) *BroadcastS
 	return b
 }
 
+// Help returns help message
+func (b *BroadcastStatus) Help() string {
+	return ""
+}
+
 // OnMessage returns current broadcast status if it was changed
 func (b *BroadcastStatus) OnMessage(_ Message) (response Response) {
 	b.statusMx.Lock()

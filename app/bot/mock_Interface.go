@@ -9,6 +9,20 @@ type MockInterface struct {
 	mock.Mock
 }
 
+// Help provides a mock function with given fields:
+func (_m *MockInterface) Help() string {
+	ret := _m.Called()
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func() string); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
 // OnMessage provides a mock function with given fields: msg
 func (_m *MockInterface) OnMessage(msg Message) Response {
 	ret := _m.Called(msg)

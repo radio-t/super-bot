@@ -7,15 +7,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestGenHelpMsg(t *testing.T) {
+	b := &MockInterface{}
+	b.On("ReactOn").Return([]string{"cmd"})
+
+	require.Equal(t, "*cmd*\ndescription", genHelpMsg(b, "description"))
+}
+
+func TestMultiBotHelp(t *testing.T) {
+	b1 := &MockInterface{}
+	b1.On("Help").Return("b1 help")
+	b2 := &MockInterface{}
+	b2.On("Help").Return("b2 help")
+
+	require.Equal(t, "b1 help\n\nb2 help\n\n", MultiBot{b1, b2}.Help())
+}
+
 func TestMultiBotReactsOnHelp(t *testing.T) {
 	b := &MockInterface{}
-	b.On("ReactOn").Return([]string{"cmd1", "cmd2"})
+	b.On("ReactOn").Return([]string{"help"})
+	b.On("Help").Return("help")
 
 	mb := MultiBot{b}
 	resp := mb.OnMessage(Message{Text: "help"})
 
 	require.True(t, resp.Send)
-	require.Equal(t, "_cmd1 cmd2_", resp.Text)
+	require.Equal(t, "help\n\n", resp.Text)
 }
 
 func TestMultiBotCombinesAllBotResponses(t *testing.T) {

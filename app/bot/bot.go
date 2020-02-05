@@ -87,6 +87,7 @@ func (b MultiBot) Help() string {
 	for _, child := range b {
 		help := child.Help()
 		if help != "" {
+			// WriteString always returns nil err
 			_, _ = sb.WriteString(help + "\n\n")
 		}
 	}

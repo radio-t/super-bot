@@ -73,3 +73,4 @@ func (n News) ReactOn() []string {
 func (n News) Help() string {
 	var comment string = "_ - 5 последних новостей для Радио-Т_"
 	return strings.Join(n.ReactOn(), ", ") + comment
+	

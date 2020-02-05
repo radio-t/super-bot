@@ -92,3 +92,4 @@ func (d *Duck) ReactOn() []string {
 func (d *Duck) Help() string {
 	var comment string = "_ - поискать на DuckDuckGo, например:_ `/ddg lambda`"
 	return strings.Join(d.ReactOn(), ", ") + comment
+	

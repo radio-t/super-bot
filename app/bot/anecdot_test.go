@@ -13,6 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestAnecdot_Help(t *testing.T) {
+	require.Equal(t, "*анекдот!*, *анкедот!*, *joke!*, *chuck!*, */анекдот*, */joke*, */chuck*\nрасскажет анекдот или шутку", Anecdote{}.Help())
+}
+
 func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
 	mockHttp := &MockHTTPClient{}
 	b := NewAnecdote(mockHttp)

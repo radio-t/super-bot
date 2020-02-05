@@ -7,6 +7,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestMultiBotHelp(t *testing.T) {
+	b1 := &MockInterface{}
+	b1.On("Help").Return("b1 help")
+	b2 := &MockInterface{}
+	b2.On("Help").Return("b2 help")
+
+	require.Equal(t, "b1 help\n\nb2 help\n\n", MultiBot{b1, b2}.Help())
+}
+
 func TestMultiBotReactsOnHelp(t *testing.T) {
 	b := &MockInterface{}
 	b.On("ReactOn").Return([]string{"help"})

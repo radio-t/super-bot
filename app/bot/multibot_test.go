@@ -7,6 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestGenHelpMsg(t *testing.T) {
+	b := &MockInterface{}
+	b.On("ReactOn").Return([]string{"cmd"})
+
+	require.Equal(t, "*cmd*\ndescription", genHelpMsg(b, "description"))
+}
+
 func TestMultiBotHelp(t *testing.T) {
 	b1 := &MockInterface{}
 	b1.On("Help").Return("b1 help")

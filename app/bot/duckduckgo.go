@@ -22,7 +22,7 @@ func NewDuck(key string, client HTTPClient) *Duck {
 
 // Help returns help message
 func (d *Duck) Help() string {
-	return "*" + strings.Join(d.ReactOn(), "*, *") + "*\nпоищет в duckduckgo"
+	return genHelpMsg(d, "поищет в duckduckgo")
 }
 
 // OnMessage pass msg to all bots and collects responses

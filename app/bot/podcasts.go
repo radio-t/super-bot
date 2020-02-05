@@ -39,7 +39,7 @@ func NewPodcasts(client HTTPClient, api string, maxResults int) *Podcasts {
 
 // Help returns help message
 func (p *Podcasts) Help() string {
-	return "*" + strings.Join(p.ReactOn(), "*, *") + "*\nпоищет в шоунотах"
+	return genHelpMsg(p, "поищет в шоунотах")
 }
 
 // OnMessage returns result of search via https://radio-t.com/site-api/search?

@@ -32,7 +32,7 @@ func NewStackOverflow() *StackOverflow {
 
 // Help returns help message
 func (s StackOverflow) Help() string {
-	return "*" + strings.Join(s.ReactOn(), "*, *") + "*\nпоищет на stackoverflow"
+	return genHelpMsg(s, "поищет на stackoverflow")
 }
 
 // OnMessage returns one entry

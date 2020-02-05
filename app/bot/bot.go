@@ -16,6 +16,12 @@ import (
 //go:generate mockery -inpkg -name Interface -case snake
 //go:generate mockery -inpkg -name SuperUser -case snake
 
+// genHelpMsg construct help message from bot's ReactOn
+func genHelpMsg(bot Interface, msg string) string {
+	return "*" + strings.Join(bot.ReactOn(), "*, *") + "*\n" + msg
+
+}
+
 // Interface is a bot reactive spec. response will be sent if "send" result is true
 type Interface interface {
 	OnMessage(msg Message) (response Response)

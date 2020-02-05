@@ -71,7 +71,6 @@ func main() {
 				DelayToOff:   time.Minute,
 				Client:       http.Client{Timeout: 5 * time.Second}}),
 		bot.NewSys(opts.SysData),
-		// bot.NewVotes(opts.SuperUsers), // this bot seems to be redundant for tg
 		bot.NewNews(httpClient, "https://news.radio-t.com/api"),
 		bot.NewAnecdote(httpClient),
 		bot.NewStackOverflow(),

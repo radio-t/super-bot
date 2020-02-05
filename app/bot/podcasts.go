@@ -169,3 +169,4 @@ func (p *Podcasts) ReactOn() []string {
 func (p *Podcasts) Help() string {
 	comment := "_ - искать в описаниях подкастов, например:_ `/search lambda`"
 	return strings.Join(p.ReactOn(), ", ") + comment
+}

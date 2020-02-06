@@ -399,9 +399,9 @@ func TestExporter_format(t *testing.T) {
 			"<strong>Hello</strong> &lt;script type=&#39;application/javascript&#39;&gt;alert(&#39;xss&#39;);&lt;/script&gt; <em>World</em>",
 		},
 		{
-			"say! /say /who когда? /когда /how /доколе правила? ping пинг кто? who?/кто when? доколе? /ping /пинг rules? /правила /when как? how?/как /rules news! новости! /news /новости анекдот! анкедот! joke! chuck! /анекдот /joke /chuck so! /so ddg! ?? /ddg search! /search",
-			&[]bot.Entity{{Type: "italic", Offset: 0, Length: 263}, {Type: "bot_command", Offset: 5, Length: 4}, {Type: "bot_command", Offset: 10, Length: 4}, {Type: "bot_command", Offset: 29, Length: 4}, {Type: "bot_command", Offset: 89, Length: 5}, {Type: "bot_command", Offset: 117, Length: 5}, {Type: "bot_command", Offset: 137, Length: 6}, {Type: "bot_command", Offset: 159, Length: 5}, {Type: "bot_command", Offset: 214, Length: 5}, {Type: "bot_command", Offset: 220, Length: 6}, {Type: "bot_command", Offset: 231, Length: 3}, {Type: "bot_command", Offset: 243, Length: 4}, {Type: "bot_command", Offset: 256, Length: 7}},
-			"<em>say! /say /who когда? /когда /how /доколе правила? ping пинг кто? who?/кто when? доколе? /ping /пинг rules? /правила /when как? how?/как /rules news! новости! /news /новости анекдот! анкедот! joke! chuck! /анекдот /joke /chuck so! /so ddg! ?? /ddg search! /search</em>",
+			"say! /say /who когда? /когда /how /доколе правила? ping пинг кто? who? /кто when? доколе? /ping /пинг rules? /правила /when как? how? /как /rules news! новости! /news /новости анекдот! анкедот! joke! chuck! /анекдот /joke /chuck so! /so ddg! ?? /ddg search! /search",
+			&[]bot.Entity{{Offset: 0, Length: 265, Type: "italic"}, {Offset: 5, Length: 4, Type: "bot_command"}, {Offset: 15, Length: 5, Type: "bot_command"}, {Offset: 21, Length: 4, Type: "bot_command"}, {Offset: 42, Length: 6, Type: "bot_command"}, {Offset: 89, Length: 4, Type: "bot_command"}, {Offset: 119, Length: 5, Type: "bot_command"}, {Offset: 161, Length: 5, Type: "bot_command"}, {Offset: 216, Length: 5, Type: "bot_command"}, {Offset: 222, Length: 6, Type: "bot_command"}, {Offset: 233, Length: 3, Type: "bot_command"}, {Offset: 245, Length: 4, Type: "bot_command"}, {Offset: 258, Length: 7, Type: "bot_command"}},
+			"<em>say! /say /who когда? /когда /how /доколе правила? ping пинг кто? who? /кто when? доколе? /ping /пинг rules? /правила /when как? how? /как /rules news! новости! /news /новости анекдот! анкедот! joke! chuck! /анекдот /joke /chuck so! /so ddg! ?? /ddg search! /search</em>",
 		},
 	}
 

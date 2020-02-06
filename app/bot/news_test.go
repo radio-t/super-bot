@@ -12,50 +12,51 @@ import (
 )
 
 func TestNewsBot_ReactionOnNewsRequest(t *testing.T) {
-	mockHttp := &MockHTTPClient{}
-	b := NewNews(mockHttp, "")
+	mockHTTP := &MockHTTPClient{}
+	b := NewNews(mockHTTP, "")
 
 	article := newsArticle{
 		Title: "title",
 		Link:  "link",
 	}
-	articleJson, err := json.Marshal([]newsArticle{article})
+	articleJSON, err := json.Marshal([]newsArticle{article})
 	require.NoError(t, err)
 
-	mockHttp.On("Do", mock.Anything).Return(&http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(articleJson)),
+	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
+		Body: ioutil.NopCloser(bytes.NewReader(articleJSON)),
 	}, nil)
 
-	response := b.OnMessage(Message{Text: "news!"})
-	require.True(t, response.Send)
-	require.Equal(t, "- [title](link) 0001-01-01\n- [все новости и темы](https://news.radio-t.com)", response.Text)
+	require.Equal(
+		t,
+		Response{Text: "- [title](link) 0001-01-01\n- [все новости и темы](https://news.radio-t.com)", Send: true},
+		b.OnMessage(Message{Text: "news!"}),
+	)
 }
 
 func TestNewsBot_ReactionOnNewsRequestAlt(t *testing.T) {
-	mockHttp := &MockHTTPClient{}
-	b := NewNews(mockHttp, "")
+	mockHTTP := &MockHTTPClient{}
+	b := NewNews(mockHTTP, "")
 
 	article := newsArticle{
 		Title: "title",
 		Link:  "link",
 	}
-	articleJson, err := json.Marshal([]newsArticle{article})
+	articleJSON, err := json.Marshal([]newsArticle{article})
 	require.NoError(t, err)
 
-	mockHttp.On("Do", mock.Anything).Return(&http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(articleJson)),
+	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
+		Body: ioutil.NopCloser(bytes.NewReader(articleJSON)),
 	}, nil)
 
-	response := b.OnMessage(Message{Text: "/news"})
-	require.True(t, response.Send)
-	require.Equal(t, "- [title](link) 0001-01-01\n- [все новости и темы](https://news.radio-t.com)", response.Text)
+	require.Equal(
+		t,
+		Response{Text: "- [title](link) 0001-01-01\n- [все новости и темы](https://news.radio-t.com)", Send: true},
+		b.OnMessage(Message{Text: "/news"}),
+	)
 }
 
 func TestNewsBot_ReactionOnUnexpectedMessage(t *testing.T) {
-	mockHttp := &MockHTTPClient{}
-	b := NewNews(mockHttp, "")
-
-	response := b.OnMessage(Message{Text: "unexpected"})
-	require.False(t, response.Send)
-	require.Empty(t, response.Text)
+	mockHTTP := &MockHTTPClient{}
+	b := NewNews(mockHTTP, "")
+	require.Equal(t, Response{}, b.OnMessage(Message{Text: "unexpected"}))
 }

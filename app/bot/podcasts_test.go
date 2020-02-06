@@ -36,11 +36,17 @@ func TestPodcasts_OnMessage(t *testing.T) {
 	client := http.Client{Timeout: time.Second}
 	d := NewPodcasts(&client, ts.URL, 5)
 
-	response := d.OnMessage(Message{Text: "/search Lambda"})
-	require.True(t, response.Send)
-	assert.Equal(t, "[Радио-Т #123](http://example.com) _31 Jan 20_\n●  ALB сможет вызвать Lambda - 00:54:45.\n●  Слои общего кода в AWS Lambda - 01:15:46.\n\n", response.Text)
+	require.Equal(
+		t,
+		Response{Text: `[Радио-Т #123](http://example.com) _31 Jan 20_
+●  ALB сможет вызвать Lambda - 00:54:45.
+●  Слои общего кода в AWS Lambda - 01:15:46.
 
-	response = d.OnMessage(Message{Text: "/search Lambda"})
+`, Send: true},
+		d.OnMessage(Message{Text: "/search Lambda"}),
+	)
+
+	response := d.OnMessage(Message{Text: "/search Lambda"})
 	require.True(t, response.Send, "second call ok too")
 }
 
@@ -69,9 +75,15 @@ func TestPodcasts_OnMessageWithLinks(t *testing.T) {
 	client := http.Client{Timeout: time.Second}
 	d := NewPodcasts(&client, ts.URL, 5)
 
-	response := d.OnMessage(Message{Text: "/search mongo"})
-	require.True(t, response.Send)
-	assert.Equal(t, "[Радио-Т #123](http://example.com) _31 Jan 20_\n●  [Mongo в облаке — чем это хорошо.](https://www.mongodb.com/cloud)\n○  [xxxx в облаке — чем это хорошо](https://www.mongodb.com/cloud)\n\n", response.Text)
+	require.Equal(
+		t,
+		Response{Text: `[Радио-Т #123](http://example.com) _31 Jan 20_
+●  [Mongo в облаке — чем это хорошо.](https://www.mongodb.com/cloud)
+○  [xxxx в облаке — чем это хорошо](https://www.mongodb.com/cloud)
+
+`, Send: true},
+		d.OnMessage(Message{Text: "/search mongo"}),
+	)
 }
 
 func TestPodcasts_OnMessageIgnore(t *testing.T) {
@@ -91,8 +103,7 @@ func TestPodcasts_OnMessageFailed(t *testing.T) {
 	client := http.Client{Timeout: time.Second}
 	d := NewPodcasts(&client, ts.URL, 5)
 
-	response := d.OnMessage(Message{Text: "/search something"})
-	require.False(t, response.Send)
+	require.Equal(t, Response{}, d.OnMessage(Message{Text: "/search something"}))
 }
 
 func TestPodcasts_notesWithLinks(t *testing.T) {

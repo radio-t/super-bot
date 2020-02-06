@@ -17,16 +17,14 @@ func TestDuck_Help(t *testing.T) {
 }
 
 func TestDuck_OnMessage(t *testing.T) {
-	mockHttp := &MockHTTPClient{}
-	d := NewDuck("key", mockHttp)
+	mockHTTP := &MockHTTPClient{}
+	d := NewDuck("key", mockHTTP)
 
-	mockHttp.On("Do", mock.Anything).Return(&http.Response{
+	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
 		Body: ioutil.NopCloser(bytes.NewReader([]byte(`{"AbstractText":"the answer", "AbstractSource":"test", "AbstractURL":"http://example.com"}`))),
 	}, nil)
 
-	result := d.OnMessage(Message{Text: "?? search"})
-	require.True(t, result.Send)
-	assert.Equal(t, "- the answer\n[test](http://example.com)", result.Text)
+	assert.Equal(t, Response{Text: "- the answer\n[test](http://example.com)", Send: true}, d.OnMessage(Message{Text: "?? search"}))
 }
 
 func TestDuck_request(t *testing.T) {

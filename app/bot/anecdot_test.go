@@ -18,10 +18,10 @@ func TestAnecdot_Help(t *testing.T) {
 }
 
 func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
-	mockHttp := &MockHTTPClient{}
-	b := NewAnecdote(mockHttp)
+	mockHTTP := &MockHTTPClient{}
+	b := NewAnecdote(mockHTTP)
 
-	mockHttp.On("Do", mock.Anything).Return(&http.Response{
+	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
 		Body: ioutil.NopCloser(strings.NewReader("joke")),
 	}, nil)
 
@@ -31,10 +31,10 @@ func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
 }
 
 func TestAnecdot_ReactsOnJokeRequestAlt(t *testing.T) {
-	mockHttp := &MockHTTPClient{}
-	b := NewAnecdote(mockHttp)
+	mockHTTP := &MockHTTPClient{}
+	b := NewAnecdote(mockHTTP)
 
-	mockHttp.On("Do", mock.Anything).Return(&http.Response{
+	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
 		Body: ioutil.NopCloser(strings.NewReader("joke")),
 	}, nil)
 
@@ -44,10 +44,10 @@ func TestAnecdot_ReactsOnJokeRequestAlt(t *testing.T) {
 }
 
 func TestAnecdot_RshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
-	mockHttp := &MockHTTPClient{}
-	b := NewAnecdote(mockHttp)
+	mockHTTP := &MockHTTPClient{}
+	b := NewAnecdote(mockHTTP)
 
-	mockHttp.On("Do", mock.Anything).Return(nil, errors.New("err"))
+	mockHTTP.On("Do", mock.Anything).Return(nil, errors.New("err"))
 
 	response := b.rzhunemogu()
 	require.False(t, response.Send)
@@ -55,8 +55,8 @@ func TestAnecdot_RshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
 }
 
 func TestAnecdotReactsOnUnexpectedMessage(t *testing.T) {
-	mockHttp := &MockHTTPClient{}
-	b := NewAnecdote(mockHttp)
+	mockHTTP := &MockHTTPClient{}
+	b := NewAnecdote(mockHTTP)
 
 	result := b.OnMessage(Message{Text: "unexpected msg"})
 	require.False(t, result.Send)
@@ -64,38 +64,32 @@ func TestAnecdotReactsOnUnexpectedMessage(t *testing.T) {
 }
 
 func TestAnecdotReactsOnBadChuckMessage(t *testing.T) {
-	mockHttp := &MockHTTPClient{}
-	b := NewAnecdote(mockHttp)
+	mockHTTP := &MockHTTPClient{}
+	b := NewAnecdote(mockHTTP)
 
-	mockHttp.On("Do", mock.Anything).Return(&http.Response{
+	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
 		Body: ioutil.NopCloser(bytes.NewReader([]byte(`not a json`))),
 	}, nil)
 
-	result := b.OnMessage(Message{Text: "chuck!"})
-	require.False(t, result.Send)
-	assert.Empty(t, result.Text)
+	require.Equal(t, Response{}, b.OnMessage(Message{Text: "chuck!"}))
 }
 
 func TestAnecdotReactsOnChuckMessageUnableToDoReq(t *testing.T) {
-	mockHttp := &MockHTTPClient{}
-	b := NewAnecdote(mockHttp)
+	mockHTTP := &MockHTTPClient{}
+	b := NewAnecdote(mockHTTP)
 
-	mockHttp.On("Do", mock.Anything).Return(nil, errors.New("err"))
+	mockHTTP.On("Do", mock.Anything).Return(nil, errors.New("err"))
 
-	result := b.OnMessage(Message{Text: "chuck!"})
-	require.False(t, result.Send)
-	assert.Empty(t, result.Text)
+	require.Equal(t, Response{}, b.OnMessage(Message{Text: "chuck!"}))
 }
 
 func TestAnecdotReactsOnChuckMessage(t *testing.T) {
-	mockHttp := &MockHTTPClient{}
-	b := NewAnecdote(mockHttp)
+	mockHTTP := &MockHTTPClient{}
+	b := NewAnecdote(mockHTTP)
 
-	mockHttp.On("Do", mock.Anything).Return(&http.Response{
+	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
 		Body: ioutil.NopCloser(bytes.NewReader([]byte(`{"Value" : {"Joke" : "&quot;joke&quot;"}}`))),
 	}, nil)
 
-	result := b.OnMessage(Message{Text: "chuck!"})
-	require.True(t, result.Send)
-	assert.Equal(t, "- \"joke\"", result.Text)
+	require.Equal(t, Response{Text: "- \"joke\"", Send: true}, b.OnMessage(Message{Text: "chuck!"}))
 }

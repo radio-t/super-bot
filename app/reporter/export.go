@@ -323,6 +323,7 @@ func format(text string, entities *[]bot.Entity) template.HTML {
 	return template.HTML(strings.ReplaceAll(result, "\n", "<br>")) // nolint
 }
 
+// getDecoration returns pair of HTML tags (decorations) for Telegram Entity
 func getDecoration(entity bot.Entity, body []rune) (string, string) {
 	switch entity.Type {
 	case "bold":

@@ -4,12 +4,38 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestBroadcast_OnMessage(t *testing.T) {
+	tbl := []struct {
+		lastSentStatus   bool
+		status           bool
+		expectedResponse Response
+	}{
+		{false, false, Response{}},
+		{false, true, Response{Text: MsgBroadcastStarted, Send: true, Pin: true}},
+		{true, false, Response{Text: MsgBroadcastFinished, Send: true}},
+		{true, true, Response{}},
+	}
+
+	b := &BroadcastStatus{}
+
+	for i, tt := range tbl {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			b.lastSentStatus = tt.lastSentStatus
+			b.status = tt.status
+			response := b.OnMessage(Message{})
+
+			require.Equal(t, tt.expectedResponse, response)
+		})
+	}
+}
 
 // Kind of integration test to check all workflow
 func TestBroadcast_StatusTransitions(t *testing.T) {
@@ -43,34 +69,26 @@ func TestBroadcast_StatusTransitions(t *testing.T) {
 	})
 
 	// Test reacts on first message
-	resp := b.OnMessage(Message{})
-	require.False(t, resp.Send)
+	require.Equal(t, Response{}, b.OnMessage(Message{}))
 
 	// Test do not react on second message because status not changed
-	resp = b.OnMessage(Message{})
-	require.False(t, resp.Send)
+	require.Equal(t, Response{}, b.OnMessage(Message{}))
 
 	// Wait for off->on
 	time.Sleep(20 * time.Millisecond)
-	resp = b.OnMessage(Message{})
-	require.True(t, resp.Send)
-	require.Equal(t, MsgBroadcastStarted, resp.Text)
-	require.True(t, resp.Pin)
+	require.Equal(t, Response{Text: MsgBroadcastStarted, Send: true, Pin: true}, b.OnMessage(Message{}))
 	require.True(t, b.getStatus())
 
 	// off
 	setStatus(false)
 	// Still on, no deadline reached
 	time.Sleep(20 * time.Millisecond)
-	resp = b.OnMessage(Message{})
-	require.False(t, resp.Send)
+	require.Equal(t, Response{}, b.OnMessage(Message{}))
 	require.True(t, b.getStatus())
 
 	// Deadline reached on->off
 	time.Sleep(110 * time.Millisecond)
-	resp = b.OnMessage(Message{})
-	require.True(t, resp.Send)
-	require.Equal(t, MsgBroadcastFinished, resp.Text)
+	require.Equal(t, Response{Text: MsgBroadcastFinished, Send: true}, b.OnMessage(Message{}))
 	require.False(t, b.getStatus())
 }
 

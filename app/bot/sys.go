@@ -17,7 +17,7 @@ type Sys struct {
 	dataLocation string
 	SysBots      []SysCommand
 }
-
+// SysCommand hold one command from basic.data
 type SysCommand struct {
 	commands    []string
 	description string

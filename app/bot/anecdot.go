@@ -23,7 +23,7 @@ func NewAnecdote(client HTTPClient) *Anecdote {
 
 // Help returns help message
 func (a Anecdote) Help() string {
-	return genHelpMsg(a, "расскажет анекдот или шутку")
+	return genHelpMsg(a.ReactOn(), "расскажет анекдот с rzhunemogu.ru или icndb.com")
 }
 
 // OnMessage returns one entry
@@ -110,5 +110,5 @@ func (a Anecdote) chuck() (response Response) {
 
 // ReactOn keys
 func (a Anecdote) ReactOn() []string {
-	return []string{"анекдот!", "анкедот!", "joke!", "chuck!", "/анекдот", "/joke", "/chuck"}
+	return []string{"/joke", "/chuck", "/анекдот", "анекдот!", "анкедот!", "joke!", "chuck!"}
 }

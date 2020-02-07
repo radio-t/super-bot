@@ -8,10 +8,7 @@ import (
 )
 
 func TestGenHelpMsg(t *testing.T) {
-	b := &MockInterface{}
-	b.On("ReactOn").Return([]string{"cmd"})
-
-	require.Equal(t, "*cmd*\ndescription", genHelpMsg(b, "description"))
+	require.Equal(t, "cmd `- description`\n", genHelpMsg([]string{"cmd"}, "description"))
 }
 
 func TestMultiBotHelp(t *testing.T) {
@@ -20,7 +17,7 @@ func TestMultiBotHelp(t *testing.T) {
 	b2 := &MockInterface{}
 	b2.On("Help").Return("b2 help")
 
-	require.Equal(t, "b1 help\n\nb2 help\n\n", MultiBot{b1, b2}.Help())
+	require.Equal(t, "b1 helpb2 help", MultiBot{b1, b2}.Help())
 }
 
 func TestMultiBotReactsOnHelp(t *testing.T) {
@@ -32,7 +29,7 @@ func TestMultiBotReactsOnHelp(t *testing.T) {
 	resp := mb.OnMessage(Message{Text: "help"})
 
 	require.True(t, resp.Send)
-	require.Equal(t, "help\n\n", resp.Text)
+	require.Equal(t, "help", resp.Text)
 }
 
 func TestMultiBotCombinesAllBotResponses(t *testing.T) {

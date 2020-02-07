@@ -15,6 +15,12 @@ type Sys struct {
 	say          []string
 	basic        map[string]string
 	dataLocation string
+	SysBots      []SysCommand
+}
+
+type SysCommand struct {
+	commands    []string
+	description string
 }
 
 // NewSys makes new sys bot and load data to []say and basic map
@@ -27,8 +33,11 @@ func NewSys(dataLocation string) *Sys {
 }
 
 // Help returns help message
-func (p Sys) Help() string {
-	return ""
+func (p Sys) Help() (line string) {
+	for _, com := range p.SysBots {
+		line += genHelpMsg(com.commands, com.description)
+	}
+	return line
 }
 
 // OnMessage implements bot.Interface
@@ -62,14 +71,19 @@ func (p *Sys) loadBasicData() {
 
 	basic := make(map[string]string)
 	for _, line := range bdata {
-		elems := strings.Split(line, "|")
-		if len(elems) != 2 {
+		elems := strings.Split(line, "|")		
+		if len(elems) != 3 {
 			log.Printf("[DEBUG] bad format %s, ignored", line)
 			continue
 		}
-		for _, key := range strings.Split(elems[0], ";") {
-			basic[key] = elems[1]
+		sysCommand := SysCommand{
+			description: elems[1],
 		}
+		for _, key := range strings.Split(elems[0], ";") {
+			basic[key] = elems[2]
+			sysCommand.commands = append(sysCommand.commands, key)
+		}
+		p.SysBots = append(p.SysBots, sysCommand)
 	}
 	p.basic = basic
 	log.Printf("[DEBUG] loaded basic set of responses, %v", basic)
@@ -98,9 +112,9 @@ func readLines(path string) ([]string, error) {
 
 // ReactOn keys
 func (p Sys) ReactOn() []string {
-	res := []string{"say!", "/say"}
-	for key := range p.basic {
-		res = append(res, key)
+	res := make([]string, 0)
+	for _, bot := range p.SysBots {
+		res = append(bot.commands, res...)
 	}
 	return res
 }

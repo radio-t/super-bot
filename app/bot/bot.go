@@ -18,7 +18,7 @@ import (
 
 // genHelpMsg construct help message from bot's ReactOn
 func genHelpMsg(com []string, msg string) string {
-	return strings.Join(com, ", ") + " `- " + msg + "`\n"
+	return strings.Join(com, ", ") + " _- " + msg + "_\n"
 }
 
 // Interface is a bot reactive spec. response will be sent if "send" result is true

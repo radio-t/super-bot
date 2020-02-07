@@ -83,14 +83,12 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				continue
 			}
 
-			if update.Message.Chat.ID != l.chatID {
-				log.Printf("[DEBUG] ignoring message from chat %d:%q (%q), must be %d:%q",
-					update.Message.Chat.ID, update.Message.Chat.UserName, update.Message.Chat.Title, l.chatID, l.Group)
-				continue
-			}
+			fromChat := update.Message.Chat.ID
 
 			msg := l.transform(update.Message)
-			l.Save(msg) // save to report
+			if fromChat == l.chatID {
+				l.Save(msg) // save to report
+			}
 
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
 
@@ -102,16 +100,16 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 						mention = fmt.Sprintf("[%s](tg://user?id=%d)", msg.From.DisplayName, update.Message.From.ID)
 					}
 					m := fmt.Sprintf("%s _тебя слишком много, отдохни..._", mention)
-					tbMsg := tbapi.NewMessage(update.Message.Chat.ID, m)
+					tbMsg := tbapi.NewMessage(fromChat, m)
 					tbMsg.ParseMode = tbapi.ModeMarkdown
 					tbMsg.DisableWebPagePreview = true
 					if res, err := l.botAPI.Send(tbMsg); err != nil {
 						log.Printf("[WARN] failed to send, %v", err)
 					} else {
-						l.saveBotMessage(&res)
+						l.saveBotMessage(&res, fromChat)
 					}
 
-					if err := l.banUser(update.Message.Chat.ID, update.Message.From.ID); err != nil {
+					if err := l.banUser(fromChat, update.Message.From.ID); err != nil {
 						log.Printf("[ERROR] failed to ban user %v: %v", msg.From, err)
 					}
 				}
@@ -120,7 +118,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			if resp := l.Bots.OnMessage(*msg); resp.Send {
 				log.Printf("[DEBUG] bot response - %+v, pin: %t", resp.Text, resp.Pin)
-				tbMsg := tbapi.NewMessage(update.Message.Chat.ID, resp.Text)
+				tbMsg := tbapi.NewMessage(fromChat, resp.Text)
 				tbMsg.ParseMode = tbapi.ModeMarkdown
 				tbMsg.DisableWebPagePreview = true
 				res, err := l.botAPI.Send(tbMsg)
@@ -128,10 +126,10 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 					log.Printf("[WARN] can't send tbMsg to telegram, %v", err)
 					continue
 				}
-				l.saveBotMessage(&res)
+				l.saveBotMessage(&res, fromChat)
 				if resp.Pin {
 					_, err = l.botAPI.PinChatMessage(tbapi.PinChatMessageConfig{
-						ChatID:              update.Message.Chat.ID,
+						ChatID:              fromChat,
 						MessageID:           res.MessageID,
 						DisableNotification: false,
 					})
@@ -147,7 +145,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			if res, err := l.botAPI.Send(tbMsg); err != nil {
 				log.Printf("[WARN] can't send msg to telegram, %v", err)
 			} else {
-				l.saveBotMessage(&res)
+				l.saveBotMessage(&res, l.chatID)
 			}
 		}
 	}
@@ -179,7 +177,11 @@ func (l *TelegramListener) getChatID(group string) (int64, error) {
 	return chat.ID, nil
 }
 
-func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {
+func (l *TelegramListener) saveBotMessage(msg *tbapi.Message, fromChat int64) {
+	if fromChat != l.chatID {
+		return
+	}
+
 	l.Save(l.transform(msg))
 }
 

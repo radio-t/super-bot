@@ -17,9 +17,8 @@ import (
 //go:generate mockery -inpkg -name SuperUser -case snake
 
 // genHelpMsg construct help message from bot's ReactOn
-func genHelpMsg(bot Interface, msg string) string {
-	return "*" + strings.Join(bot.ReactOn(), "*, *") + "*\n" + msg
-
+func genHelpMsg(com []string, msg string) string {
+	return strings.Join(com, ", ") + " _– " + msg + "_\n"
 }
 
 // Interface is a bot reactive spec. response will be sent if "send" result is true
@@ -94,7 +93,7 @@ func (b MultiBot) Help() string {
 		help := child.Help()
 		if help != "" {
 			// WriteString always returns nil err
-			_, _ = sb.WriteString(help + "\n\n")
+			_, _ = sb.WriteString(help)
 		}
 	}
 	return sb.String()

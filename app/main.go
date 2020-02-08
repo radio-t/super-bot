@@ -70,12 +70,17 @@ func main() {
 				PingInterval: 10 * time.Second,
 				DelayToOff:   time.Minute,
 				Client:       http.Client{Timeout: 5 * time.Second}}),
-		bot.NewSys(opts.SysData),
 		bot.NewNews(httpClient, "https://news.radio-t.com/api"),
 		bot.NewAnecdote(httpClient),
 		bot.NewStackOverflow(),
 		bot.NewDuck(opts.MashapeToken, httpClient),
 		bot.NewPodcasts(httpClient, "https://radio-t.com/site-api", 5),
+	}
+
+	if sb, err := bot.NewSys(opts.SysData); err == nil {
+		multiBot = append(multiBot, sb)
+	} else {
+		log.Printf("[ERROR] failed to load sysbot, %v", err)
 	}
 
 	term := events.Terminator{

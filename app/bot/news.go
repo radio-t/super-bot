@@ -29,7 +29,7 @@ func NewNews(client HTTPClient, api string) *News {
 
 // Help returns help message
 func (n News) Help() string {
-	return genHelpMsg(n, "покажет 5 последних новостей")
+	return genHelpMsg(n.ReactOn(), "5 последних новостей для Радио-Т")
 }
 
 // OnMessage returns 5 last news articles
@@ -72,5 +72,5 @@ func (n News) OnMessage(msg Message) (response Response) {
 
 // ReactOn keys
 func (n News) ReactOn() []string {
-	return []string{"news!", "новости!", "/news", "/новости"}
+	return []string{"/news", "/новости", "news!", "новости!"}
 }

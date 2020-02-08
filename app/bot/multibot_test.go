@@ -8,7 +8,7 @@ import (
 )
 
 func TestGenHelpMsg(t *testing.T) {
-	require.Equal(t, "cmd _- description_\n", genHelpMsg([]string{"cmd"}, "description"))
+	require.Equal(t, "cmd _– description_\n", genHelpMsg([]string{"cmd"}, "description"))
 }
 
 func TestMultiBotHelp(t *testing.T) {

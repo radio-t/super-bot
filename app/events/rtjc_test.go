@@ -14,7 +14,7 @@ func TestRtjc_isPinned(t *testing.T) {
 		pin bool
 	}{
 		{"blah", "blah", false},
-		{" --> Официальный кАт!", "Вещание подкаста началось - https://stream.radio-t.com/", true},
+		{"⚠️ Официальный кАт! - https://stream.radio-t.com/", "⚠️ Вещание подкаста началось - https://stream.radio-t.com/", true},
 	}
 
 	rtjc := Rtjc{}

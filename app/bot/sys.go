@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	log "github.com/go-pkgz/lgr"
+	"github.com/pkg/errors"
 )
 
 // Sys implements basic bot function to responds on ping and others from basic.data file.
@@ -14,28 +15,33 @@ import (
 type Sys struct {
 	say          []string
 	dataLocation string
-	SysBots      []SysCommand
+	commands     []sysCommand
 }
-// SysCommand hold one type commands from basic.data
-type SysCommand struct {
-	commands    []string
+
+// sysCommand hold one type triggers from basic.data
+type sysCommand struct {
+	triggers    []string
 	description string
 	message     string
 }
 
 // NewSys makes new sys bot and load data to []say and basic map
-func NewSys(dataLocation string) *Sys {
+func NewSys(dataLocation string) (*Sys, error) {
 	log.Printf("[INFO] created sys bot, data location=%s", dataLocation)
 	res := Sys{dataLocation: dataLocation}
-	res.loadBasicData()
-	res.loadSayData()
-	return &res
+	if err := res.loadBasicData(); err != nil {
+		return nil, err
+	}
+	if err := res.loadSayData(); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
 // Help returns help message
 func (p Sys) Help() (line string) {
-	for _, com := range p.SysBots {
-		line += genHelpMsg(com.commands, com.description)
+	for _, c := range p.commands {
+		line += genHelpMsg(c.triggers, c.description)
 	}
 	return line
 }
@@ -56,53 +62,53 @@ func (p Sys) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	for _, bot := range p.SysBots {
-		if found := contains(bot.commands, strings.ToLower(msg.Text)); found {
+	for _, bot := range p.commands {
+		if found := contains(bot.triggers, strings.ToLower(msg.Text)); found {
 			return Response{Text: bot.message, Send: true}
-		} 
+		}
 	}
 
 	return Response{}
 }
 
-func (p *Sys) loadBasicData() {
+func (p *Sys) loadBasicData() error {
 	bdata, err := readLines(p.dataLocation + "/basic.data")
 	if err != nil {
-		log.Fatalf("[FATAL] can't load basic.data, %v", err)
+		return errors.Wrap(err, "can't load basic.data")
 	}
 
 	for _, line := range bdata {
-		elems := strings.Split(line, "|")		
+		elems := strings.Split(line, "|")
 		if len(elems) != 3 {
 			log.Printf("[DEBUG] bad format %s, ignored", line)
 			continue
 		}
-		sysCommand := SysCommand{
+		sysCommand := sysCommand{
 			description: elems[1],
-			message: elems[2],
-			commands: strings.Split(elems[0], ";"),
+			message:     elems[2],
+			triggers:    strings.Split(elems[0], ";"),
 		}
-		p.SysBots = append(p.SysBots, sysCommand)
-		log.Printf("[DEBUG] loaded basic response, %v, %s", sysCommand.commands, sysCommand.message)
+		p.commands = append(p.commands, sysCommand)
+		log.Printf("[DEBUG] loaded basic response, %v, %s", sysCommand.triggers, sysCommand.message)
 	}
+	return nil
 }
 
-func (p *Sys) loadSayData() {
+func (p *Sys) loadSayData() error {
 	say, err := readLines(p.dataLocation + "/say.data")
 	if err != nil {
-		log.Printf("[WARN] can't load say.data - %v", err)
-		return
+		return err
 	}
 	p.say = say
 	log.Printf("[DEBUG] loaded say.data, %d records", len(say))
+	return nil
 }
 
 func readLines(path string) ([]string, error) {
 
 	data, err := ioutil.ReadFile(path) // nolint
 	if err != nil {
-		log.Printf("[WARN] can't load data from %s,  %v", path, err)
-		return nil, err
+		return nil, errors.Wrapf(err, "can't load sys data from %s", path)
 	}
 
 	return strings.Split(string(data), "\n"), nil
@@ -111,8 +117,8 @@ func readLines(path string) ([]string, error) {
 // ReactOn keys
 func (p Sys) ReactOn() []string {
 	res := make([]string, 0)
-	for _, bot := range p.SysBots {
-		res = append(bot.commands, res...)
+	for _, bot := range p.commands {
+		res = append(bot.triggers, res...)
 	}
 	return res
 }

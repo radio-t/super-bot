@@ -244,14 +244,15 @@ func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) 
 
 		if broadcastUsers != nil && broadcastUsers.IsSuper(msg.From.Username) {
 			// if received message from bot/user who can send "broadcast" messages
-			switch msg.Text {
-			case bot.MsgBroadcastStarted:
+			if strings.Contains(msg.Text, bot.MsgBroadcastStarted) {
 				if broadcastStartedIndex == 0 {
 					// record first occurrence of MsgBroadcastFinished
 					broadcastStartedIndex = currentIndex
 				}
 				continue
-			case bot.MsgBroadcastFinished:
+			}
+
+			if strings.Contains(msg.Text, bot.MsgBroadcastFinished) {
 				// record last occurrence of MsgBroadcastFinished
 				broadcastFinishedIndex = currentIndex
 				continue

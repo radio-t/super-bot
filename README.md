@@ -43,8 +43,8 @@
 * `DEBUG` (false) – включает режим отладки (логируется больше событий)
 * `TELEGRAM_LOGS` (logs) - путь к папке куда пишется лог чата
 * `SYS_DATA` (data) - путь к папке с *.data файлами и шаблоном для построения HTML отчета
-* `RTJC_PORT` (18001) – порт на который приходят уведомления о новостях
 * `TELEGRAM_TIMEOUT` (30s) – HTTP таймаут для скачивания файлов из Telegram при построении HTML отчета
+* `RTJC_PORT` (18001) – порт на который приходят уведомления о новостях
 
 Запустить бота можно через Docker Compose:
 
@@ -60,8 +60,16 @@ make run ARGS="--super=umputun --super=bobuk --super=grayru --super=ksenks"
 
 Для построения HTML отчета необходимо передать дополнительные флаги:
 
-```
-docker-compose exec telegram-bot ./telegram-rt-bot --super=umputun --super=bobuk --super=grayru --super=ksenks --export-num=688 --export-path=html --export-day=20200208 --export-template=logs.html
+```bash
+docker-compose exec telegram-bot ./telegram-rt-bot \
+  --super=umputun \
+  --super=bobuk \
+  --super=grayru \
+  --super=ksenks \
+  --export-num=688 \
+  --export-path=html \
+  --export-day=20200208 \
+  --export-template=logs.html
 ```
 
 или

@@ -13,14 +13,14 @@ import (
 // also reacts and say! with keys/values from say.data file
 type Sys struct {
 	say          []string
-	basic        map[string]string
 	dataLocation string
 	SysBots      []SysCommand
 }
-// SysCommand hold one command from basic.data
+// SysCommand hold one type commands from basic.data
 type SysCommand struct {
 	commands    []string
 	description string
+	message     string
 }
 
 // NewSys makes new sys bot and load data to []say and basic map
@@ -56,8 +56,10 @@ func (p Sys) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	if val, found := p.basic[strings.ToLower(msg.Text)]; found {
-		return Response{Text: val, Send: true}
+	for _, bot := range p.SysBots {
+		if found := contains(bot.commands, strings.ToLower(msg.Text)); found {
+			return Response{Text: bot.message, Send: true}
+		} 
 	}
 
 	return Response{}
@@ -69,7 +71,6 @@ func (p *Sys) loadBasicData() {
 		log.Fatalf("[FATAL] can't load basic.data, %v", err)
 	}
 
-	basic := make(map[string]string)
 	for _, line := range bdata {
 		elems := strings.Split(line, "|")		
 		if len(elems) != 3 {
@@ -78,15 +79,14 @@ func (p *Sys) loadBasicData() {
 		}
 		sysCommand := SysCommand{
 			description: elems[1],
+			message: elems[2],
 		}
 		for _, key := range strings.Split(elems[0], ";") {
-			basic[key] = elems[2]
 			sysCommand.commands = append(sysCommand.commands, key)
 		}
 		p.SysBots = append(p.SysBots, sysCommand)
+		log.Printf("[DEBUG] loaded basic response, %v, %s", sysCommand.commands, sysCommand.message)
 	}
-	p.basic = basic
-	log.Printf("[DEBUG] loaded basic set of responses, %v", basic)
 }
 
 func (p *Sys) loadSayData() {

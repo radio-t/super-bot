@@ -11,8 +11,9 @@ import (
 	log "github.com/go-pkgz/lgr"
 )
 
-var pinned = []string{
-	" --> Официальный кат!",
+// pinned defines translation map for messages pinned by bot
+var pinned = map[string]string{
+	" --> Официальный кат!": "Вещание подкаста началось - https://stream.radio-t.com/",
 }
 
 // Rtjc is a listener for incoming rtjc commands. Publishes whatever it got from the socket
@@ -43,7 +44,8 @@ func (l Rtjc) Listen(ctx context.Context) {
 			continue
 		}
 		if message, rerr := bufio.NewReader(conn).ReadString('\n'); rerr == nil {
-			if serr := l.Submitter.Submit(ctx, message, l.isPinned(message)); serr != nil {
+			pin, msg := l.isPinned(message)
+			if serr := l.Submitter.Submit(ctx, msg, pin); serr != nil {
 				log.Printf("[WARN] can't send message, %v", serr)
 			}
 		} else {
@@ -53,11 +55,11 @@ func (l Rtjc) Listen(ctx context.Context) {
 	}
 }
 
-func (l Rtjc) isPinned(msg string) bool {
-	for _, p := range pinned {
-		if strings.EqualFold(msg, p) {
-			return true
+func (l Rtjc) isPinned(msg string) (bool, string) {
+	for k, v := range pinned {
+		if strings.EqualFold(msg, k) {
+			return true, v
 		}
 	}
-	return false
+	return false, msg
 }

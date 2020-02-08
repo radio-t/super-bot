@@ -146,6 +146,19 @@ func Test_readMessagesCheckBroadcastMessages(t *testing.T) {
 		{
 			SuperUserMock{"radio-t-bot": true},
 			[]bot.Message{
+				{Text: bot.MsgBroadcastStarted + "\n_pong_", From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+				{Text: bot.MsgBroadcastFinished, From: bot.User{Username: "radio-t-bot"}},
+			},
+			[]bot.Message{
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+			},
+		},
+		{
+			SuperUserMock{"radio-t-bot": true},
+			[]bot.Message{
 				{Text: "message-0", From: bot.User{Username: "user-0"}},
 				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "radio-t-bot"}},
 				{Text: "message-1", From: bot.User{Username: "user-1"}},

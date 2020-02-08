@@ -80,9 +80,7 @@ func (p *Sys) loadBasicData() {
 		sysCommand := SysCommand{
 			description: elems[1],
 			message: elems[2],
-		}
-		for _, key := range strings.Split(elems[0], ";") {
-			sysCommand.commands = append(sysCommand.commands, key)
+			commands: append(strings.Split(elems[0], ";")),
 		}
 		p.SysBots = append(p.SysBots, sysCommand)
 		log.Printf("[DEBUG] loaded basic response, %v, %s", sysCommand.commands, sysCommand.message)

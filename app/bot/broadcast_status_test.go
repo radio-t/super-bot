@@ -19,7 +19,7 @@ func TestBroadcast_OnMessage(t *testing.T) {
 		expectedResponse Response
 	}{
 		{false, false, Response{}},
-		{false, true, Response{Text: MsgBroadcastStarted, Send: true, Pin: true}},
+		{false, true, Response{Text: MsgBroadcastStarted, Send: true, Pin: false}},
 		{true, false, Response{Text: MsgBroadcastFinished, Send: true}},
 		{true, true, Response{}},
 	}
@@ -76,7 +76,7 @@ func TestBroadcast_StatusTransitions(t *testing.T) {
 
 	// Wait for off->on
 	time.Sleep(20 * time.Millisecond)
-	require.Equal(t, Response{Text: MsgBroadcastStarted, Send: true, Pin: true}, b.OnMessage(Message{}))
+	require.Equal(t, Response{Text: MsgBroadcastStarted, Send: true, Pin: false}, b.OnMessage(Message{}))
 	require.True(t, b.getStatus())
 
 	// off

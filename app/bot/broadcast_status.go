@@ -55,7 +55,6 @@ func (b *BroadcastStatus) OnMessage(_ Message) (response Response) {
 		response.Send = true
 		if b.status {
 			response.Text = MsgBroadcastStarted
-			response.Pin = true
 		} else {
 			response.Text = MsgBroadcastFinished
 		}

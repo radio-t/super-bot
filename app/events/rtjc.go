@@ -5,10 +5,15 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	log "github.com/go-pkgz/lgr"
 )
+
+var pinned = []string{
+	" --> Официальный кат!",
+}
 
 // Rtjc is a listener for incoming rtjc commands. Publishes whatever it got from the socket
 // compatible with the legacy rtjc bot. Primarily use case is to push news events from news.radio-t.com
@@ -19,7 +24,7 @@ type Rtjc struct {
 
 // Submitter defines interface to submit (usually asynchronously) to the chat
 type Submitter interface {
-	Submit(ctx context.Context, msg string) error
+	Submit(ctx context.Context, text string, pin bool) error
 }
 
 // Listen on Port accept and forward to telegram
@@ -38,7 +43,7 @@ func (l Rtjc) Listen(ctx context.Context) {
 			continue
 		}
 		if message, rerr := bufio.NewReader(conn).ReadString('\n'); rerr == nil {
-			if serr := l.Submitter.Submit(ctx, message); serr != nil {
+			if serr := l.Submitter.Submit(ctx, message, l.isPinned(message)); serr != nil {
 				log.Printf("[WARN] can't send message, %v", serr)
 			}
 		} else {
@@ -46,4 +51,13 @@ func (l Rtjc) Listen(ctx context.Context) {
 		}
 		_ = conn.Close()
 	}
+}
+
+func (l Rtjc) isPinned(msg string) bool {
+	for _, p := range pinned {
+		if strings.EqualFold(msg, p) {
+			return true
+		}
+	}
+	return false
 }

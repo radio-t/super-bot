@@ -30,7 +30,7 @@ type TelegramListener struct {
 
 	msgs struct {
 		once sync.Once
-		ch   chan string
+		ch   chan bot.Response
 	}
 }
 
@@ -45,7 +45,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 		return errors.Wrapf(err, "failed to get chat ID for group %q", l.Group)
 	}
 	l.botAPI.Debug = l.Debug
-	l.msgs.once.Do(func() { l.msgs.ch = make(chan string, 100) })
+	l.msgs.once.Do(func() { l.msgs.ch = make(chan bot.Response, 100) })
 
 	u := tbapi.NewUpdate(0)
 	u.Timeout = 60
@@ -139,26 +139,37 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				}
 			}
 
-		case msg := <-l.msgs.ch: // publish messages from outside clients
-			tbMsg := tbapi.NewMessage(l.chatID, msg)
+		case resp := <-l.msgs.ch: // publish messages from outside clients
+			tbMsg := tbapi.NewMessage(l.chatID, resp.Text)
 			tbMsg.ParseMode = tbapi.ModeMarkdown
-			if res, err := l.botAPI.Send(tbMsg); err != nil {
+			res, err := l.botAPI.Send(tbMsg)
+			if err != nil {
 				log.Printf("[WARN] can't send msg to telegram, %v", err)
-			} else {
-				l.saveBotMessage(&res, l.chatID)
+				continue
+			}
+			l.saveBotMessage(&res, l.chatID)
+			if resp.Pin {
+				_, err = l.botAPI.PinChatMessage(tbapi.PinChatMessageConfig{
+					ChatID:              l.chatID,
+					MessageID:           res.MessageID,
+					DisableNotification: false,
+				})
+				if err != nil {
+					log.Printf("[WARN] can't pin tbMsg to telegram, %v", err)
+				}
 			}
 		}
 	}
 }
 
 // Submit message text to telegram's group
-func (l *TelegramListener) Submit(ctx context.Context, text string) error {
-	l.msgs.once.Do(func() { l.msgs.ch = make(chan string, 100) })
+func (l *TelegramListener) Submit(ctx context.Context, text string, pin bool) error {
+	l.msgs.once.Do(func() { l.msgs.ch = make(chan bot.Response, 100) })
 
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case l.msgs.ch <- text:
+	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true}:
 	}
 	return nil
 }

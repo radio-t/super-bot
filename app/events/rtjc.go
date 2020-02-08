@@ -13,7 +13,7 @@ import (
 
 // pinned defines translation map for messages pinned by bot
 var pinned = map[string]string{
-	" --> Официальный кат!": "Вещание подкаста началось - https://stream.radio-t.com/",
+	"⚠️ Официальный кат! - https://stream.radio-t.com/": "⚠️ Вещание подкаста началось - https://stream.radio-t.com/",
 }
 
 // Rtjc is a listener for incoming rtjc commands. Publishes whatever it got from the socket

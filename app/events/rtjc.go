@@ -56,8 +56,11 @@ func (l Rtjc) Listen(ctx context.Context) {
 }
 
 func (l Rtjc) isPinned(msg string) (bool, string) {
+	cleanedMsg := strings.TrimSpace(msg)
+	cleanedMsg = strings.TrimSuffix(cleanedMsg, "\n")
+
 	for k, v := range pinned {
-		if strings.EqualFold(msg, k) {
+		if strings.EqualFold(cleanedMsg, k) {
 			resMsg := v
 			if strings.TrimSpace(resMsg) == "" {
 				resMsg = msg

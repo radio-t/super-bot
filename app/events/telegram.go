@@ -120,7 +120,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				log.Printf("[DEBUG] bot response - %+v, pin: %t", resp.Text, resp.Pin)
 				tbMsg := tbapi.NewMessage(fromChat, resp.Text)
 				tbMsg.ParseMode = tbapi.ModeMarkdown
-				tbMsg.DisableWebPagePreview = true
+				tbMsg.DisableWebPagePreview = !resp.Preview
 				res, err := l.botAPI.Send(tbMsg)
 				if err != nil {
 					log.Printf("[WARN] can't send tbMsg to telegram, %v", err)
@@ -142,6 +142,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 		case resp := <-l.msgs.ch: // publish messages from outside clients
 			tbMsg := tbapi.NewMessage(l.chatID, resp.Text)
 			tbMsg.ParseMode = tbapi.ModeMarkdown
+			tbMsg.DisableWebPagePreview = !resp.Preview
 			res, err := l.botAPI.Send(tbMsg)
 			if err != nil {
 				log.Printf("[WARN] can't send msg to telegram, %v", err)
@@ -169,7 +170,7 @@ func (l *TelegramListener) Submit(ctx context.Context, text string, pin bool) er
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true}:
+	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, Preview: true}:
 	}
 	return nil
 }

@@ -30,9 +30,10 @@ type Interface interface {
 
 // Response describes bot's answer on particular message
 type Response struct {
-	Text string
-	Send bool
-	Pin  bool
+	Text    string
+	Send    bool
+	Pin     bool
+	Preview bool
 }
 
 // HTTPClient wrap http.Client to allow mocking

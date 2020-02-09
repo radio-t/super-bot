@@ -31,7 +31,7 @@ var opts struct {
 	SuperUsers   events.SuperUser `long:"super" description:"super-users"`
 	MashapeToken string           `long:"mashape" env:"MASHAPE_TOKEN" description:"mashape token"`
 	SysData      string           `long:"sys-data" env:"SYS_DATA" default:"data" description:"location of sys data"`
-	ExternalAPI  string           `long:"external-api" default:"https://bot.radio-t.com" description:"external api"`
+	NewsArticles int              `long:"max-articles" env:"MAX_ARTICLES" default:"5" description:"max number of news articles"`
 	Dbg          bool             `long:"dbg" env:"DEBUG" description:"debug mode"`
 
 	ExportNum            int              `long:"export-num" description:"show number for export"`
@@ -70,7 +70,7 @@ func main() {
 				PingInterval: 10 * time.Second,
 				DelayToOff:   time.Minute,
 				Client:       http.Client{Timeout: 5 * time.Second}}),
-		bot.NewNews(httpClient, "https://news.radio-t.com/api"),
+		bot.NewNews(httpClient, "https://news.radio-t.com/api", opts.NewsArticles),
 		bot.NewAnecdote(httpClient),
 		bot.NewStackOverflow(),
 		bot.NewDuck(opts.MashapeToken, httpClient),

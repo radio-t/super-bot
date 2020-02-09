@@ -9,10 +9,11 @@ import (
 	log "github.com/go-pkgz/lgr"
 )
 
-// News bot, returns 5 last articles in MD from https://news.radio-t.com/api/v1/news/lastmd/5
+// News bot, returns numArticles last articles in MD format from https://news.radio-t.com/api/v1/news/lastmd/5
 type News struct {
-	client  HTTPClient
-	newsAPI string
+	client      HTTPClient
+	newsAPI     string
+	numArticles int
 }
 
 type newsArticle struct {
@@ -22,9 +23,9 @@ type newsArticle struct {
 }
 
 // NewNews makes new News bot
-func NewNews(client HTTPClient, api string) *News {
+func NewNews(client HTTPClient, api string, max int) *News {
 	log.Printf("[INFO] news bot with api %s", api)
-	return &News{client: client, newsAPI: api}
+	return &News{client: client, newsAPI: api, numArticles: max}
 }
 
 // Help returns help message
@@ -32,13 +33,13 @@ func (n News) Help() string {
 	return genHelpMsg(n.ReactOn(), "5 последних новостей для Радио-Т")
 }
 
-// OnMessage returns 5 last news articles
+// OnMessage returns N last news articles
 func (n News) OnMessage(msg Message) (response Response) {
 	if !contains(n.ReactOn(), msg.Text) {
 		return Response{}
 	}
 
-	reqURL := fmt.Sprintf("%s/v1/news/last/5", n.newsAPI)
+	reqURL := fmt.Sprintf("%s/v1/news/last/%d", n.newsAPI, n.numArticles)
 	log.Printf("[DEBUG] request %s", reqURL)
 
 	req, err := makeHTTPRequest(reqURL)

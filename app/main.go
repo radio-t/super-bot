@@ -26,19 +26,20 @@ var opts struct {
 		Timeout time.Duration `long:"timeout" env:"TIMEOUT" description:"http client timeout for getting files from Telegram" default:"30s"`
 	} `group:"telegram" namespace:"telegram" env-namespace:"TELEGRAM"`
 
-	RtjcPort     int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
-	LogsPath     string           `short:"l" long:"logs" env:"TELEGRAM_LOGS" default:"logs" description:"path to logs"`
-	SuperUsers   events.SuperUser `long:"super" description:"super-users"`
-	MashapeToken string           `long:"mashape" env:"MASHAPE_TOKEN" description:"mashape token"`
-	SysData      string           `long:"sys-data" env:"SYS_DATA" default:"data" description:"location of sys data"`
-	NewsArticles int              `long:"max-articles" env:"MAX_ARTICLES" default:"5" description:"max number of news articles"`
-	Dbg          bool             `long:"dbg" env:"DEBUG" description:"debug mode"`
-
+	RtjcPort             int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
+	LogsPath             string           `short:"l" long:"logs" env:"TELEGRAM_LOGS" default:"logs" description:"path to logs"`
+	SuperUsers           events.SuperUser `long:"super" description:"super-users"`
+	MashapeToken         string           `long:"mashape" env:"MASHAPE_TOKEN" description:"mashape token"`
+	SysData              string           `long:"sys-data" env:"SYS_DATA" default:"data" description:"location of sys data"`
+	NewsArticles         int              `long:"max-articles" env:"MAX_ARTICLES" default:"5" description:"max number of news articles"`
+	IdleDuration         time.Duration    `long:"idle" env:"IDLE" default:"30s" description:"idle duration"`
 	ExportNum            int              `long:"export-num" description:"show number for export"`
 	ExportPath           string           `long:"export-path" default:"logs" description:"path to export directory"`
 	ExportDay            int              `long:"export-day" description:"day in yyyymmdd"`
 	TemplateFile         string           `long:"export-template" default:"logs.html" description:"path to template file"`
 	ExportBroadcastUsers events.SuperUser `long:"broadcast" description:"broadcast-users"`
+
+	Dbg bool `long:"dbg" env:"DEBUG" description:"debug mode"`
 }
 
 var revision = "local"
@@ -91,12 +92,13 @@ func main() {
 	}
 
 	tgListener := events.TelegramListener{
-		Terminator: term,
-		Reporter:   reporter.NewLogger(opts.LogsPath),
-		Bots:       multiBot,
-		Group:      opts.Telegram.Group,
-		Token:      opts.Telegram.Token,
-		Debug:      opts.Dbg,
+		AllActivityTerm: term,
+		MsgLogger:       reporter.NewLogger(opts.LogsPath),
+		Bots:            multiBot,
+		Group:           opts.Telegram.Group,
+		Token:           opts.Telegram.Token,
+		Debug:           opts.Dbg,
+		IdleDuration:    opts.IdleDuration,
 	}
 
 	go events.Rtjc{Port: opts.RtjcPort, Submitter: &tgListener}.Listen(ctx)

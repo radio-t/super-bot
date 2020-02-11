@@ -26,8 +26,8 @@ type ban struct {
 	new    bool
 }
 
-// check if user bothered bot too often and ban for BanDuration
-func (t *Terminator) check(user bot.User, sent time.Time) ban {
+// Check if user bothered bot too often and ban for BanDuration
+func (t *Terminator) Check(user bot.User, sent time.Time) ban {
 
 	noBan := ban{active: false, new: false}
 	if t.Exclude.IsSuper(user.Username) {

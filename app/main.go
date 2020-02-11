@@ -91,14 +91,14 @@ func main() {
 		Exclude:       opts.SuperUsers,
 	}
 
-	tbApi, err := tbapi.NewBotAPI(opts.Telegram.Token)
+	tbAPI, err := tbapi.NewBotAPI(opts.Telegram.Token)
 	if err != nil {
 		log.Fatalf("[ERROR] can't make telegram bot, %v", err)
 	}
-	tbApi.Debug = opts.Dbg
+	tbAPI.Debug = opts.Dbg
 
 	tgListener := events.TelegramListener{
-		TbAPI:           tbApi,
+		TbAPI:           tbAPI,
 		AllActivityTerm: term,
 		MsgLogger:       reporter.NewLogger(opts.LogsPath),
 		Bots:            multiBot,

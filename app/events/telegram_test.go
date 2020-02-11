@@ -49,6 +49,9 @@ func TestTelegramListener_DoNoBots(t *testing.T) {
 	}))
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
+
+	msgLogger.AssertExpectations(t)
+	msgLogger.AssertNumberOfCalls(t, "Save", 1)
 }
 
 func TestTelegramListener_WithBots(t *testing.T) {

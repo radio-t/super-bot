@@ -110,7 +110,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
 
 			// check for ban
-			if b := l.AllActivityTerm.Check(msg.From, msg.Sent); b.active {
+			if b := l.AllActivityTerm.check(msg.From, msg.Sent); b.active {
 				if b.new {
 					if err := l.applyBan(*msg, l.AllActivityTerm.BanDuration, fromChat, update.Message.From.ID); err != nil {
 						log.Printf("[ERROR] can't ban, %v", err)

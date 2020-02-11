@@ -21,7 +21,7 @@ import (
 // TelegramListener listens to tg update, forward to bots and send back responses
 // Not thread safe
 type TelegramListener struct {
-	Token           string
+	TbAPI           tbAPI
 	MsgLogger       msgLogger
 	Bots            bot.Interface
 	Group           string // can be int64 or public group username (without "@" prefix)
@@ -29,7 +29,6 @@ type TelegramListener struct {
 	IdleDuration    time.Duration
 	AllActivityTerm Terminator
 
-	botAPI tbAPI
 	chatID int64
 
 	msgs struct {
@@ -54,15 +53,9 @@ type msgLogger interface {
 func (l *TelegramListener) Do(ctx context.Context) (err error) {
 	log.Printf("[INFO] start telegram listener for %q", l.Group)
 
-	var botAPI *tbapi.BotAPI
-	if botAPI, err = tbapi.NewBotAPI(l.Token); err != nil {
-		return errors.Wrap(err, "can't make telegram bot")
-	}
 	if l.chatID, err = l.getChatID(l.Group); err != nil {
 		return errors.Wrapf(err, "failed to get chat ID for group %q", l.Group)
 	}
-	botAPI.Debug = l.Debug
-	l.botAPI = botAPI
 
 	l.msgs.once.Do(func() {
 		l.msgs.ch = make(chan bot.Response, 100)
@@ -75,7 +68,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 	u.Timeout = 60
 
 	var updates tbapi.UpdatesChannel
-	if updates, err = l.botAPI.GetUpdatesChan(u); err != nil {
+	if updates, err = l.TbAPI.GetUpdatesChan(u); err != nil {
 		return errors.Wrap(err, "can't get updates channel")
 	}
 
@@ -111,7 +104,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			msg := l.transform(update.Message)
 			if fromChat == l.chatID {
-				l.MsgLogger.Save(msg) // save to report
+				l.MsgLogger.Save(msg) // save incoming update to report
 			}
 
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
@@ -155,7 +148,7 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	tbMsg := tbapi.NewMessage(chatID, resp.Text)
 	tbMsg.ParseMode = tbapi.ModeMarkdown
 	tbMsg.DisableWebPagePreview = !resp.Preview
-	res, err := l.botAPI.Send(tbMsg)
+	res, err := l.TbAPI.Send(tbMsg)
 	if err != nil {
 		return errors.Wrap(err, "can't send message to telegram")
 	}
@@ -163,7 +156,7 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	l.saveBotMessage(&res, chatID)
 
 	if resp.Pin {
-		_, err = l.botAPI.PinChatMessage(tbapi.PinChatMessageConfig{ChatID: chatID, MessageID: res.MessageID})
+		_, err = l.TbAPI.PinChatMessage(tbapi.PinChatMessageConfig{ChatID: chatID, MessageID: res.MessageID})
 		if err != nil {
 			return errors.Wrap(err, "can't pin message to telegram")
 		}
@@ -204,7 +197,7 @@ func (l *TelegramListener) getChatID(group string) (int64, error) {
 		return chatID, nil
 	}
 
-	chat, err := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: "@" + group})
+	chat, err := l.TbAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: "@" + group})
 	if err != nil {
 		return 0, errors.Wrapf(err, "can't get chat for %s", group)
 	}
@@ -234,7 +227,7 @@ func (l *TelegramListener) banUser(duration time.Duration, chatID int64, userID 
 		duration = 1 * time.Minute
 	}
 
-	resp, err := l.botAPI.RestrictChatMember(tbapi.RestrictChatMemberConfig{
+	resp, err := l.TbAPI.RestrictChatMember(tbapi.RestrictChatMemberConfig{
 		ChatMemberConfig: tbapi.ChatMemberConfig{
 			ChatID: chatID,
 			UserID: userID,

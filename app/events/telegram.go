@@ -21,13 +21,14 @@ import (
 // TelegramListener listens to tg update, forward to bots and send back responses
 // Not thread safe
 type TelegramListener struct {
-	TbAPI           tbAPI
-	MsgLogger       msgLogger
-	Bots            bot.Interface
-	Group           string // can be int64 or public group username (without "@" prefix)
-	Debug           bool
-	IdleDuration    time.Duration
-	AllActivityTerm Terminator
+	TbAPI            tbAPI
+	MsgLogger        msgLogger
+	Bots             bot.Interface
+	Group            string // can be int64 or public group username (without "@" prefix)
+	Debug            bool
+	IdleDuration     time.Duration
+	AllActivityTerm  Terminator
+	BotsActivityTerm Terminator
 
 	chatID int64
 
@@ -109,7 +110,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
 
-			// check for ban
+			// check for all-activity ban
 			if b := l.AllActivityTerm.check(msg.From, msg.Sent); b.active {
 				if b.new {
 					if err := l.applyBan(*msg, l.AllActivityTerm.BanDuration, fromChat, update.Message.From.ID); err != nil {
@@ -120,6 +121,18 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			}
 
 			resp := l.Bots.OnMessage(*msg)
+			if resp.Send {
+				// check for bot-activity ban
+				if b := l.BotsActivityTerm.check(msg.From, msg.Sent); b.active {
+					if b.new {
+						if err := l.applyBan(*msg, l.BotsActivityTerm.BanDuration, fromChat, update.Message.From.ID); err != nil {
+							log.Printf("[ERROR] can't ban, %v", err)
+						}
+					}
+					continue
+				}
+			}
+
 			if err := l.sendBotResponse(resp, fromChat); err != nil {
 				log.Printf("[WARN] failed to respond on update, %v", err)
 			}

@@ -84,10 +84,17 @@ func main() {
 		log.Printf("[ERROR] failed to load sysbot, %v", err)
 	}
 
-	term := events.Terminator{
+	allActivityTerm := events.Terminator{
 		BanDuration:   time.Minute * 10,
-		BanPenalty:    3,
+		BanPenalty:    5,
 		AllowedPeriod: time.Second * 5,
+		Exclude:       opts.SuperUsers,
+	}
+
+	botsActivityTerm := events.Terminator{
+		BanDuration:   time.Minute * 5,
+		BanPenalty:    4,
+		AllowedPeriod: time.Second * 30,
 		Exclude:       opts.SuperUsers,
 	}
 
@@ -98,13 +105,14 @@ func main() {
 	tbAPI.Debug = opts.Dbg
 
 	tgListener := events.TelegramListener{
-		TbAPI:           tbAPI,
-		AllActivityTerm: term,
-		MsgLogger:       reporter.NewLogger(opts.LogsPath),
-		Bots:            multiBot,
-		Group:           opts.Telegram.Group,
-		Debug:           opts.Dbg,
-		IdleDuration:    opts.IdleDuration,
+		TbAPI:            tbAPI,
+		AllActivityTerm:  allActivityTerm,
+		BotsActivityTerm: botsActivityTerm,
+		MsgLogger:        reporter.NewLogger(opts.LogsPath),
+		Bots:             multiBot,
+		Group:            opts.Telegram.Group,
+		Debug:            opts.Dbg,
+		IdleDuration:     opts.IdleDuration,
 	}
 
 	go events.Rtjc{Port: opts.RtjcPort, Submitter: &tgListener}.Listen(ctx)

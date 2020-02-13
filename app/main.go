@@ -76,6 +76,7 @@ func main() {
 		bot.NewStackOverflow(),
 		bot.NewDuck(opts.MashapeToken, httpClient),
 		bot.NewPodcasts(httpClient, "https://radio-t.com/site-api", 5),
+		bot.NewPrepPost(httpClient, "https://radio-t.com/site-api", 5*time.Minute),
 	}
 
 	if sb, err := bot.NewSys(opts.SysData); err == nil {

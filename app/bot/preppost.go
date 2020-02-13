@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// PrepPost bot notifies on new prep topic on site
+// PrepPost bot notifies on new prep topic on the site
 type PrepPost struct {
 	client        HTTPClient
 	siteAPI       string
@@ -36,6 +36,9 @@ func NewPrepPost(client HTTPClient, api string, d time.Duration) *PrepPost {
 	return &PrepPost{client: client, siteAPI: api, checkDuration: d}
 }
 
+// OnMessage reacts on any message and, from time to time (every checkDuration) hits site api
+// and gets the latest prep article. In case if article's url changed returns pinned response.
+// Skips the first check to avoid false-positive on restart
 func (p *PrepPost) OnMessage(Message) (response Response) {
 
 	if time.Now().Sub(p.last.checked) < p.checkDuration {

@@ -41,7 +41,7 @@ func NewPrepPost(client HTTPClient, api string, d time.Duration) *PrepPost {
 // Skips the first check to avoid false-positive on restart
 func (p *PrepPost) OnMessage(Message) (response Response) {
 
-	if time.Now().Sub(p.last.checked) < p.checkDuration {
+	if time.Since(p.last.checked) < p.checkDuration {
 		return Response{}
 	}
 

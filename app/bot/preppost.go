@@ -46,7 +46,7 @@ func (p *PrepPost) OnMessage(Message) (response Response) {
 		p.last.checked = time.Now()
 	}()
 
-	pi, err := p.prepPost()
+	pi, err := p.recentPrepPost()
 	if err != nil {
 		if err != errNotPost {
 			log.Printf("[WARN] failed to check for new post, %v", err)
@@ -64,7 +64,7 @@ func (p *PrepPost) OnMessage(Message) (response Response) {
 	return Response{}
 }
 
-func (p *PrepPost) prepPost() (pi postInfo, err error) {
+func (p *PrepPost) recentPrepPost() (pi postInfo, err error) {
 
 	reqURL := fmt.Sprintf("%s/last/1?categories=prep", p.siteAPI)
 	req, err := http.NewRequest("GET", reqURL, nil)
@@ -79,7 +79,7 @@ func (p *PrepPost) prepPost() (pi postInfo, err error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return pi, errors.Errorf("request %s returned %s", reqURL, resp.Status)
+		return pi, errors.Errorf("request %s returned %d", reqURL, resp.StatusCode)
 	}
 
 	posts := []postInfo{}

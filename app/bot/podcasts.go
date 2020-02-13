@@ -14,9 +14,10 @@ import (
 // Podcasts search bot, returns search result via site-api see https://radio-t.com/api-docs/
 // GET /search?q=text-to-search&skip=10&limit=5, example: : https://radio-t.com/site-api/search?q=mongo&limit=10
 type Podcasts struct {
-	client     HTTPClient
-	siteAPI    string
-	maxResults int
+	client       HTTPClient
+	siteAPI      string
+	maxResults   int
+	lastPrepPost postInfo
 }
 
 type siteAPIResp struct {

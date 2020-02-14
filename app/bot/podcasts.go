@@ -39,7 +39,7 @@ func NewPodcasts(client HTTPClient, api string, maxResults int) *Podcasts {
 
 // Help returns help message
 func (p *Podcasts) Help() string {
-	return genHelpMsg(p.ReactOn(), "искать в описаниях подкастов, например: /search lambda")
+	return genHelpMsg(p.ReactOn(), "искать в описаниях подкастов, например: search! lambda")
 }
 
 // OnMessage returns result of search via https://radio-t.com/site-api/search?
@@ -168,5 +168,5 @@ func (p *Podcasts) request(text string) (react bool, reqText string) {
 
 // ReactOn keys
 func (p *Podcasts) ReactOn() []string {
-	return []string{"/search", "search!"}
+	return []string{"search!", "подкаст!"}
 }

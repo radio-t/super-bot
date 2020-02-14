@@ -43,10 +43,10 @@ func TestPodcasts_OnMessage(t *testing.T) {
 ●  Слои общего кода в AWS Lambda - 01:15:46.
 
 `, Send: true},
-		d.OnMessage(Message{Text: "/search Lambda"}),
+		d.OnMessage(Message{Text: "search! Lambda"}),
 	)
 
-	response := d.OnMessage(Message{Text: "/search Lambda"})
+	response := d.OnMessage(Message{Text: "search! Lambda"})
 	require.True(t, response.Send, "second call ok too")
 }
 
@@ -82,7 +82,7 @@ func TestPodcasts_OnMessageWithLinks(t *testing.T) {
 ○  [xxxx в облаке — чем это хорошо](https://www.mongodb.com/cloud)
 
 `, Send: true},
-		d.OnMessage(Message{Text: "/search mongo"}),
+		d.OnMessage(Message{Text: "search! mongo"}),
 	)
 }
 

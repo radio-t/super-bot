@@ -13,7 +13,7 @@ import (
 )
 
 func TestDuck_Help(t *testing.T) {
-	require.Equal(t, "/ddg, ddg!, ?? _– поискать на DuckDuckGo, например: /ddg lambda_\n", (&Duck{}).Help())
+	require.Equal(t, "ddg!, ?? _– поискать на DuckDuckGo, например: ddg! lambda_\n", (&Duck{}).Help())
 }
 
 func TestDuck_OnMessage(t *testing.T) {
@@ -37,7 +37,6 @@ func TestDuck_request(t *testing.T) {
 		{"blah", false, ""},
 		{"?? something", true, "something"},
 		{"ddg! something", true, "something"},
-		{"/ddg something", true, "something"},
 	}
 
 	d := &Duck{}

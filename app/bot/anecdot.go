@@ -110,5 +110,5 @@ func (a Anecdote) chuck() (response Response) {
 
 // ReactOn keys
 func (a Anecdote) ReactOn() []string {
-	return []string{"/joke", "/chuck", "/анекдот", "анекдот!", "анкедот!", "joke!", "chuck!"}
+	return []string{"анекдот!", "анкедот!", "joke!", "chuck!"}
 }

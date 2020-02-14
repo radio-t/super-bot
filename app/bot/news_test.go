@@ -61,7 +61,7 @@ func TestNewsBot_ReactionOnNewsRequestAlt(t *testing.T) {
 	require.Equal(
 		t,
 		Response{Text: "- [title](link) 0001-01-01\n- [все новости и темы](https://news.radio-t.com)", Send: true},
-		b.OnMessage(Message{Text: "/news"}),
+		b.OnMessage(Message{Text: "news!"}),
 	)
 }
 

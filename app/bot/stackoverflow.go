@@ -75,5 +75,5 @@ func (s StackOverflow) OnMessage(msg Message) (response Response) {
 
 // ReactOn keys
 func (s StackOverflow) ReactOn() []string {
-	return []string{"/so", "so!"}
+	return []string{"so!"}
 }

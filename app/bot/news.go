@@ -73,5 +73,5 @@ func (n News) OnMessage(msg Message) (response Response) {
 
 // ReactOn keys
 func (n News) ReactOn() []string {
-	return []string{"/news", "/новости", "news!", "новости!"}
+	return []string{"news!", "новости!"}
 }

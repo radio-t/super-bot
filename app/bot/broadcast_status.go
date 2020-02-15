@@ -11,7 +11,7 @@ import (
 
 const (
 	// MsgBroadcastStarted defines text to be sent by the bot when the broadcast started
-	MsgBroadcastStarted = "Вещание началось"
+	MsgBroadcastStarted = "Вещание началось. Приобщиться можно тут: https://stream.radio-t.com/"
 
 	// MsgBroadcastFinished defines text to be sent by the bot when the broadcast finished
 	MsgBroadcastFinished = "Вещание завершилось"

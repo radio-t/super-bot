@@ -35,12 +35,12 @@ func (w WTF) OnMessage(msg Message) (response Response) {
 	}
 
 	if rand.Float64() < w.luckFactor {
-		return Response{Text: fmt.Sprintf("[%s](tg://user?id=%s), на этот раз тебе повезло!", mention, msg.From.ID), Send: true}
+		return Response{Text: fmt.Sprintf("[%s](tg://user?id=%d), на этот раз тебе повезло!", mention, msg.From.ID), Send: true}
 	}
 
 	banDuration := w.minDuration + time.Second*time.Duration(rand.Int63n(int64(w.maxDuration.Seconds()-w.minDuration.Seconds())))
 	return Response{
-		Text:        fmt.Sprintf("[%s](tg://user?id=%s) получает бан на %v", mention, msg.From.ID, banDuration),
+		Text:        fmt.Sprintf("[%s](tg://user?id=%d) получает бан на %v", mention, msg.From.ID, banDuration),
 		Send:        true,
 		BanInterval: banDuration,
 	}

@@ -194,7 +194,7 @@ func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, cha
 	m := fmt.Sprintf("[%s](tg://user?id=%d) _тебя слишком много, отдохни..._", mention, userID)
 
 	if err := l.sendBotResponse(bot.Response{Text: m, Send: true}, chatID); err != nil {
-		return errors.Wrapf(err, "failed to send ban message for %s", msg.From)
+		return errors.Wrapf(err, "failed to send ban message for %v", msg.From)
 	}
 	err := l.banUser(duration, chatID, userID)
 	return errors.Wrapf(err, "failed to ban user %v", msg.From)
@@ -279,6 +279,7 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 
 	if msg.From != nil {
 		message.From = bot.User{
+			ID:          msg.From.ID,
 			Username:    msg.From.UserName,
 			DisplayName: msg.From.FirstName + " " + msg.From.LastName,
 		}

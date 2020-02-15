@@ -288,6 +288,7 @@ func TestTelegram_transformTextMessage(t *testing.T) {
 		&bot.Message{
 			ID: 30,
 			From: bot.User{
+				ID:          100000001,
 				Username:    "username",
 				DisplayName: "First Last",
 			},
@@ -297,6 +298,7 @@ func TestTelegram_transformTextMessage(t *testing.T) {
 		l.transform(
 			&tbapi.Message{
 				From: &tbapi.User{
+					ID:        100000001,
 					UserName:  "username",
 					FirstName: "First",
 					LastName:  "Last",

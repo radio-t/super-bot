@@ -47,23 +47,23 @@ func (t *Terminator) check(user bot.User, sent time.Time) ban {
 
 	if time.Now().Before(info.lastActivity.Add(t.AllowedPeriod)) {
 		info.penalty++
-		log.Printf("[DEBUG] penalty increased for %s to %d", user, info.penalty)
+		log.Printf("[DEBUG] penalty increased for %v to %d", user, info.penalty)
 	} else {
 		if info.penalty > 0 {
-			log.Printf("[DEBUG] penalty reset for %s from %d", user, info.penalty)
+			log.Printf("[DEBUG] penalty reset for %v from %d", user, info.penalty)
 		}
 		info.penalty = 0
 	}
 
 	if info.penalty == t.BanPenalty {
-		log.Printf("[WARN] banned %s", user)
+		log.Printf("[WARN] banned %v", user)
 		info.penalty++
 		t.users[user] = info
 		return ban{active: true, new: true}
 	}
 
 	if info.penalty >= t.BanPenalty {
-		log.Printf("[DEBUG] still banned %s", user)
+		log.Printf("[DEBUG] still banned %v", user)
 		return ban{active: true, new: false}
 	}
 

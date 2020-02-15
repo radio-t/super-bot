@@ -172,7 +172,7 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	tbMsg.DisableWebPagePreview = !resp.Preview
 	res, err := l.TbAPI.Send(tbMsg)
 	if err != nil {
-		return errors.Wrap(err, "can't send message to telegram")
+		return errors.Wrapf(err, "can't send message to telegram %q", resp.Text)
 	}
 
 	l.saveBotMessage(&res, chatID)
@@ -190,12 +190,12 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, chatID int64, userID int) error {
 	mention := "@" + msg.From.Username
 	if msg.From.Username == "" {
-		mention = fmt.Sprintf("[%s](tg://user?id=%d)", msg.From.DisplayName, userID)
+		mention = msg.From.DisplayName
 	}
-	m := fmt.Sprintf("%s _тебя слишком много, отдохни..._", mention)
+	m := fmt.Sprintf("[%s](tg://user?id=%d) _тебя слишком много, отдохни..._", mention, userID)
 
 	if err := l.sendBotResponse(bot.Response{Text: m, Send: true}, chatID); err != nil {
-		return errors.Wrapf(err, "failed to send ban message for %s", msg.From)
+		return errors.Wrapf(err, "failed to send ban message for %v", msg.From)
 	}
 	err := l.banUser(duration, chatID, userID)
 	return errors.Wrapf(err, "failed to ban user %v", msg.From)
@@ -280,6 +280,7 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 
 	if msg.From != nil {
 		message.From = bot.User{
+			ID:          msg.From.ID,
 			Username:    msg.From.UserName,
 			DisplayName: msg.From.FirstName + " " + msg.From.LastName,
 		}

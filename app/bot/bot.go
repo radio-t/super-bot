@@ -81,7 +81,7 @@ type Image struct {
 
 // User defines user info of the Message
 type User struct {
-	ID          string `json:",omitempty"`
+	ID          int
 	Username    string
 	DisplayName string
 }

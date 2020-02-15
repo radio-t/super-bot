@@ -31,16 +31,16 @@ func (w WTF) OnMessage(msg Message) (response Response) {
 
 	mention := "@" + msg.From.Username
 	if msg.From.Username == "" {
-		mention = fmt.Sprintf("[%s](tg://user?id=%s)", msg.From.DisplayName, msg.From.ID)
+		mention = msg.From.DisplayName
 	}
 
 	if rand.Float64() < w.luckFactor {
-		return Response{Text: fmt.Sprintf("%s, на этот раз тебе повезло!", mention), Send: true}
+		return Response{Text: fmt.Sprintf("[%s](tg://user?id=%s), на этот раз тебе повезло!", mention, msg.From.ID), Send: true}
 	}
 
 	banDuration := w.minDuration + time.Second*time.Duration(rand.Int63n(int64(w.maxDuration.Seconds()-w.minDuration.Seconds())))
 	return Response{
-		Text:        fmt.Sprintf("%s получает бан на %v", mention, banDuration),
+		Text:        fmt.Sprintf("[%s](tg://user?id=%s) получает бан на %v", mention, msg.From.ID, banDuration),
 		Send:        true,
 		BanInterval: banDuration,
 	}

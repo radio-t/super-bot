@@ -180,7 +180,7 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 		Message: &tbapi.Message{
 			Chat: &tbapi.Chat{ID: 123},
 			Text: "text 123",
-			From: &tbapi.User{UserName: "user"},
+			From: &tbapi.User{UserName: "user_name", ID: 1},
 			Date: now,
 		},
 	}
@@ -200,17 +200,17 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 	bots.On("OnMessage", mock.Anything).Return(bot.Response{Send: false})
 	msgLogger.On("Save", mock.MatchedBy(func(msg *bot.Message) bool {
 		t.Logf("%v", msg)
-		return msg.Text == "text 123" && msg.From.Username == "user"
+		return msg.Text == "text 123" && msg.From.Username == "user_name"
 	}))
 	msgLogger.On("Save", mock.MatchedBy(func(msg *bot.Message) bool {
 		t.Logf("%v", msg)
-		return msg.Text == "@user _тебя слишком много, отдохни..._" && msg.From.Username == "user"
+		return msg.Text == "[@user_name](tg://user?id=1) _тебя слишком много, отдохни..._" && msg.From.Username == "user_name"
 	})).Once()
 
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
-		return c.Text == "@user _тебя слишком много, отдохни..._"
-	})).Return(tbapi.Message{Text: "@user _тебя слишком много, отдохни..._", From: &tbapi.User{UserName: "user"}}, nil).Once()
+		return c.Text == "[@user_name](tg://user?id=1) _тебя слишком много, отдохни..._"
+	})).Return(tbapi.Message{Text: "[@user_name](tg://user?id=1) _тебя слишком много, отдохни..._", From: &tbapi.User{UserName: "user_name", ID: 1}}, nil).Once()
 
 	tbAPI.On("RestrictChatMember", mock.Anything).Return(tbapi.APIResponse{Ok: true}, nil)
 	err := l.Do(ctx)

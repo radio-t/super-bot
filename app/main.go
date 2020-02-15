@@ -77,6 +77,7 @@ func main() {
 		bot.NewDuck(opts.MashapeToken, httpClient),
 		bot.NewPodcasts(httpClient, "https://radio-t.com/site-api", 5),
 		bot.NewPrepPost(httpClient, "https://radio-t.com/site-api", 5*time.Minute),
+		bot.NewWTF(time.Minute, 15*time.Minute, 0.2),
 	}
 
 	if sb, err := bot.NewSys(opts.SysData); err == nil {

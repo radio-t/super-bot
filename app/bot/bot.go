@@ -30,10 +30,11 @@ type Interface interface {
 
 // Response describes bot's answer on particular message
 type Response struct {
-	Text    string
-	Send    bool
-	Pin     bool
-	Preview bool
+	Text        string
+	Send        bool          // status
+	Pin         bool          // enable pin
+	Preview     bool          // enable web preview
+	BanInterval time.Duration // bots banning user set the interval
 }
 
 // HTTPClient wrap http.Client to allow mocking

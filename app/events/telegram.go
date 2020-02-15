@@ -105,7 +105,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			msg := l.transform(update.Message)
 			if fromChat == l.chatID {
-				l.MsgLogger.Save(msg) // save incoming update to report
+				l.MsgLogger.Save(msg) // save an incoming update to report
 			}
 
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
@@ -135,6 +135,13 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			if err := l.sendBotResponse(resp, fromChat); err != nil {
 				log.Printf("[WARN] failed to respond on update, %v", err)
+			}
+
+			// some bots may request direct ban for given duration
+			if resp.BanInterval > 0 {
+				if err := l.banUser(resp.BanInterval, fromChat, update.Message.From.ID); err != nil {
+					log.Printf("[ERROR] can't ban %s on bot response, %v", update.Message.From.UserName, err)
+				}
 			}
 
 		case resp := <-l.msgs.ch: // publish messages from outside clients

@@ -18,9 +18,13 @@ func TestWTF_OnMessage(t *testing.T) {
 
 	lucky := 0
 	for i := 0; i < 100; i++ {
-		r = b.OnMessage(Message{Text: "WTF!", From: User{Username: "user123"}})
+		r = b.OnMessage(Message{Text: "wtf!", From: User{Username: "user123"}})
+		assert.True(t, r.Send)
 		if strings.Contains(r.Text, "повезло") {
 			lucky++
+			require.True(t, r.BanInterval == 0)
+		} else {
+			require.True(t, r.BanInterval > 0)
 		}
 	}
 	t.Logf("lucky hits %d", lucky)

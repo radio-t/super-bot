@@ -115,6 +115,7 @@ func main() {
 		Group:            opts.Telegram.Group,
 		Debug:            opts.Dbg,
 		IdleDuration:     opts.IdleDuration,
+		SuperUsers:       opts.SuperUsers,
 	}
 
 	go events.Rtjc{Port: opts.RtjcPort, Submitter: &tgListener}.Listen(ctx)

@@ -48,5 +48,5 @@ func (w WTF) ReactOn() []string {
 
 // Help returns help message
 func (w WTF) Help() string {
-	return genHelpMsg(w.ReactOn(), "если не повезет, блокирует пользоваеля на какое-то время")
+	return genHelpMsg(w.ReactOn(), "если не повезет, блокирует пользователя на какое-то время")
 }

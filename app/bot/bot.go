@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -113,6 +114,8 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 
 	resps := make(chan string)
 	var pin int32 = 0
+	var banInterval time.Duration = 0
+	var mutex = &sync.Mutex{}
 
 	wg := syncs.NewSizedGroup(4)
 	for _, bot := range b {
@@ -122,6 +125,13 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 				resps <- resp.Text
 				if resp.Pin {
 					atomic.AddInt32(&pin, 1)
+				}
+				if resp.BanInterval > 0 {
+					mutex.Lock()
+					if resp.BanInterval > banInterval {
+						banInterval = resp.BanInterval
+					}
+					mutex.Unlock()
 				}
 			}
 		})
@@ -140,9 +150,10 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 
 	log.Printf("[DEBUG] answers %d, send %v", len(lines), len(lines) > 0)
 	return Response{
-		Text: strings.Join(lines, "\n"),
-		Send: len(lines) > 0,
-		Pin:  atomic.LoadInt32(&pin) > 0,
+		Text:        strings.Join(lines, "\n"),
+		Send:        len(lines) > 0,
+		Pin:         atomic.LoadInt32(&pin) > 0,
+		BanInterval: banInterval,
 	}
 }
 

@@ -33,5 +33,5 @@ func TestWTF_OnMessage(t *testing.T) {
 }
 
 func TestWTF_Help(t *testing.T) {
-	require.Equal(t, "wtf! _– если не повезет, блокирует пользователя на какое-то время_\n", (&WTF{}).Help())
+	require.Equal(t, "wtf!, wtf? _– если не повезет, блокирует пользователя на какое-то время_\n", (&WTF{}).Help())
 }

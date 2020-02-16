@@ -57,7 +57,7 @@ func (b *BroadcastStatus) OnMessage(_ Message) (response Response) {
 			response.Text = MsgBroadcastStarted
 		} else {
 			response.Text = MsgBroadcastFinished
-			response.Unpin = true // unpin message "broadcast started" pinned by
+			response.Unpin = true // unpin message "broadcast started" (sent by outside clients)
 		}
 		b.lastSentStatus = b.status
 	}

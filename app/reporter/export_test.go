@@ -416,6 +416,11 @@ func TestExporter_format(t *testing.T) {
 			&[]bot.Entity{{Offset: 0, Length: 265, Type: "italic"}, {Offset: 5, Length: 4, Type: "bot_command"}, {Offset: 15, Length: 5, Type: "bot_command"}, {Offset: 21, Length: 4, Type: "bot_command"}, {Offset: 42, Length: 6, Type: "bot_command"}, {Offset: 89, Length: 4, Type: "bot_command"}, {Offset: 119, Length: 5, Type: "bot_command"}, {Offset: 161, Length: 5, Type: "bot_command"}, {Offset: 216, Length: 5, Type: "bot_command"}, {Offset: 222, Length: 6, Type: "bot_command"}, {Offset: 233, Length: 3, Type: "bot_command"}, {Offset: 245, Length: 4, Type: "bot_command"}, {Offset: 258, Length: 7, Type: "bot_command"}},
 			"<em>say! /say /who когда? /когда /how /доколе правила? ping пинг кто? who? /кто when? доколе? /ping /пинг rules? /правила /when как? how? /как /rules news! новости! /news /новости анекдот! анкедот! joke! chuck! /анекдот /joke /chuck so! /so ddg! ?? /ddg search! /search</em>",
 		},
+		{
+			"must show say.data",
+			&[]bot.Entity{{Type: "bold", Offset: 0, Length: 18}, {Type: "url", Offset: 10, Length: 8}},
+			"<strong>must show say.data</strong>",
+		},
 	}
 
 	for i, tt := range tbl {

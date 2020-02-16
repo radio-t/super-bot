@@ -293,6 +293,12 @@ func filter(msg bot.Message) bool {
 }
 
 func format(text string, entities *[]bot.Entity) template.HTML {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[ERROR] failed to format %q, %#v", text, entities)
+		}
+	}()
+
 	if entities == nil {
 		return template.HTML(strings.ReplaceAll(html.EscapeString(text), "\n", "<br>")) // nolint
 	}
@@ -302,6 +308,11 @@ func format(text string, entities *[]bot.Entity) template.HTML {
 	pos := 0
 
 	for _, entity := range *entities {
+		if entity.Offset < pos {
+			// current code does not support nested entities
+			continue
+		}
+
 		before, after := getDecoration(
 			entity,
 			runes[entity.Offset:entity.Offset+entity.Length],

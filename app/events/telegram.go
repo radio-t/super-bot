@@ -42,6 +42,7 @@ type tbAPI interface {
 	GetUpdatesChan(config tbapi.UpdateConfig) (tbapi.UpdatesChannel, error)
 	Send(c tbapi.Chattable) (tbapi.Message, error)
 	PinChatMessage(config tbapi.PinChatMessageConfig) (tbapi.APIResponse, error)
+	UnpinChatMessage(config tbapi.UnpinChatMessageConfig) (tbapi.APIResponse, error)
 	GetChat(config tbapi.ChatConfig) (tbapi.Chat, error)
 	RestrictChatMember(config tbapi.RestrictChatMemberConfig) (tbapi.APIResponse, error)
 }
@@ -181,6 +182,13 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 		_, err = l.TbAPI.PinChatMessage(tbapi.PinChatMessageConfig{ChatID: chatID, MessageID: res.MessageID})
 		if err != nil {
 			return errors.Wrap(err, "can't pin message to telegram")
+		}
+	}
+
+	if resp.Unpin {
+		_, err = l.TbAPI.UnpinChatMessage(tbapi.UnpinChatMessageConfig{ChatID: chatID})
+		if err != nil {
+			return errors.Wrap(err, "can't unpin message to telegram")
 		}
 	}
 

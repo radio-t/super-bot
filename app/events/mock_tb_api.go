@@ -118,3 +118,24 @@ func (_m *mockTbAPI) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
 
 	return r0, r1
 }
+
+// UnpinChatMessage provides a mock function with given fields: config
+func (_m *mockTbAPI) UnpinChatMessage(config tgbotapi.UnpinChatMessageConfig) (tgbotapi.APIResponse, error) {
+	ret := _m.Called(config)
+
+	var r0 tgbotapi.APIResponse
+	if rf, ok := ret.Get(0).(func(tgbotapi.UnpinChatMessageConfig) tgbotapi.APIResponse); ok {
+		r0 = rf(config)
+	} else {
+		r0 = ret.Get(0).(tgbotapi.APIResponse)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(tgbotapi.UnpinChatMessageConfig) error); ok {
+		r1 = rf(config)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}

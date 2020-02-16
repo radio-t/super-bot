@@ -34,6 +34,7 @@ type Response struct {
 	Text        string
 	Send        bool          // status
 	Pin         bool          // enable pin
+	Unpin       bool          // enable unpin
 	Preview     bool          // enable web preview
 	BanInterval time.Duration // bots banning user set the interval
 }
@@ -114,6 +115,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 
 	resps := make(chan string)
 	var pin int32 = 0
+	var unpin int32 = 0
 	var banInterval time.Duration = 0
 	var mutex = &sync.Mutex{}
 
@@ -125,6 +127,9 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 				resps <- resp.Text
 				if resp.Pin {
 					atomic.AddInt32(&pin, 1)
+				}
+				if resp.Unpin {
+					atomic.AddInt32(&unpin, 1)
 				}
 				if resp.BanInterval > 0 {
 					mutex.Lock()
@@ -153,6 +158,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		Text:        strings.Join(lines, "\n"),
 		Send:        len(lines) > 0,
 		Pin:         atomic.LoadInt32(&pin) > 0,
+		Unpin:       atomic.LoadInt32(&unpin) > 0,
 		BanInterval: banInterval,
 	}
 }

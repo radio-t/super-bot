@@ -421,6 +421,11 @@ func TestExporter_format(t *testing.T) {
 			&[]bot.Entity{{Type: "bold", Offset: 0, Length: 18}, {Type: "url", Offset: 10, Length: 8}},
 			"<strong>must show say.data</strong>",
 		},
+		{
+			"must show say.data",
+			&[]bot.Entity{{Type: "bold", Offset: 200, Length: 18}}, // to cause panic
+			"must show say.data",
+		},
 	}
 
 	for i, tt := range tbl {

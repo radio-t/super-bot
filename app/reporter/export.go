@@ -292,15 +292,16 @@ func filter(msg bot.Message) bool {
 	return contains([]string{"+1", "-1", ":+1:", ":-1:"}, msg.Text)
 }
 
-func format(text string, entities *[]bot.Entity) template.HTML {
+func format(text string, entities *[]bot.Entity) (out template.HTML) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[ERROR] failed to format %q, %#v", text, entities)
 		}
 	}()
 
+	out = template.HTML(strings.ReplaceAll(html.EscapeString(text), "\n", "<br>")) // nolint
 	if entities == nil {
-		return template.HTML(strings.ReplaceAll(html.EscapeString(text), "\n", "<br>")) // nolint
+		return out
 	}
 
 	runes := []rune(text)

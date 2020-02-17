@@ -89,14 +89,14 @@ func main() {
 	allActivityTerm := events.Terminator{
 		BanDuration:   time.Minute * 10,
 		BanPenalty:    5,
-		AllowedPeriod: time.Second * 5,
+		AllowedPeriod: time.Second * 60,
 		Exclude:       opts.SuperUsers,
 	}
 
 	botsActivityTerm := events.Terminator{
 		BanDuration:   time.Minute * 5,
-		BanPenalty:    4,
-		AllowedPeriod: time.Second * 30,
+		BanPenalty:    3,
+		AllowedPeriod: time.Second * 60,
 		Exclude:       opts.SuperUsers,
 	}
 

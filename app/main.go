@@ -96,7 +96,7 @@ func main() {
 	botsActivityTerm := events.Terminator{
 		BanDuration:   time.Minute * 5,
 		BanPenalty:    3,
-		AllowedPeriod: time.Second * 60,
+		AllowedPeriod: time.Minute * 3,
 		Exclude:       opts.SuperUsers,
 	}
 

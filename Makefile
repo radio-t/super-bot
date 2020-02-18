@@ -1,3 +1,14 @@
+.PHONY: help
+## help: prints this help message
+help:
+	@echo "Usage: \n"
+	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
+
+.PHONY: generate
+## generate: runs `go generate`
+generate:
+	@go generate ./app/...
+
 .PHONY: build
 ## build: builds server
 build:
@@ -11,12 +22,12 @@ vendor:
 .PHONY: test
 ## test: runs `go test`
 test:
-	@cd app && go test -mod=vendor ./... -coverprofile cover.out
-	
+	@go test -mod=vendor ./app/... -coverprofile cover.out
+
 .PHONY: lint
 ## lint: runs `golangci-lint`
 lint:
-	@cd app && golangci-lint run
+	@golangci-lint run ./app/...
 
 .PHONY: run
 ## run: runs app locally (don't forget to set all required environment variables)
@@ -26,8 +37,3 @@ lint:
 run:
 	@go run -v -mod=vendor app/main.go --dbg ${ARGS}
 
-.PHONY: help
-## help: prints this help message
-help:
-	@echo "Usage: \n"
-	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'

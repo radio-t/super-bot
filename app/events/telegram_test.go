@@ -219,7 +219,6 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 	tbAPI.AssertNumberOfCalls(t, "Send", 1)
 	msgLogger.AssertExpectations(t)
 	msgLogger.AssertNumberOfCalls(t, "Save", 6)
-
 }
 
 func TestTelegramListener_DoWithBotBan(t *testing.T) {
@@ -385,6 +384,48 @@ func TestTelegramListener_DoUnpinMessages(t *testing.T) {
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
+	bots.AssertExpectations(t)
+	tbAPI.AssertExpectations(t)
+}
+
+func TestTelegramListener_DoNotSaveMessagesFromOtherChats(t *testing.T) {
+	msgLogger := &mockMsgLogger{}
+	tbAPI := &mockTbAPI{}
+	bots := &bot.MockInterface{}
+
+	l := TelegramListener{
+		MsgLogger: msgLogger,
+		TbAPI:     tbAPI,
+		Bots:      bots,
+		Group:     "gr",
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Minute)
+	defer cancel()
+
+	updMsg := tbapi.Update{
+		Message: &tbapi.Message{
+			Chat: &tbapi.Chat{ID: 456}, // different group or private message
+			Text: "text 123",
+			From: &tbapi.User{UserName: "user"},
+			Date: int(time.Date(2020, 2, 11, 19, 35, 55, 9, time.UTC).Unix()),
+		},
+	}
+
+	tbAPI.On("GetChat", mock.Anything).Return(tbapi.Chat{ID: 123}, nil)
+
+	updChan := make(chan tbapi.Update, 1)
+	updChan <- updMsg
+	close(updChan)
+	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
+
+	bots.On("OnMessage", mock.Anything).Return(bot.Response{Send: true, Text: "bot's answer"})
+	tbAPI.On("Send", mock.Anything).Return(tbapi.Message{Text: "bot's answer", From: &tbapi.User{UserName: "user"}}, nil)
+
+	err := l.Do(ctx)
+	assert.EqualError(t, err, "telegram update chan closed")
+
+	msgLogger.AssertNotCalled(t, "Save", mock.Anything)
 	bots.AssertExpectations(t)
 	tbAPI.AssertExpectations(t)
 }

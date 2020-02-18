@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Sys implements basic bot function to responds on ping and others from basic.data file.
-// also reacts and say! with keys/values from say.data file
+// Sys implements basic bot function to respond on ping and others from basic.data file.
+// also, reacts on say! with keys/values from say.data file
 type Sys struct {
 	say          []string
 	dataLocation string

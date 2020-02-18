@@ -24,7 +24,7 @@ func TestExcerpt_Link(t *testing.T) {
 		{"blah https://twitter.com/radio_t/status/811670832510537730", "", true},
 	}
 
-	ex := NewExcerpt("http://parser.ukeeper.com/api/content/v1/parser", "")
+	ex := NewExcerpt("https://ureadability.radio-t.com/api/content/v1/parser", "")
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			link, err := ex.link(tt.inp)
@@ -51,7 +51,7 @@ func TestExcerpt(t *testing.T) {
 		{"https://xxxx.radio-t.com blah2", "", true},
 	}
 
-	ex := NewExcerpt("http://parser.ukeeper.com/api/content/v1/parser", "123456")
+	ex := NewExcerpt("https://ureadability.radio-t.com/api/content/v1/parser", "123456")
 
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {

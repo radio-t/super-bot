@@ -362,6 +362,11 @@ func TestExporter_format(t *testing.T) {
 			"<a class=\"mention\" href=\"https://t.me/chuhlomin\">@chuhlomin</a> <em>тебя слишком много, отдохни...</em>",
 		},
 		{
+			"Firstname Surname получает бан на 2m3s",
+			&[]bot.Entity{{Type: "text_mention", Offset: 0, Length: 17, User: &bot.User{ID: 900000000, Username: "", DisplayName: "Firstname Surname"}}},
+			"Firstname Surname получает бан на 2m3s",
+		},
+		{
 			"Меня url заинтересовал... do.co",
 			&[]bot.Entity{{Type: "url", Offset: 26, Length: 5}},
 			"Меня url заинтересовал... <a href=\"https://do.co\">do.co</a>",

@@ -328,6 +328,7 @@ func (l *TelegramListener) transformEntities(entities *[]tbapi.MessageEntity) *[
 		}
 		if entity.User != nil {
 			e.User = &bot.User{
+				ID:          entity.User.ID,
 				Username:    entity.User.UserName,
 				DisplayName: entity.User.FirstName + " " + entity.User.LastName,
 			}

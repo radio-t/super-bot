@@ -10,7 +10,7 @@ import (
 )
 
 func TestWTF_OnMessage(t *testing.T) {
-	b := NewWTF(time.Minute, 10*time.Minute, 0.2)
+	b := NewWTF(time.Minute, 10*time.Minute, 0.2, 0)
 	r := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user123"}})
 	t.Logf("%v", r)
 	assert.Contains(t, r.Text, "@user123")

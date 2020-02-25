@@ -10,16 +10,17 @@ import (
 
 // WTF bot bans user for random interval
 type WTF struct {
-	minDuration time.Duration
-	maxDuration time.Duration
-	luckFactor  float64
+	minDuration       time.Duration
+	maxDuration       time.Duration
+	luckFactor        float64
+	veryUnluckyFactor float64
 }
 
 // NewWTF makes a random ban bot
-func NewWTF(minDuration, maxDuration time.Duration, luckFactor float64) *WTF {
-	log.Printf("[INFO] WTF bot with %v-%v interval, lucky %.2f", minDuration, maxDuration, luckFactor)
+func NewWTF(minDuration, maxDuration time.Duration, luckFactor, veryUnluckyFactor float64) *WTF {
+	log.Printf("[INFO] WTF bot with %v-%v interval, lucky %.2f, unlucky %.2f", minDuration, maxDuration, luckFactor, veryUnluckyFactor)
 	rand.Seed(time.Now().UnixNano())
-	return &WTF{minDuration: minDuration, maxDuration: maxDuration, luckFactor: luckFactor}
+	return &WTF{minDuration: minDuration, maxDuration: maxDuration, luckFactor: luckFactor, veryUnluckyFactor: veryUnluckyFactor}
 }
 
 // OnMessage sets duration of ban randomly
@@ -32,6 +33,14 @@ func (w WTF) OnMessage(msg Message) (response Response) {
 	mention := "@" + msg.From.Username
 	if msg.From.Username == "" {
 		mention = msg.From.DisplayName
+	}
+
+	if rand.Float64() < w.veryUnluckyFactor {
+		return Response{
+			Text:        fmt.Sprintf("[%s](tg://user?id=%d), не твой день. бан на сутки!", mention, msg.From.ID),
+			Send:        true,
+			BanInterval: 24 * time.Hour,
+		}
 	}
 
 	if rand.Float64() < w.luckFactor {

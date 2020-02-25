@@ -11,7 +11,7 @@ import (
 
 func TestAnecdot_BanInterval(t *testing.T) {
 	b := MultiBot{
-		NewWTF(time.Minute, 10*time.Minute, 0.2),
+		NewWTF(time.Minute, 10*time.Minute, 0.2, 0),
 	}
 
 	lucky := 0

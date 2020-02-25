@@ -21,16 +21,17 @@ import (
 // TelegramListener listens to tg update, forward to bots and send back responses
 // Not thread safe
 type TelegramListener struct {
-	TbAPI            tbAPI
-	MsgLogger        msgLogger
-	Bots             bot.Interface
-	Group            string // can be int64 or public group username (without "@" prefix)
-	Debug            bool
-	IdleDuration     time.Duration
-	AllActivityTerm  Terminator
-	BotsActivityTerm Terminator
-	SuperUsers       SuperUser
-	chatID           int64
+	TbAPI                  tbAPI
+	MsgLogger              msgLogger
+	Bots                   bot.Interface
+	Group                  string // can be int64 or public group username (without "@" prefix)
+	Debug                  bool
+	IdleDuration           time.Duration
+	AllActivityTerm        Terminator // all activity for given user
+	BotsActivityTerm       Terminator // bot-only activity for given user
+	OverallBotActivityTerm Terminator // bot-only activity for all users
+	SuperUsers             SuperUser
+	chatID                 int64
 
 	msgs struct {
 		once sync.Once
@@ -122,16 +123,10 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			}
 
 			resp := l.Bots.OnMessage(*msg)
-			if resp.Send {
-				// check for bot-activity ban
-				if b := l.BotsActivityTerm.check(msg.From, msg.Sent); b.active {
-					if b.new {
-						if err := l.applyBan(*msg, l.BotsActivityTerm.BanDuration, fromChat, update.Message.From.ID); err != nil {
-							log.Printf("[ERROR] can't ban, %v", err)
-						}
-					}
-					continue
-				}
+
+			if l.botActivityBan(resp, *msg, fromChat, update.Message.From.ID) {
+				log.Printf("[INFO] bot activity ban initiated for %+v", update.Message.From)
+				continue
 			}
 
 			if err := l.sendBotResponse(resp, fromChat); err != nil {
@@ -159,6 +154,34 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			}
 		}
 	}
+}
+
+func (l *TelegramListener) botActivityBan(resp bot.Response, msg bot.Message, fromChat int64, fromID int) bool {
+	if !resp.Send {
+		return false
+	}
+
+	// check for bot-activity ban for given users
+	if b := l.BotsActivityTerm.check(msg.From, msg.Sent); b.active {
+		if b.new {
+			if err := l.applyBan(msg, l.BotsActivityTerm.BanDuration, fromChat, fromID); err != nil {
+				log.Printf("[ERROR] can't ban, %v", err)
+			}
+		}
+		return true
+	}
+
+	// check for bot-activity ban for all users
+	if b := l.OverallBotActivityTerm.check(bot.User{}, msg.Sent); b.active {
+		if b.new {
+			if err := l.applyBan(msg, l.BotsActivityTerm.BanDuration, fromChat, fromID); err != nil {
+				log.Printf("[ERROR] can't ban, %v", err)
+			}
+		}
+		return true
+	}
+
+	return false
 }
 
 // sendBotResponse sends bot's answer to tg channel and saves it to log

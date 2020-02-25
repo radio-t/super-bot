@@ -62,6 +62,7 @@ func (p *PrepPost) OnMessage(Message) (response Response) {
 	}()
 
 	if p.last.prepPost.URL != "" && pi.URL != p.last.prepPost.URL {
+		log.Printf("[INFO] detected new prep topic %s", pi.URL)
 		return Response{Send: true, Pin: true, Text: fmt.Sprintf("Сбор тем начался - %s", pi.URL)}
 	}
 	return Response{}

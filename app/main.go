@@ -100,6 +100,13 @@ func main() {
 		Exclude:       opts.SuperUsers,
 	}
 
+	botsAllUsersActivityTerm := events.Terminator{
+		BanDuration:   time.Minute * 5,
+		BanPenalty:    5,
+		AllowedPeriod: time.Minute * 5,
+		Exclude:       opts.SuperUsers,
+	}
+
 	tbAPI, err := tbapi.NewBotAPI(opts.Telegram.Token)
 	if err != nil {
 		log.Fatalf("[ERROR] can't make telegram bot, %v", err)
@@ -107,15 +114,16 @@ func main() {
 	tbAPI.Debug = opts.Dbg
 
 	tgListener := events.TelegramListener{
-		TbAPI:            tbAPI,
-		AllActivityTerm:  allActivityTerm,
-		BotsActivityTerm: botsActivityTerm,
-		MsgLogger:        reporter.NewLogger(opts.LogsPath),
-		Bots:             multiBot,
-		Group:            opts.Telegram.Group,
-		Debug:            opts.Dbg,
-		IdleDuration:     opts.IdleDuration,
-		SuperUsers:       opts.SuperUsers,
+		TbAPI:                  tbAPI,
+		AllActivityTerm:        allActivityTerm,
+		BotsActivityTerm:       botsActivityTerm,
+		OverallBotActivityTerm: botsAllUsersActivityTerm,
+		MsgLogger:              reporter.NewLogger(opts.LogsPath),
+		Bots:                   multiBot,
+		Group:                  opts.Telegram.Group,
+		Debug:                  opts.Dbg,
+		IdleDuration:           opts.IdleDuration,
+		SuperUsers:             opts.SuperUsers,
 	}
 
 	go events.Rtjc{Port: opts.RtjcPort, Submitter: &tgListener}.Listen(ctx)

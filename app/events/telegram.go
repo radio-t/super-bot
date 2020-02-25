@@ -124,7 +124,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			resp := l.Bots.OnMessage(*msg)
 
-			if l.botActivityBan(resp, *msg, fromChat, update.Message.From.ID) {
+			if fromChat == l.chatID && l.botActivityBan(resp, *msg, fromChat, update.Message.From.ID) {
 				log.Printf("[INFO] bot activity ban initiated for %+v", update.Message.From)
 				continue
 			}

@@ -10,25 +10,32 @@ import (
 )
 
 func TestWTF_OnMessage(t *testing.T) {
-	b := NewWTF(time.Minute, 10*time.Minute, 0.2, 0)
+	b := NewWTF(time.Minute, 10*time.Minute, 0.2, 0.1)
 	r := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user123"}})
 	t.Logf("%v", r)
 	assert.Contains(t, r.Text, "@user123")
 	assert.True(t, r.Send)
 
-	lucky := 0
+	unlucky, lucky := 0, 0
 	for i := 0; i < 100; i++ {
-		r = b.OnMessage(Message{Text: "wtf!", From: User{Username: "user123"}})
+		r = b.OnMessage(Message{Text: "wtf!", From: User{Username: "xyz"}})
 		assert.True(t, r.Send)
-		if strings.Contains(r.Text, "повезло") {
+		switch {
+		case strings.Contains(r.Text, "повезло"):
 			lucky++
 			require.True(t, r.BanInterval == 0)
-		} else {
+			t.Logf("%v", r)
+		case strings.Contains(r.Text, "не твой день"):
+			unlucky++
+			require.True(t, r.BanInterval == 24*time.Hour)
+			t.Logf("%v", r)
+		default:
 			require.True(t, r.BanInterval > 0)
 		}
 	}
 	t.Logf("lucky hits %d", lucky)
 	assert.True(t, lucky > 0)
+	assert.True(t, unlucky > 0)
 	assert.True(t, lucky < 100)
 }
 

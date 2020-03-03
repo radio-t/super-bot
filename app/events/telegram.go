@@ -202,7 +202,7 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	l.saveBotMessage(&res, chatID)
 
 	if resp.Pin {
-		_, err = l.TbAPI.PinChatMessage(tbapi.PinChatMessageConfig{ChatID: chatID, MessageID: res.MessageID})
+		_, err = l.TbAPI.PinChatMessage(tbapi.PinChatMessageConfig{ChatID: chatID, MessageID: res.MessageID, DisableNotification: true})
 		if err != nil {
 			return errors.Wrap(err, "can't pin message to telegram")
 		}

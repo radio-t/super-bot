@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -10,33 +9,21 @@ import (
 )
 
 func TestWTF_OnMessage(t *testing.T) {
-	b := NewWTF(time.Minute, 10*time.Minute, 0.2, 0.1)
+	b := NewWTF(time.Hour*24, 7*time.Hour*24, 0.2, 0.1)
 	r := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user123"}})
 	t.Logf("%v", r)
 	assert.Contains(t, r.Text, "@user123")
 	assert.True(t, r.Send)
 
-	unlucky, lucky := 0, 0
+	var totBanTime time.Duration
 	for i := 0; i < 100; i++ {
 		r = b.OnMessage(Message{Text: "wtf!", From: User{Username: "xyz"}})
+		require.True(t, r.BanInterval > 0)
 		assert.True(t, r.Send)
-		switch {
-		case strings.Contains(r.Text, "повезло"):
-			lucky++
-			require.True(t, r.BanInterval == 0)
-			t.Logf("%v", r)
-		case strings.Contains(r.Text, "не твой день"):
-			unlucky++
-			require.True(t, r.BanInterval == 24*time.Hour)
-			t.Logf("%v", r)
-		default:
-			require.True(t, r.BanInterval > 0)
-		}
+		totBanTime += r.BanInterval
 	}
-	t.Logf("lucky hits %d", lucky)
-	assert.True(t, lucky > 0)
-	assert.True(t, unlucky > 0)
-	assert.True(t, lucky < 100)
+	t.Log(totBanTime / 100)
+	assert.True(t, totBanTime/100 >= time.Hour*24)
 }
 
 func TestWTF_Help(t *testing.T) {

@@ -87,8 +87,8 @@ func main() {
 	}
 
 	allActivityTerm := events.Terminator{
-		BanDuration:   time.Minute * 10,
-		BanPenalty:    5,
+		BanDuration:   time.Minute * 5,
+		BanPenalty:    10,
 		AllowedPeriod: time.Second * 60,
 		Exclude:       opts.SuperUsers,
 	}

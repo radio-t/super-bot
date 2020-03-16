@@ -57,19 +57,19 @@ func getHumanDuration(d time.Duration) string {
 
 	seconds := int64(d / time.Second)
 
-	days := int64(seconds / (24 * 60 * 60))
+	days := seconds / (24 * 60 * 60)
 	if days > 0 {
 		str = fmt.Sprintf("%dd", days)
 		seconds = seconds - days*(24*60*60)
 	}
 
-	hours := int64(seconds / (60 * 60))
+	hours := seconds / (60 * 60)
 	if hours > 0 || len(str) > 0 {
 		str = fmt.Sprintf("%s%dh", str, hours)
 		seconds = seconds - hours*(60*60)
 	}
 
-	minutes := int64(seconds / 60)
+	minutes := seconds / 60
 	if minutes > 0 || len(str) > 0 {
 		str = fmt.Sprintf("%s%dm", str, minutes)
 		seconds = seconds - minutes*60

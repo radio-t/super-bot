@@ -1,9 +1,10 @@
 package bot
 
 import (
+	"bufio"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
+	"os"
 	"strings"
 
 	log "github.com/go-pkgz/lgr"
@@ -86,14 +87,20 @@ func (p *Sys) loadSayData() {
 }
 
 func readLines(path string) ([]string, error) {
-
-	data, err := ioutil.ReadFile(path) // nolint
+	f, err := os.Open(path)
 	if err != nil {
-		log.Printf("[WARN] can't load data from %s,  %v", path, err)
 		return nil, err
 	}
+	defer f.Close()
 
-	return strings.Split(string(data), "\n"), nil
+	scanner := bufio.NewScanner(f)
+	scanner.Split(bufio.ScanLines)
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	return lines, nil
 }
 
 // ReactOn keys

@@ -9,7 +9,6 @@ import (
 )
 
 func TestExcerpt_Link(t *testing.T) {
-
 	tbl := []struct {
 		inp  string
 		link string

@@ -35,6 +35,7 @@ func NewSys(dataLocation string) (*Sys, error) {
 	if err := res.loadSayData(); err != nil {
 		return nil, err
 	}
+	rand.Seed(0)
 	return &res, nil
 }
 

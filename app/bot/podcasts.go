@@ -103,20 +103,25 @@ func (p *Podcasts) makeBotResponse(sr []siteAPIResp, reqText string) string {
 	var res string
 	for _, s := range sr {
 		nls := p.notesWithLinks(s)
-		res += fmt.Sprintf("[Радио-Т #%d](%s) _%s_\n", s.ShowNum, s.URL, s.Date.Format("02 Jan 06"))
+		nlsStr := ""
 		for _, nl := range nls {
 
 			if strings.Contains(strings.ToLower(nl.text), strings.ToLower(reqText)) {
-				res += "●  " + makeRepLine(nl) + "\n"
+				nlsStr += "●  " + makeRepLine(nl) + "\n"
 				continue
 			}
 
 			if strings.Contains(strings.ToLower(nl.link), strings.ToLower(reqText)) {
-				res += "○  " + makeRepLine(nl) + "\n"
+				nlsStr += "○  " + makeRepLine(nl) + "\n"
 				continue
 			}
 		}
-		res += "\n"
+
+		if nlsStr != "" {
+			res += fmt.Sprintf("[Радио-Т #%d](%s) _%s_\n", s.ShowNum, s.URL, s.Date.Format("02 Jan 06"))
+			res += nlsStr
+			res += "\n"
+		}
 	}
 	return res
 }

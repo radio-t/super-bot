@@ -52,7 +52,7 @@ func (p Sys) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	if msg.Text == "say!" || msg.Text == "/say" {
+	if strings.EqualFold(msg.Text, "say!") {
 		if p.say != nil && len(p.say) > 0 {
 			return Response{
 				Text: fmt.Sprintf("_%s_", p.say[rand.Intn(len(p.say))]),

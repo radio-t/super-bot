@@ -13,7 +13,7 @@ func TestSys_OnMessage(t *testing.T) {
 	assert.Equal(t, Response{Text: "_никто не знает. пока не надоест_", Send: true}, bot.OnMessage(Message{Text: "доколе?"}))
 	assert.Equal(t, Response{Text: "_понг_", Send: true}, bot.OnMessage(Message{Text: "пинг"}))
 	assert.Equal(t, Response{Text: "_pong_", Send: true}, bot.OnMessage(Message{Text: "ping"}))
-
+	assert.Equal(t, Response{Text: "_Ценность всего условна: зубочистка в бисерном чехле, подаренная тебе в сувенир, несравненно дороже двух рублей с полтиной._", Send: true}, bot.OnMessage(Message{Text: "Say!"}))
 }
 
 func TestSys_Help(t *testing.T) {

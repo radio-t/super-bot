@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strings"
 
 	log "github.com/go-pkgz/lgr"
@@ -107,7 +108,7 @@ func (p *Sys) loadSayData() error {
 }
 
 func readLines(path string) ([]string, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, errors.Wrapf(err, "can't open %s", path)
 	}

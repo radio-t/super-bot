@@ -11,6 +11,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestPodcastBotReturnsOnlyTopicsWithSearchedNotes(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/search" {
+			assert.Equal(t, "limit=5&q=Lambda", r.URL.RawQuery)
+			sr := []siteAPIResp{
+				{URL: "http://example.com", ShowNotes: "Lambda"},
+				{URL: "http://example.com", ShowNotes: "xxx"},
+			}
+			b, err := json.Marshal(sr)
+			require.NoError(t, err)
+			w.Write(b)
+			return
+		}
+		w.WriteHeader(400)
+	}))
+	defer ts.Close()
+
+	client := http.Client{Timeout: time.Second}
+	d := NewPodcasts(&client, ts.URL, 5)
+
+	resp := d.OnMessage(Message{Text: "search! Lambda"})
+	require.Equal(t, `[Радио-Т #0](http://example.com) _01 Jan 01_
+●  Lambda
+
+`, resp.Text)
+}
+
 func TestPodcasts_OnMessage(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

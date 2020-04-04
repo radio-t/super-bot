@@ -244,14 +244,15 @@ func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) 
 
 		if broadcastUsers != nil && broadcastUsers.IsSuper(msg.From.Username) {
 			// if received message from bot/user who can send "broadcast" messages
-			switch msg.Text {
-			case bot.MsgBroadcastStarted:
+			if strings.Contains(msg.Text, bot.MsgBroadcastStarted) {
 				if broadcastStartedIndex == 0 {
 					// record first occurrence of MsgBroadcastFinished
 					broadcastStartedIndex = currentIndex
 				}
 				continue
-			case bot.MsgBroadcastFinished:
+			}
+
+			if strings.Contains(msg.Text, bot.MsgBroadcastFinished) {
 				// record last occurrence of MsgBroadcastFinished
 				broadcastFinishedIndex = currentIndex
 				continue
@@ -291,9 +292,16 @@ func filter(msg bot.Message) bool {
 	return contains([]string{"+1", "-1", ":+1:", ":-1:"}, msg.Text)
 }
 
-func format(text string, entities *[]bot.Entity) template.HTML {
+func format(text string, entities *[]bot.Entity) (out template.HTML) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[ERROR] failed to format %q, %#v", text, entities)
+		}
+	}()
+
+	out = template.HTML(strings.ReplaceAll(html.EscapeString(text), "\n", "<br>")) // nolint
 	if entities == nil {
-		return template.HTML(strings.ReplaceAll(html.EscapeString(text), "\n", "<br>")) // nolint
+		return out
 	}
 
 	runes := []rune(text)
@@ -301,6 +309,11 @@ func format(text string, entities *[]bot.Entity) template.HTML {
 	pos := 0
 
 	for _, entity := range *entities {
+		if entity.Offset < pos {
+			// current code does not support nested entities
+			continue
+		}
+
 		before, after := getDecoration(
 			entity,
 			runes[entity.Offset:entity.Offset+entity.Length],

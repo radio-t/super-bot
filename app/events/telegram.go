@@ -13,45 +13,65 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/radio-t/super-bot/app/bot"
-	"github.com/radio-t/super-bot/app/reporter"
 )
 
-// TelegramListener listens to tg update, forward to bots and send back responses
-type TelegramListener struct {
-	Terminator
-	Token string
-	reporter.Reporter
-	Bots  bot.Interface
-	Group string // can be int64 or public group username (without "@" prefix)
-	Debug bool
+//go:generate mockery -inpkg -name tbAPI -case snake
+//go:generate mockery -inpkg -name msgLogger -case snake
 
-	botAPI *tbapi.BotAPI
-	chatID int64
+// TelegramListener listens to tg update, forward to bots and send back responses
+// Not thread safe
+type TelegramListener struct {
+	TbAPI                  tbAPI
+	MsgLogger              msgLogger
+	Bots                   bot.Interface
+	Group                  string // can be int64 or public group username (without "@" prefix)
+	Debug                  bool
+	IdleDuration           time.Duration
+	AllActivityTerm        Terminator // all activity for given user
+	BotsActivityTerm       Terminator // bot-only activity for given user
+	OverallBotActivityTerm Terminator // bot-only activity for all users
+	SuperUsers             SuperUser
+	chatID                 int64
 
 	msgs struct {
 		once sync.Once
-		ch   chan string
+		ch   chan bot.Response
 	}
+}
+
+type tbAPI interface {
+	GetUpdatesChan(config tbapi.UpdateConfig) (tbapi.UpdatesChannel, error)
+	Send(c tbapi.Chattable) (tbapi.Message, error)
+	PinChatMessage(config tbapi.PinChatMessageConfig) (tbapi.APIResponse, error)
+	UnpinChatMessage(config tbapi.UnpinChatMessageConfig) (tbapi.APIResponse, error)
+	GetChat(config tbapi.ChatConfig) (tbapi.Chat, error)
+	RestrictChatMember(config tbapi.RestrictChatMemberConfig) (tbapi.APIResponse, error)
+}
+
+type msgLogger interface {
+	Save(msg *bot.Message)
 }
 
 // Do process all events, blocked call
 func (l *TelegramListener) Do(ctx context.Context) (err error) {
 	log.Printf("[INFO] start telegram listener for %q", l.Group)
 
-	if l.botAPI, err = tbapi.NewBotAPI(l.Token); err != nil {
-		return errors.Wrap(err, "can't make telegram bot")
-	}
 	if l.chatID, err = l.getChatID(l.Group); err != nil {
 		return errors.Wrapf(err, "failed to get chat ID for group %q", l.Group)
 	}
-	l.botAPI.Debug = l.Debug
-	l.msgs.once.Do(func() { l.msgs.ch = make(chan string, 100) })
+
+	l.msgs.once.Do(func() {
+		l.msgs.ch = make(chan bot.Response, 100)
+		if l.IdleDuration == 0 {
+			l.IdleDuration = 30 * time.Second
+		}
+	})
 
 	u := tbapi.NewUpdate(0)
 	u.Timeout = 60
 
 	var updates tbapi.UpdatesChannel
-	if updates, err = l.botAPI.GetUpdatesChan(u); err != nil {
+	if updates, err = l.TbAPI.GetUpdatesChan(u); err != nil {
 		return errors.Wrap(err, "can't get updates channel")
 	}
 
@@ -83,84 +103,143 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				continue
 			}
 
-			if update.Message.Chat.ID != l.chatID {
-				log.Printf("[DEBUG] ignoring message from chat %d:%q (%q), must be %d:%q",
-					update.Message.Chat.ID, update.Message.Chat.UserName, update.Message.Chat.Title, l.chatID, l.Group)
-				continue
-			}
+			fromChat := update.Message.Chat.ID
 
 			msg := l.transform(update.Message)
-			l.Save(msg) // save to report
+			if fromChat == l.chatID {
+				l.MsgLogger.Save(msg) // save an incoming update to report
+			}
 
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
 
-			// check for ban
-			if b := l.check(msg.From, msg.Sent); b.active {
+			// check for all-activity ban
+			if b := l.AllActivityTerm.check(msg.From, msg.Sent); b.active {
 				if b.new {
-					mention := "@" + msg.From.Username
-					if msg.From.Username == "" {
-						mention = fmt.Sprintf("[%s](tg://user?id=%d)", msg.From.DisplayName, update.Message.From.ID)
-					}
-					m := fmt.Sprintf("%s _тебя слишком много, отдохни..._", mention)
-					tbMsg := tbapi.NewMessage(update.Message.Chat.ID, m)
-					tbMsg.ParseMode = tbapi.ModeMarkdown
-					tbMsg.DisableWebPagePreview = true
-					if res, err := l.botAPI.Send(tbMsg); err != nil {
-						log.Printf("[WARN] failed to send, %v", err)
-					} else {
-						l.saveBotMessage(&res)
-					}
-
-					if err := l.banUser(update.Message.Chat.ID, update.Message.From.ID); err != nil {
-						log.Printf("[ERROR] failed to ban user %v: %v", msg.From, err)
+					if err := l.applyBan(*msg, l.AllActivityTerm.BanDuration, fromChat, update.Message.From.ID); err != nil {
+						log.Printf("[ERROR] can't ban, %v", err)
 					}
 				}
 				continue
 			}
 
-			if resp := l.Bots.OnMessage(*msg); resp.Send {
-				log.Printf("[DEBUG] bot response - %+v, pin: %t", resp.Text, resp.Pin)
-				tbMsg := tbapi.NewMessage(update.Message.Chat.ID, resp.Text)
-				tbMsg.ParseMode = tbapi.ModeMarkdown
-				tbMsg.DisableWebPagePreview = true
-				res, err := l.botAPI.Send(tbMsg)
-				if err != nil {
-					log.Printf("[WARN] can't send tbMsg to telegram, %v", err)
-					continue
-				}
-				l.saveBotMessage(&res)
-				if resp.Pin {
-					_, err = l.botAPI.PinChatMessage(tbapi.PinChatMessageConfig{
-						ChatID:              update.Message.Chat.ID,
-						MessageID:           res.MessageID,
-						DisableNotification: false,
-					})
-					if err != nil {
-						log.Printf("[WARN] can't pin tbMsg to telegram, %v", err)
-					}
+			resp := l.Bots.OnMessage(*msg)
+
+			if fromChat == l.chatID && l.botActivityBan(resp, *msg, fromChat, update.Message.From.ID) {
+				log.Printf("[INFO] bot activity ban initiated for %+v", update.Message.From)
+				continue
+			}
+
+			if err := l.sendBotResponse(resp, fromChat); err != nil {
+				log.Printf("[WARN] failed to respond on update, %v", err)
+			}
+
+			// some bots may request direct ban for given duration
+			if resp.Send && resp.BanInterval > 0 && !l.SuperUsers.IsSuper(update.Message.From.UserName) {
+				if err := l.banUser(resp.BanInterval, fromChat, update.Message.From.ID); err != nil {
+					log.Printf("[ERROR] can't ban %v on bot response, %v", msg.From, err)
+				} else {
+					log.Printf("[INFO] %v banned by bot for %v", msg.From, resp.BanInterval)
 				}
 			}
 
-		case msg := <-l.msgs.ch: // publish messages from outside clients
-			tbMsg := tbapi.NewMessage(l.chatID, msg)
-			tbMsg.ParseMode = tbapi.ModeMarkdown
-			if res, err := l.botAPI.Send(tbMsg); err != nil {
-				log.Printf("[WARN] can't send msg to telegram, %v", err)
-			} else {
-				l.saveBotMessage(&res)
+		case resp := <-l.msgs.ch: // publish messages from outside clients
+			if err := l.sendBotResponse(resp, l.chatID); err != nil {
+				log.Printf("[WARN] failed to respond on rtjc event, %v", err)
+			}
+
+		case <-time.After(l.IdleDuration): // hit bots on idle timeout
+			resp := l.Bots.OnMessage(bot.Message{Text: "idle"})
+			if err := l.sendBotResponse(resp, l.chatID); err != nil {
+				log.Printf("[WARN] failed to respond on idle, %v", err)
 			}
 		}
 	}
 }
 
+func (l *TelegramListener) botActivityBan(resp bot.Response, msg bot.Message, fromChat int64, fromID int) bool {
+	if !resp.Send {
+		return false
+	}
+
+	// check for bot-activity ban for given users
+	if b := l.BotsActivityTerm.check(msg.From, msg.Sent); b.active {
+		if b.new {
+			if err := l.applyBan(msg, l.BotsActivityTerm.BanDuration, fromChat, fromID); err != nil {
+				log.Printf("[ERROR] can't ban, %v", err)
+			}
+		}
+		return true
+	}
+
+	// check for bot-activity ban for all users
+	if b := l.OverallBotActivityTerm.check(bot.User{}, msg.Sent); b.active {
+		if b.new {
+			if err := l.applyBan(msg, l.BotsActivityTerm.BanDuration, fromChat, fromID); err != nil {
+				log.Printf("[ERROR] can't ban, %v", err)
+			}
+		}
+		return true
+	}
+
+	return false
+}
+
+// sendBotResponse sends bot's answer to tg channel and saves it to log
+func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) error {
+	if !resp.Send {
+		return nil
+	}
+
+	log.Printf("[DEBUG] bot response - %+v, pin: %t", resp.Text, resp.Pin)
+	tbMsg := tbapi.NewMessage(chatID, resp.Text)
+	tbMsg.ParseMode = tbapi.ModeMarkdown
+	tbMsg.DisableWebPagePreview = !resp.Preview
+	res, err := l.TbAPI.Send(tbMsg)
+	if err != nil {
+		return errors.Wrapf(err, "can't send message to telegram %q", resp.Text)
+	}
+
+	l.saveBotMessage(&res, chatID)
+
+	if resp.Pin {
+		_, err = l.TbAPI.PinChatMessage(tbapi.PinChatMessageConfig{ChatID: chatID, MessageID: res.MessageID, DisableNotification: true})
+		if err != nil {
+			return errors.Wrap(err, "can't pin message to telegram")
+		}
+	}
+
+	if resp.Unpin {
+		_, err = l.TbAPI.UnpinChatMessage(tbapi.UnpinChatMessageConfig{ChatID: chatID})
+		if err != nil {
+			return errors.Wrap(err, "can't unpin message to telegram")
+		}
+	}
+
+	return nil
+}
+
+func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, chatID int64, userID int) error {
+	mention := "@" + msg.From.Username
+	if msg.From.Username == "" {
+		mention = msg.From.DisplayName
+	}
+	m := fmt.Sprintf("[%s](tg://user?id=%d) _тебя слишком много, отдохни..._", mention, userID)
+
+	if err := l.sendBotResponse(bot.Response{Text: m, Send: true}, chatID); err != nil {
+		return errors.Wrapf(err, "failed to send ban message for %v", msg.From)
+	}
+	err := l.banUser(duration, chatID, userID)
+	return errors.Wrapf(err, "failed to ban user %v", msg.From)
+}
+
 // Submit message text to telegram's group
-func (l *TelegramListener) Submit(ctx context.Context, text string) error {
-	l.msgs.once.Do(func() { l.msgs.ch = make(chan string, 100) })
+func (l *TelegramListener) Submit(ctx context.Context, text string, pin bool) error {
+	l.msgs.once.Do(func() { l.msgs.ch = make(chan bot.Response, 100) })
 
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case l.msgs.ch <- text:
+	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, Preview: true}:
 	}
 	return nil
 }
@@ -171,7 +250,7 @@ func (l *TelegramListener) getChatID(group string) (int64, error) {
 		return chatID, nil
 	}
 
-	chat, err := l.botAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: "@" + group})
+	chat, err := l.TbAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: "@" + group})
 	if err != nil {
 		return 0, errors.Wrapf(err, "can't get chat for %s", group)
 	}
@@ -179,14 +258,16 @@ func (l *TelegramListener) getChatID(group string) (int64, error) {
 	return chat.ID, nil
 }
 
-func (l *TelegramListener) saveBotMessage(msg *tbapi.Message) {
-	l.Save(l.transform(msg))
+func (l *TelegramListener) saveBotMessage(msg *tbapi.Message, fromChat int64) {
+	if fromChat != l.chatID {
+		return
+	}
+	l.MsgLogger.Save(l.transform(msg))
 }
 
 // The bot must be an administrator in the supergroup for this to work
 // and must have the appropriate admin rights.
-func (l *TelegramListener) banUser(chatID int64, userID int) error {
-	banDuration := l.BanDuration
+func (l *TelegramListener) banUser(duration time.Duration, chatID int64, userID int) error {
 
 	// From Telegram Bot API documentation:
 	// > If user is restricted for more than 366 days or less than 30 seconds from the current time,
@@ -195,16 +276,16 @@ func (l *TelegramListener) banUser(chatID int64, userID int) error {
 	// you do not want to accidentally get into this 30-second window of a lifetime ban.
 	// In practice BanDuration is equal to ten minutes,
 	// so this `if` statement is unlikely to be evaluated to true.
-	if banDuration < 30*time.Second {
-		banDuration = 1 * time.Minute
+	if duration < 30*time.Second {
+		duration = 1 * time.Minute
 	}
 
-	resp, err := l.botAPI.RestrictChatMember(tbapi.RestrictChatMemberConfig{
+	resp, err := l.TbAPI.RestrictChatMember(tbapi.RestrictChatMemberConfig{
 		ChatMemberConfig: tbapi.ChatMemberConfig{
 			ChatID: chatID,
 			UserID: userID,
 		},
-		UntilDate:             time.Now().Add(banDuration).Unix(),
+		UntilDate:             time.Now().Add(duration).Unix(),
 		CanSendMessages:       new(bool),
 		CanSendMediaMessages:  new(bool),
 		CanSendOtherMessages:  new(bool),
@@ -230,6 +311,7 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 
 	if msg.From != nil {
 		message.From = bot.User{
+			ID:          msg.From.ID,
 			Username:    msg.From.UserName,
 			DisplayName: msg.From.FirstName + " " + msg.From.LastName,
 		}

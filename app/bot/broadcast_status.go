@@ -11,7 +11,7 @@ import (
 
 const (
 	// MsgBroadcastStarted defines text to be sent by the bot when the broadcast started
-	MsgBroadcastStarted = "Вещание началось"
+	MsgBroadcastStarted = "Вещание началось. Приобщиться можно тут: https://stream.radio-t.com/"
 
 	// MsgBroadcastFinished defines text to be sent by the bot when the broadcast finished
 	MsgBroadcastFinished = "Вещание завершилось"
@@ -55,9 +55,9 @@ func (b *BroadcastStatus) OnMessage(_ Message) (response Response) {
 		response.Send = true
 		if b.status {
 			response.Text = MsgBroadcastStarted
-			response.Pin = true
 		} else {
 			response.Text = MsgBroadcastFinished
+			response.Unpin = true // unpin message "broadcast started" (sent by outside clients)
 		}
 		b.lastSentStatus = b.status
 	}
@@ -108,13 +108,13 @@ func (b *BroadcastStatus) check(ctx context.Context, lastOn time.Time, params Br
 func ping(ctx context.Context, client http.Client, url string) (status bool) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		log.Printf("[WARN] unable to created %v request, %v", url, err)
+		log.Printf("[WARN] unable to create %v request, %v", url, err)
 		return
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("[WARN] unable to do %v request, %v", url, err)
+		log.Printf("[DEBUG] unable to execute %v request, %v", url, err)
 		return
 	}
 	defer resp.Body.Close()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -17,9 +18,8 @@ import (
 //go:generate mockery -inpkg -name SuperUser -case snake
 
 // genHelpMsg construct help message from bot's ReactOn
-func genHelpMsg(bot Interface, msg string) string {
-	return "*" + strings.Join(bot.ReactOn(), "*, *") + "*\n" + msg
-
+func genHelpMsg(com []string, msg string) string {
+	return strings.Join(com, ", ") + " _– " + msg + "_\n"
 }
 
 // Interface is a bot reactive spec. response will be sent if "send" result is true
@@ -31,9 +31,12 @@ type Interface interface {
 
 // Response describes bot's answer on particular message
 type Response struct {
-	Text string
-	Send bool
-	Pin  bool
+	Text        string
+	Send        bool          // status
+	Pin         bool          // enable pin
+	Unpin       bool          // enable unpin
+	Preview     bool          // enable web preview
+	BanInterval time.Duration // bots banning user set the interval
 }
 
 // HTTPClient wrap http.Client to allow mocking
@@ -79,7 +82,7 @@ type Image struct {
 
 // User defines user info of the Message
 type User struct {
-	ID          string `json:",omitempty"`
+	ID          int
 	Username    string
 	DisplayName string
 }
@@ -94,7 +97,7 @@ func (b MultiBot) Help() string {
 		help := child.Help()
 		if help != "" {
 			// WriteString always returns nil err
-			_, _ = sb.WriteString(help + "\n\n")
+			_, _ = sb.WriteString(help)
 		}
 	}
 	return sb.String()
@@ -112,6 +115,9 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 
 	resps := make(chan string)
 	var pin int32 = 0
+	var unpin int32 = 0
+	var banInterval time.Duration = 0
+	var mutex = &sync.Mutex{}
 
 	wg := syncs.NewSizedGroup(4)
 	for _, bot := range b {
@@ -121,6 +127,16 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 				resps <- resp.Text
 				if resp.Pin {
 					atomic.AddInt32(&pin, 1)
+				}
+				if resp.Unpin {
+					atomic.AddInt32(&unpin, 1)
+				}
+				if resp.BanInterval > 0 {
+					mutex.Lock()
+					if resp.BanInterval > banInterval {
+						banInterval = resp.BanInterval
+					}
+					mutex.Unlock()
 				}
 			}
 		})
@@ -139,9 +155,11 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 
 	log.Printf("[DEBUG] answers %d, send %v", len(lines), len(lines) > 0)
 	return Response{
-		Text: strings.Join(lines, "\n"),
-		Send: len(lines) > 0,
-		Pin:  atomic.LoadInt32(&pin) > 0,
+		Text:        strings.Join(lines, "\n"),
+		Send:        len(lines) > 0,
+		Pin:         atomic.LoadInt32(&pin) > 0,
+		Unpin:       atomic.LoadInt32(&unpin) > 0,
+		BanInterval: banInterval,
 	}
 }
 

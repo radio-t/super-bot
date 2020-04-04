@@ -26,19 +26,20 @@ var opts struct {
 		Timeout time.Duration `long:"timeout" env:"TIMEOUT" description:"http client timeout for getting files from Telegram" default:"30s"`
 	} `group:"telegram" namespace:"telegram" env-namespace:"TELEGRAM"`
 
-	RtjcPort     int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
-	LogsPath     string           `short:"l" long:"logs" env:"TELEGRAM_LOGS" default:"logs" description:"path to logs"`
-	SuperUsers   events.SuperUser `long:"super" description:"super-users"`
-	MashapeToken string           `long:"mashape" env:"MASHAPE_TOKEN" description:"mashape token"`
-	SysData      string           `long:"sys-data" env:"SYS_DATA" default:"data" description:"location of sys data"`
-	ExternalAPI  string           `long:"external-api" default:"https://bot.radio-t.com" description:"external api"`
-	Dbg          bool             `long:"dbg" env:"DEBUG" description:"debug mode"`
-
+	RtjcPort             int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
+	LogsPath             string           `short:"l" long:"logs" env:"TELEGRAM_LOGS" default:"logs" description:"path to logs"`
+	SuperUsers           events.SuperUser `long:"super" description:"super-users"`
+	MashapeToken         string           `long:"mashape" env:"MASHAPE_TOKEN" description:"mashape token"`
+	SysData              string           `long:"sys-data" env:"SYS_DATA" default:"data" description:"location of sys data"`
+	NewsArticles         int              `long:"max-articles" env:"MAX_ARTICLES" default:"5" description:"max number of news articles"`
+	IdleDuration         time.Duration    `long:"idle" env:"IDLE" default:"30s" description:"idle duration"`
 	ExportNum            int              `long:"export-num" description:"show number for export"`
 	ExportPath           string           `long:"export-path" default:"logs" description:"path to export directory"`
 	ExportDay            int              `long:"export-day" description:"day in yyyymmdd"`
 	TemplateFile         string           `long:"export-template" default:"logs.html" description:"path to template file"`
 	ExportBroadcastUsers events.SuperUser `long:"broadcast" description:"broadcast-users"`
+
+	Dbg bool `long:"dbg" env:"DEBUG" description:"debug mode"`
 }
 
 var revision = "local"
@@ -70,28 +71,59 @@ func main() {
 				PingInterval: 10 * time.Second,
 				DelayToOff:   time.Minute,
 				Client:       http.Client{Timeout: 5 * time.Second}}),
-		bot.NewSys(opts.SysData),
-		bot.NewNews(httpClient, "https://news.radio-t.com/api"),
+		bot.NewNews(httpClient, "https://news.radio-t.com/api", opts.NewsArticles),
 		bot.NewAnecdote(httpClient),
 		bot.NewStackOverflow(),
 		bot.NewDuck(opts.MashapeToken, httpClient),
 		bot.NewPodcasts(httpClient, "https://radio-t.com/site-api", 5),
+		bot.NewPrepPost(httpClient, "https://radio-t.com/site-api", 5*time.Minute),
+		bot.NewWTF(time.Hour*24, 7*time.Hour*24),
 	}
 
-	term := events.Terminator{
-		BanDuration:   time.Minute * 10,
-		BanPenalty:    3,
-		AllowedPeriod: time.Second * 5,
+	if sb, err := bot.NewSys(opts.SysData); err == nil {
+		multiBot = append(multiBot, sb)
+	} else {
+		log.Printf("[ERROR] failed to load sysbot, %v", err)
+	}
+
+	allActivityTerm := events.Terminator{
+		BanDuration:   time.Minute * 5,
+		BanPenalty:    10,
+		AllowedPeriod: time.Second * 60,
 		Exclude:       opts.SuperUsers,
 	}
 
+	botsActivityTerm := events.Terminator{
+		BanDuration:   time.Minute * 15,
+		BanPenalty:    3,
+		AllowedPeriod: time.Minute * 5,
+		Exclude:       opts.SuperUsers,
+	}
+
+	botsAllUsersActivityTerm := events.Terminator{
+		BanDuration:   time.Minute * 5,
+		BanPenalty:    5,
+		AllowedPeriod: time.Minute * 5,
+		Exclude:       opts.SuperUsers,
+	}
+
+	tbAPI, err := tbapi.NewBotAPI(opts.Telegram.Token)
+	if err != nil {
+		log.Fatalf("[ERROR] can't make telegram bot, %v", err)
+	}
+	tbAPI.Debug = opts.Dbg
+
 	tgListener := events.TelegramListener{
-		Terminator: term,
-		Reporter:   reporter.NewLogger(opts.LogsPath),
-		Bots:       multiBot,
-		Group:      opts.Telegram.Group,
-		Token:      opts.Telegram.Token,
-		Debug:      opts.Dbg,
+		TbAPI:                  tbAPI,
+		AllActivityTerm:        allActivityTerm,
+		BotsActivityTerm:       botsActivityTerm,
+		OverallBotActivityTerm: botsAllUsersActivityTerm,
+		MsgLogger:              reporter.NewLogger(opts.LogsPath),
+		Bots:                   multiBot,
+		Group:                  opts.Telegram.Group,
+		Debug:                  opts.Dbg,
+		IdleDuration:           opts.IdleDuration,
+		SuperUsers:             opts.SuperUsers,
 	}
 
 	go events.Rtjc{Port: opts.RtjcPort, Submitter: &tgListener}.Listen(ctx)

@@ -146,6 +146,19 @@ func Test_readMessagesCheckBroadcastMessages(t *testing.T) {
 		{
 			SuperUserMock{"radio-t-bot": true},
 			[]bot.Message{
+				{Text: bot.MsgBroadcastStarted + "\n_pong_", From: bot.User{Username: "radio-t-bot"}},
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+				{Text: bot.MsgBroadcastFinished, From: bot.User{Username: "radio-t-bot"}},
+			},
+			[]bot.Message{
+				{Text: "message-1", From: bot.User{Username: "user-1"}},
+				{Text: "message-2", From: bot.User{Username: "user-2"}},
+			},
+		},
+		{
+			SuperUserMock{"radio-t-bot": true},
+			[]bot.Message{
 				{Text: "message-0", From: bot.User{Username: "user-0"}},
 				{Text: bot.MsgBroadcastStarted, From: bot.User{Username: "radio-t-bot"}},
 				{Text: "message-1", From: bot.User{Username: "user-1"}},
@@ -402,6 +415,16 @@ func TestExporter_format(t *testing.T) {
 			"say! /say /who когда? /когда /how /доколе правила? ping пинг кто? who? /кто when? доколе? /ping /пинг rules? /правила /when как? how? /как /rules news! новости! /news /новости анекдот! анкедот! joke! chuck! /анекдот /joke /chuck so! /so ddg! ?? /ddg search! /search",
 			&[]bot.Entity{{Offset: 0, Length: 265, Type: "italic"}, {Offset: 5, Length: 4, Type: "bot_command"}, {Offset: 15, Length: 5, Type: "bot_command"}, {Offset: 21, Length: 4, Type: "bot_command"}, {Offset: 42, Length: 6, Type: "bot_command"}, {Offset: 89, Length: 4, Type: "bot_command"}, {Offset: 119, Length: 5, Type: "bot_command"}, {Offset: 161, Length: 5, Type: "bot_command"}, {Offset: 216, Length: 5, Type: "bot_command"}, {Offset: 222, Length: 6, Type: "bot_command"}, {Offset: 233, Length: 3, Type: "bot_command"}, {Offset: 245, Length: 4, Type: "bot_command"}, {Offset: 258, Length: 7, Type: "bot_command"}},
 			"<em>say! /say /who когда? /когда /how /доколе правила? ping пинг кто? who? /кто when? доколе? /ping /пинг rules? /правила /when как? how? /как /rules news! новости! /news /новости анекдот! анкедот! joke! chuck! /анекдот /joke /chuck so! /so ddg! ?? /ddg search! /search</em>",
+		},
+		{
+			"must show say.data",
+			&[]bot.Entity{{Type: "bold", Offset: 0, Length: 18}, {Type: "url", Offset: 10, Length: 8}},
+			"<strong>must show say.data</strong>",
+		},
+		{
+			"must show say.data",
+			&[]bot.Entity{{Type: "bold", Offset: 200, Length: 18}}, // to cause panic
+			"must show say.data",
 		},
 	}
 

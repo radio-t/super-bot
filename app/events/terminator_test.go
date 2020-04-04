@@ -11,7 +11,7 @@ import (
 func TestTerminator_checkTerminate(t *testing.T) {
 	term := Terminator{
 		BanDuration:   500 * time.Millisecond,
-		BanPenalty:    2,
+		BanPenalty:    3,
 		AllowedPeriod: 100 * time.Millisecond,
 		Exclude:       []string{"umputun"},
 	}
@@ -43,7 +43,7 @@ func TestTerminator_checkTerminate(t *testing.T) {
 func TestTerminator_checkAdmin(t *testing.T) {
 	term := Terminator{
 		BanDuration:   500 * time.Millisecond,
-		BanPenalty:    2,
+		BanPenalty:    3,
 		AllowedPeriod: 100 * time.Millisecond,
 		Exclude:       []string{"umputun"},
 	}
@@ -80,7 +80,7 @@ func TestTerminator_checkOk(t *testing.T) {
 func TestTerminator_ignoreOldMessages(t *testing.T) {
 	term := Terminator{
 		BanDuration:   500 * time.Millisecond,
-		BanPenalty:    2,
+		BanPenalty:    3,
 		AllowedPeriod: 10 * time.Millisecond,
 	}
 

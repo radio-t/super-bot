@@ -14,7 +14,7 @@ import (
 )
 
 func TestAnecdot_Help(t *testing.T) {
-	require.Equal(t, "*анекдот!*, *анкедот!*, *joke!*, *chuck!*, */анекдот*, */joke*, */chuck*\nрасскажет анекдот или шутку", Anecdote{}.Help())
+	require.Equal(t, "анекдот!, анкедот!, joke!, chuck! _– расскажет анекдот или шутку_\n", Anecdote{}.Help())
 }
 
 func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
@@ -38,7 +38,7 @@ func TestAnecdot_ReactsOnJokeRequestAlt(t *testing.T) {
 		Body: ioutil.NopCloser(strings.NewReader("joke")),
 	}, nil)
 
-	response := b.OnMessage(Message{Text: "/joke"})
+	response := b.OnMessage(Message{Text: "joke!"})
 	require.True(t, response.Send)
 	require.Equal(t, "joke", response.Text)
 }

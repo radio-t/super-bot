@@ -31,7 +31,7 @@ func TestPodcastBotReturnsOnlyTopicsWithSearchedNotes(t *testing.T) {
 	client := http.Client{Timeout: time.Second}
 	d := NewPodcasts(&client, ts.URL, 5)
 
-	resp := d.OnMessage(Message{Text: "/search Lambda"})
+	resp := d.OnMessage(Message{Text: "search! Lambda"})
 	require.Equal(t, `[Радио-Т #0](http://example.com) _01 Jan 01_
 ●  Lambda
 

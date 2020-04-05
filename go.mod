@@ -6,6 +6,7 @@ require (
 	github.com/go-pkgz/lgr v0.7.0
 	github.com/go-pkgz/syncs v1.1.1
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.5-0.20200113063019-aa124ef1e84e+incompatible
+	github.com/hako/durafmt v0.0.0-20191009132224-3f39dc1ed9f4
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0

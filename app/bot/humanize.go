@@ -5,8 +5,10 @@ import (
 	"time"
 )
 
+// Day is one day duration
 const Day = 24 * time.Hour
 
+// HumanizeDuration converts time.Duration to readable format
 func HumanizeDuration(d time.Duration) string {
 	seconds := int64(d.Seconds()) % 60
 	minutes := int64(d.Minutes()) % 60
@@ -14,7 +16,7 @@ func HumanizeDuration(d time.Duration) string {
 	days := int64(d.Hours()) / 24
 
 	result := ""
-	first := true
+	var first bool
 	if days > 0 {
 		if !first {
 			result += " "

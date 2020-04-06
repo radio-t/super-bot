@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestName(t *testing.T) {
+func TestWTF_OnMessage(t *testing.T) {
 	min := time.Hour * 24
 	max := 7 * time.Hour * 24
 	b := NewWTF(min, max)

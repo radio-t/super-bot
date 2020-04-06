@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const Day = 24 * time.Hour
+
 func HumanizeDuration(d time.Duration) string {
 	seconds := int64(d.Seconds()) % 60
 	minutes := int64(d.Minutes()) % 60

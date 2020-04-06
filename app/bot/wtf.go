@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"github.com/hako/durafmt"
 	"math/rand"
 	"time"
 
@@ -13,13 +12,14 @@ import (
 type WTF struct {
 	minDuration time.Duration
 	maxDuration time.Duration
+	rand        func(n int64) int64
 }
 
 // NewWTF makes a random ban bot
 func NewWTF(minDuration, maxDuration time.Duration) *WTF {
 	log.Printf("[INFO] WTF bot with %v-%v interval", minDuration, maxDuration)
 	rand.Seed(time.Now().UnixNano())
-	return &WTF{minDuration: minDuration, maxDuration: maxDuration}
+	return &WTF{minDuration: minDuration, maxDuration: maxDuration, rand: rand.Int63n}
 }
 
 // OnMessage sets duration of ban randomly
@@ -33,9 +33,9 @@ func (w WTF) OnMessage(msg Message) (response Response) {
 		mention = msg.From.DisplayName
 	}
 
-	banDuration := w.minDuration + time.Second*time.Duration(rand.Int63n(int64(w.maxDuration.Seconds()-w.minDuration.Seconds())))
+	banDuration := w.minDuration + time.Second*time.Duration(w.rand(int64(w.maxDuration.Seconds()-w.minDuration.Seconds())))
 	return Response{
-		Text:        fmt.Sprintf("[%s](tg://user?id=%d) получает бан на %v", mention, msg.From.ID, durafmt.Parse(banDuration)),
+		Text:        fmt.Sprintf("[%s](tg://user?id=%d) получает бан на %v", mention, msg.From.ID, HumanizeDuration(banDuration)),
 		Send:        true,
 		BanInterval: banDuration,
 	}

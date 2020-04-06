@@ -16,7 +16,7 @@ func HumanizeDuration(d time.Duration) string {
 	days := int64(d.Hours()) / 24
 
 	result := ""
-	var first bool
+	first := true
 	if days > 0 {
 		if !first {
 			result += " "

@@ -40,7 +40,6 @@ func HumanizeDuration(d time.Duration) string {
 			result += " "
 		}
 		result += fmt.Sprintf("%vсек", seconds)
-		first = false
 	}
 
 	return result

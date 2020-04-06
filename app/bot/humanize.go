@@ -18,9 +18,6 @@ func HumanizeDuration(d time.Duration) string {
 	result := ""
 	first := true
 	if days > 0 {
-		if !first {
-			result += " "
-		}
 		result += fmt.Sprintf("%vдн", days)
 		first = false
 	}

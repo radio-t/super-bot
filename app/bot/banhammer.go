@@ -49,9 +49,8 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 	userID := getUserID(name, msg.Entities)
 
 	userCfg := tbapi.ChatMemberConfig{
-		ChatID:          msg.ChatID,
-		ChannelUsername: name,
-		UserID:          userID,
+		ChatID: msg.ChatID,
+		UserID: userID,
 	}
 
 	switch cmd {

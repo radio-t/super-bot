@@ -309,6 +309,10 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 		Text: msg.Text,
 	}
 
+	if msg.Chat != nil {
+		message.ChatID = msg.Chat.ID
+	}
+
 	if msg.From != nil {
 		message.From = bot.User{
 			ID:          msg.From.ID,

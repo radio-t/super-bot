@@ -53,6 +53,7 @@ type SuperUser interface {
 type Message struct {
 	ID       int
 	From     User
+	ChatID   int64
 	Sent     time.Time
 	HTML     string    `json:",omitempty"`
 	Text     string    `json:",omitempty"`

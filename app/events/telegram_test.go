@@ -441,11 +441,15 @@ func TestTelegram_transformTextMessage(t *testing.T) {
 				Username:    "username",
 				DisplayName: "First Last",
 			},
-			Sent: time.Unix(1578627415, 0),
-			Text: "Message",
+			Sent:   time.Unix(1578627415, 0),
+			Text:   "Message",
+			ChatID: 123456,
 		},
 		l.transform(
 			&tbapi.Message{
+				Chat: &tbapi.Chat{
+					ID: 123456,
+				},
 				From: &tbapi.User{
 					ID:        100000001,
 					UserName:  "username",

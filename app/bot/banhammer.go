@@ -3,7 +3,9 @@ package bot
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
+	"time"
 
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -14,6 +16,14 @@ import (
 type Banhammer struct {
 	tgClient  TgBanClient
 	superUser SuperUser
+
+	maxRecentUsers int
+	recentUsers    map[string]userInfo
+}
+
+type userInfo struct {
+	User
+	ts time.Time
 }
 
 // TgBanClient is a subset of tg api limited to ban-related operations only
@@ -23,9 +33,9 @@ type TgBanClient interface {
 }
 
 // NewBanhammer makes a bot for admins reacting on ban!user unban!user
-func NewBanhammer(tgClient TgBanClient, superUser SuperUser) *Banhammer {
+func NewBanhammer(tgClient TgBanClient, superUser SuperUser, maxRecentUsers int) *Banhammer {
 	log.Printf("[INFO] Banhammer bot")
-	return &Banhammer{tgClient: tgClient, superUser: superUser}
+	return &Banhammer{tgClient: tgClient, superUser: superUser, recentUsers: map[string]userInfo{}, maxRecentUsers: maxRecentUsers}
 }
 
 // Help returns help message
@@ -39,23 +49,38 @@ func (b *Banhammer) ReactOn() []string {
 }
 
 // OnMessage pass msg to all bots and collects responses
+// In order to translate user name to ID (mandatory for tg kick/unban) collect up to maxRecentUsers recently seen users
 func (b *Banhammer) OnMessage(msg Message) (response Response) {
+
+	// update list of recent users
+	b.recentUsers[msg.From.Username] = userInfo{User: msg.From, ts: time.Now()}
+	if len(b.recentUsers) > b.maxRecentUsers {
+		b.cleanup()
+	}
 
 	ok, cmd, name := b.parse(msg.Text)
 	if !ok || !b.superUser.IsSuper(msg.From.Username) {
 		return Response{}
 	}
 
+	user, found := b.recentUsers[strings.TrimPrefix(name, "@")]
+	if !found {
+		log.Printf("[WARN] can't get ID for user %s", msg.From.Username)
+		return Response{}
+	}
+
 	switch cmd {
 	case "ban":
-		_, err := b.tgClient.KickChatMember(tbapi.KickChatMemberConfig{ChatMemberConfig: tbapi.ChatMemberConfig{ChannelUsername: name}})
+		_, err := b.tgClient.KickChatMember(tbapi.KickChatMemberConfig{
+			ChatMemberConfig: tbapi.ChatMemberConfig{UserID: user.ID, ChatID: msg.ChatID},
+		})
 		if err != nil {
 			log.Printf("[WARN] failed to ban %s, %v", name, err)
 			return Response{}
 		}
 		return Response{Text: fmt.Sprintf("прощай %s", name), Send: true}
 	case "unban":
-		_, err := b.tgClient.UnbanChatMember(tbapi.ChatMemberConfig{ChannelUsername: name})
+		_, err := b.tgClient.UnbanChatMember(tbapi.ChatMemberConfig{UserID: user.ID, ChatID: msg.ChatID})
 		if err != nil {
 			log.Printf("[WARN] failed to unban %s, %v", name, err)
 			return Response{}
@@ -64,6 +89,18 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 	}
 
 	return Response{}
+}
+
+func (b *Banhammer) cleanup() {
+	users := make([]userInfo, len(b.recentUsers))
+	for _, u := range b.recentUsers {
+		users = append(users, u)
+	}
+	sort.Slice(users, func(i, j int) bool { return users[i].ts.Before(users[j].ts) })
+	// remove 10% of oldest records
+	for i := 0; i < b.maxRecentUsers/10; i++ {
+		delete(b.recentUsers, users[i].Username)
+	}
 }
 
 func (b *Banhammer) parse(text string) (react bool, cmd, name string) {

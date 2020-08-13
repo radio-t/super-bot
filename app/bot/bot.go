@@ -13,9 +13,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate mockery -inpkg -name HTTPClient -case snake
+//go:generate mockery -name HTTPClient -case snake
 //go:generate mockery -inpkg -name Interface -case snake
-//go:generate mockery -inpkg -name SuperUser -case snake
+//go:generate mockery -name SuperUser -case snake
 
 // genHelpMsg construct help message from bot's ReactOn
 func genHelpMsg(com []string, msg string) string {

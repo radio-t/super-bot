@@ -8,12 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewsBot_ReactionOnNewsRequest(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	b := NewNews(mockHTTP, "", 5)
 
 	articles := []newsArticle{
@@ -44,7 +45,7 @@ func TestNewsBot_ReactionOnNewsRequest(t *testing.T) {
 }
 
 func TestNewsBot_ReactionOnNewsRequestAlt(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	b := NewNews(mockHTTP, "", 5)
 
 	article := newsArticle{
@@ -66,7 +67,7 @@ func TestNewsBot_ReactionOnNewsRequestAlt(t *testing.T) {
 }
 
 func TestNewsBot_ReactionOnUnexpectedMessage(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	b := NewNews(mockHTTP, "", 5)
 	require.Equal(t, Response{}, b.OnMessage(Message{Text: "unexpected"}))
 }

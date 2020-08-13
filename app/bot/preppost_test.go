@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -48,7 +49,7 @@ func TestPrepPost_OnMessage(t *testing.T) {
 		},
 	}
 
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	pp := NewPrepPost(mockHTTP, "http://example.com", time.Millisecond*10)
 
 	for i, tt := range tbl {
@@ -66,7 +67,7 @@ func TestPrepPost_OnMessage(t *testing.T) {
 }
 
 func TestPrepPost_checkDuration(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	pp := NewPrepPost(mockHTTP, "http://example.com", time.Millisecond*50)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{

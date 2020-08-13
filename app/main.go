@@ -62,6 +62,12 @@ func main() {
 	}
 	rand.Seed(int64(time.Now().Nanosecond()))
 
+	tbAPI, err := tbapi.NewBotAPI(opts.Telegram.Token)
+	if err != nil {
+		log.Fatalf("[ERROR] can't make telegram bot, %v", err)
+	}
+	tbAPI.Debug = opts.Dbg
+
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	multiBot := bot.MultiBot{
 		bot.NewBroadcastStatus(
@@ -78,6 +84,7 @@ func main() {
 		bot.NewPodcasts(httpClient, "https://radio-t.com/site-api", 5),
 		bot.NewPrepPost(httpClient, "https://radio-t.com/site-api", 5*time.Minute),
 		bot.NewWTF(time.Hour*24, 7*time.Hour*24),
+		bot.NewBanhammer(tbAPI, opts.SuperUsers),
 	}
 
 	if sb, err := bot.NewSys(opts.SysData); err == nil {
@@ -106,12 +113,6 @@ func main() {
 		AllowedPeriod: time.Minute * 5,
 		Exclude:       opts.SuperUsers,
 	}
-
-	tbAPI, err := tbapi.NewBotAPI(opts.Telegram.Token)
-	if err != nil {
-		log.Fatalf("[ERROR] can't make telegram bot, %v", err)
-	}
-	tbAPI.Debug = opts.Dbg
 
 	tgListener := events.TelegramListener{
 		TbAPI:                  tbAPI,

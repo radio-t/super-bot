@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -17,7 +18,7 @@ func TestDuck_Help(t *testing.T) {
 }
 
 func TestDuck_OnMessage(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	d := NewDuck("key", mockHTTP)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{

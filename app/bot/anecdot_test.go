@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -18,7 +19,7 @@ func TestAnecdot_Help(t *testing.T) {
 }
 
 func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	b := NewAnecdote(mockHTTP)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
@@ -31,7 +32,7 @@ func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
 }
 
 func TestAnecdot_ReactsOnJokeRequestAlt(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	b := NewAnecdote(mockHTTP)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
@@ -44,7 +45,7 @@ func TestAnecdot_ReactsOnJokeRequestAlt(t *testing.T) {
 }
 
 func TestAnecdot_RshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	b := NewAnecdote(mockHTTP)
 
 	mockHTTP.On("Do", mock.Anything).Return(nil, errors.New("err"))
@@ -55,7 +56,7 @@ func TestAnecdot_RshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
 }
 
 func TestAnecdotReactsOnUnexpectedMessage(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	b := NewAnecdote(mockHTTP)
 
 	result := b.OnMessage(Message{Text: "unexpected msg"})
@@ -64,7 +65,7 @@ func TestAnecdotReactsOnUnexpectedMessage(t *testing.T) {
 }
 
 func TestAnecdotReactsOnBadChuckMessage(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	b := NewAnecdote(mockHTTP)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
@@ -75,7 +76,7 @@ func TestAnecdotReactsOnBadChuckMessage(t *testing.T) {
 }
 
 func TestAnecdotReactsOnChuckMessageUnableToDoReq(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	b := NewAnecdote(mockHTTP)
 
 	mockHTTP.On("Do", mock.Anything).Return(nil, errors.New("err"))
@@ -84,7 +85,7 @@ func TestAnecdotReactsOnChuckMessageUnableToDoReq(t *testing.T) {
 }
 
 func TestAnecdotReactsOnChuckMessage(t *testing.T) {
-	mockHTTP := &MockHTTPClient{}
+	mockHTTP := &mocks.HTTPClient{}
 	b := NewAnecdote(mockHTTP)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{

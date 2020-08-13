@@ -61,7 +61,7 @@ func (l Reporter) activate() {
 			log.Printf("[WARN] failed to log, %v", err)
 			return err
 		}
-		defer fh.Close()
+		defer fh.Close() //nolint
 		for _, rec := range buffer {
 			if _, err = fh.WriteString(rec); err != nil {
 				log.Printf("[WARN] failed to write log, %v", err)

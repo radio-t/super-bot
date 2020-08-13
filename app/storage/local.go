@@ -40,7 +40,7 @@ func (l *Local) FileExists(fileName string) (bool, error) {
 
 // CreateFile creates file in `filesPath` directory with a given name and body
 func (l *Local) CreateFile(fileName string, body []byte) (string, error) {
-	err := ioutil.WriteFile(l.filesPath+"/"+fileName, body, 0644)
+	err := ioutil.WriteFile(l.filesPath+"/"+fileName, body, 0644) //nolint
 	if err != nil {
 		return "", err
 	}

@@ -112,7 +112,7 @@ func readLines(path string) ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "can't open %s", path)
 	}
-	defer f.Close()
+	defer f.Close() //nolint
 
 	result := make([]string, 0)
 	s := bufio.NewScanner(f)

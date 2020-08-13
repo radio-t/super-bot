@@ -309,6 +309,10 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 		Text: msg.Text,
 	}
 
+	if msg.Chat != nil {
+		message.ChatID = msg.Chat.ID
+	}
+
 	if msg.From != nil {
 		message.From = bot.User{
 			ID:          msg.From.ID,
@@ -336,7 +340,7 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 	return &message
 }
 
-func (l *TelegramListener) transformEntities(entities *[]tbapi.MessageEntity) *[]bot.Entity {
+func (l *TelegramListener) transformEntities(entities *[]tbapi.MessageEntity) []bot.Entity {
 	if entities == nil || len(*entities) == 0 {
 		return nil
 	}
@@ -351,6 +355,7 @@ func (l *TelegramListener) transformEntities(entities *[]tbapi.MessageEntity) *[
 		}
 		if entity.User != nil {
 			e.User = &bot.User{
+				ID:          entity.User.ID,
 				Username:    entity.User.UserName,
 				DisplayName: entity.User.FirstName + " " + entity.User.LastName,
 			}
@@ -358,5 +363,5 @@ func (l *TelegramListener) transformEntities(entities *[]tbapi.MessageEntity) *[
 		result = append(result, e)
 	}
 
-	return &result
+	return result
 }

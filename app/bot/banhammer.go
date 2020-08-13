@@ -46,16 +46,25 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
+	userID := getUserID(name, msg.Entities)
+
+	userCfg := tbapi.ChatMemberConfig{
+		ChatID:          msg.ChatID,
+		ChannelUsername: name,
+		UserID:          userID,
+	}
+
 	switch cmd {
 	case "ban":
-		_, err := b.tgClient.KickChatMember(tbapi.KickChatMemberConfig{ChatMemberConfig: tbapi.ChatMemberConfig{ChannelUsername: name}})
+
+		_, err := b.tgClient.KickChatMember(tbapi.KickChatMemberConfig{ChatMemberConfig: userCfg})
 		if err != nil {
 			log.Printf("[WARN] failed to ban %s, %v", name, err)
 			return Response{}
 		}
 		return Response{Text: fmt.Sprintf("прощай %s", name), Send: true}
 	case "unban":
-		_, err := b.tgClient.UnbanChatMember(tbapi.ChatMemberConfig{ChannelUsername: name})
+		_, err := b.tgClient.UnbanChatMember(userCfg)
 		if err != nil {
 			log.Printf("[WARN] failed to unban %s, %v", name, err)
 			return Response{}
@@ -64,6 +73,18 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 	}
 
 	return Response{}
+}
+
+func getUserID(name string, entities []Entity) int {
+	if entities == nil {
+		return 0
+	}
+	for _, e := range entities {
+		if e.Type == "mention" && e.User != nil && e.User.DisplayName == name || e.User.Username == name {
+			return e.User.ID
+		}
+	}
+	return 0
 }
 
 func (b *Banhammer) parse(text string) (react bool, cmd, name string) {

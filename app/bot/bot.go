@@ -51,13 +51,14 @@ type SuperUser interface {
 
 // Message is primary record to pass data from/to bots
 type Message struct {
+	ChatID   int64
 	ID       int
 	From     User
 	Sent     time.Time
-	HTML     string    `json:",omitempty"`
-	Text     string    `json:",omitempty"`
-	Entities *[]Entity `json:",omitempty"`
-	Image    *Image    `json:",omitempty"`
+	HTML     string   `json:",omitempty"`
+	Text     string   `json:",omitempty"`
+	Entities []Entity `json:",omitempty"`
+	Image    *Image   `json:",omitempty"`
 }
 
 // Entity represents one special entity in a text message.
@@ -76,8 +77,8 @@ type Image struct {
 	FileID   string
 	Width    int
 	Height   int
-	Caption  string    `json:",omitempty"`
-	Entities *[]Entity `json:",omitempty"`
+	Caption  string   `json:",omitempty"`
+	Entities []Entity `json:",omitempty"`
 }
 
 // User defines user info of the Message

@@ -401,7 +401,10 @@ func TestTelegram_transformTextMessage(t *testing.T) {
 				DisplayName: "First Last",
 			},
 			Sent: time.Unix(1578627415, 0),
-			Text: "Message",
+			Text: "Message @user1",
+			Entities: []bot.Entity{
+				{Type: "mention", User: &bot.User{ID: 123, Username: "user1", DisplayName: "vasya pupkin"}},
+			},
 		},
 		l.transform(
 			&tbapi.Message{
@@ -411,9 +414,12 @@ func TestTelegram_transformTextMessage(t *testing.T) {
 					FirstName: "First",
 					LastName:  "Last",
 				},
+				Entities: &[]tbapi.MessageEntity{
+					{Type: "mention", User: &tbapi.User{ID: 123, UserName: "user1", FirstName: "vasya", LastName: "pupkin"}},
+				},
 				MessageID: 30,
 				Date:      1578627415,
-				Text:      "Message",
+				Text:      "Message @user1",
 			},
 		),
 	)
@@ -430,7 +436,7 @@ func TestTelegram_transformPhoto(t *testing.T) {
 				Width:   1280,
 				Height:  597,
 				Caption: "caption",
-				Entities: &[]bot.Entity{
+				Entities: []bot.Entity{
 					{
 						Type:   "bold",
 						Offset: 0,
@@ -482,7 +488,7 @@ func TestTelegram_transformEntities(t *testing.T) {
 		&bot.Message{
 			Sent: time.Unix(1578627415, 0),
 			Text: "@username тебя слишком много, отдохни...",
-			Entities: &[]bot.Entity{
+			Entities: []bot.Entity{
 				{
 					Type:   "mention",
 					Offset: 0,

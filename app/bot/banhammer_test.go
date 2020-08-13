@@ -53,20 +53,56 @@ func TestBanhammer_OnMessage(t *testing.T) {
 	su.On("IsSuper", "user").Return(false).Once()
 
 	tg.On("KickChatMember", mock.MatchedBy(func(u tbapi.KickChatMemberConfig) bool {
-		return u.ChannelUsername == "user1"
+		return u.ChannelUsername == "user1" && u.ChatID == 123 && u.UserID == 111
 	})).Return(tbapi.APIResponse{}, nil)
 
 	tg.On("UnbanChatMember", mock.MatchedBy(func(u tbapi.ChatMemberConfig) bool {
 		return u.ChannelUsername == "user1"
 	})).Return(tbapi.APIResponse{}, nil)
 
-	resp := b.OnMessage(Message{Text: "ban! user1", From: User{Username: "user"}})
+	resp := b.OnMessage(Message{
+		ChatID: 123,
+		Entities: []Entity{{
+			Type: "mention",
+			User: &User{
+				ID:          111,
+				Username:    "user1",
+				DisplayName: "user1",
+			},
+		}},
+		Text: "ban! user1",
+		From: User{Username: "user"},
+	})
 	assert.Equal(t, Response{}, resp, "not admin")
 
-	resp = b.OnMessage(Message{Text: "bawwwn! user1", From: User{Username: "admin"}})
+	resp = b.OnMessage(Message{
+		ChatID: 123,
+		Entities: []Entity{{
+			Type: "mention",
+			User: &User{
+				ID:          111,
+				Username:    "user1",
+				DisplayName: "user1",
+			},
+		}},
+		Text: "bawwwn! user1",
+		From: User{Username: "admin"},
+	})
 	assert.Equal(t, Response{}, resp, "not a command")
 
-	resp = b.OnMessage(Message{Text: "ban! user1", From: User{Username: "admin"}})
+	resp = b.OnMessage(Message{
+		ChatID: 123,
+		Entities: []Entity{{
+			Type: "mention",
+			User: &User{
+				ID:          111,
+				Username:    "user1",
+				DisplayName: "user1",
+			},
+		}},
+		Text: "ban! user1",
+		From: User{Username: "admin"},
+	})
 	assert.Equal(t, Response{Text: "прощай user1", Send: true}, resp)
 
 	resp = b.OnMessage(Message{Text: "unban! user1", From: User{Username: "admin"}})

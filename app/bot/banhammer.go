@@ -34,7 +34,7 @@ type TgBanClient interface {
 
 // NewBanhammer makes a bot for admins reacting on ban!user unban!user
 func NewBanhammer(tgClient TgBanClient, superUser SuperUser, maxRecentUsers int) *Banhammer {
-	log.Printf("[INFO] Banhammer bot")
+	log.Printf("[INFO] Banhammer bot, max users to keep: %d, supers: %v", maxRecentUsers, superUser)
 	return &Banhammer{tgClient: tgClient, superUser: superUser, recentUsers: map[string]userInfo{}, maxRecentUsers: maxRecentUsers}
 }
 

@@ -114,9 +114,8 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 	}
 
 	resps := make(chan string)
-	var pin int32 = 0
-	var unpin int32 = 0
-	var banInterval time.Duration = 0
+	var pin, unpin int32
+	var banInterval time.Duration
 	var mutex = &sync.Mutex{}
 
 	wg := syncs.NewSizedGroup(4)

@@ -25,3 +25,6 @@ linters:
 
 issues:
   exclude-use-default: false
+
+service:
+  golangci-lint-version: 1.29.x

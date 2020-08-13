@@ -50,7 +50,7 @@ func TestBanhammer_OnMessage(t *testing.T) {
 	b := NewBanhammer(tg, su, 10)
 
 	su.On("IsSuper", "admin").Return(true).Times(2)
-	su.On("IsSuper", "user1").Return(false).Once()
+	su.On("IsSuper", "user1").Return(false).Times(3)
 
 	tg.On("KickChatMember", mock.MatchedBy(func(u tbapi.KickChatMemberConfig) bool {
 		return u.UserID == 1 && u.ChatID == 123

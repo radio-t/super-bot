@@ -59,11 +59,11 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 	}
 
 	ok, cmd, name := b.parse(msg.Text)
-	if !ok || !b.superUser.IsSuper(msg.From.Username) {
+	if !ok || !b.superUser.IsSuper(msg.From.Username) { // only super may ban/unban
 		return Response{}
 	}
 
-	if b.superUser.IsSuper(strings.TrimPrefix(name, "@")) {
+	if b.superUser.IsSuper(strings.TrimPrefix(name, "@")) { // super can't be banned by another super
 		return Response{}
 	}
 

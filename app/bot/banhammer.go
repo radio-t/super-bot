@@ -82,6 +82,7 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 			log.Printf("[WARN] failed to ban %s, %v", name, err)
 			return Response{}
 		}
+		log.Printf("[INFO] banned %+v", user.User)
 		return Response{Text: fmt.Sprintf("прощай %s", name), Send: true}
 	case "unban":
 		_, err := b.tgClient.UnbanChatMember(tbapi.ChatMemberConfig{UserID: user.ID, ChatID: msg.ChatID})
@@ -89,6 +90,7 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 			log.Printf("[WARN] failed to unban %s, %v", name, err)
 			return Response{}
 		}
+		log.Printf("[INFO] unbanned %+v", user.User)
 		return Response{Text: fmt.Sprintf("амнистия для %s", name), Send: true}
 	}
 

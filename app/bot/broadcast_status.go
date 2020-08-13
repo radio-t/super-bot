@@ -2,11 +2,10 @@ package bot
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"sync"
 	"time"
-
-	log "github.com/go-pkgz/lgr"
 )
 
 const (

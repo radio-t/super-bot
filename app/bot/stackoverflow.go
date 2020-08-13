@@ -3,12 +3,11 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"strings"
 	"time"
-
-	log "github.com/go-pkgz/lgr"
 )
 
 // StackOverflow bot, returns from "https://api.stackexchange.com/2.2/questions?order=desc&sort=activity&site=stackoverflow"

@@ -3,10 +3,9 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
-
-	log "github.com/go-pkgz/lgr"
 )
 
 // News bot, returns numArticles last articles in MD format from https://news.radio-t.com/api/v1/news/lastmd/5

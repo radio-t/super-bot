@@ -2,10 +2,9 @@ package bot
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"time"
-
-	log "github.com/go-pkgz/lgr"
 )
 
 // WTF bot bans user for random interval

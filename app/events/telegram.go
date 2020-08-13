@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"sync"
 	"time"
 
-	log "github.com/go-pkgz/lgr"
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 

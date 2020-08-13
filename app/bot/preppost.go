@@ -3,10 +3,10 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
-	log "github.com/go-pkgz/lgr"
 	"github.com/pkg/errors"
 )
 

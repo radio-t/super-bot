@@ -3,12 +3,12 @@ package bot
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
 
-	log "github.com/go-pkgz/lgr"
 	"github.com/pkg/errors"
 )
 

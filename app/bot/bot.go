@@ -2,13 +2,13 @@ package bot
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	log "github.com/go-pkgz/lgr"
 	"github.com/go-pkgz/syncs"
 	"github.com/pkg/errors"
 )

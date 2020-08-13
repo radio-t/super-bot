@@ -1,9 +1,9 @@
 package events
 
 import (
+	"log"
 	"time"
 
-	log "github.com/go-pkgz/lgr"
 	"github.com/radio-t/super-bot/app/bot"
 )
 

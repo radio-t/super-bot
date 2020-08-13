@@ -8,13 +8,13 @@ import (
 	"html"
 	"html/template"
 	"io/ioutil"
+	"log"
 	"net/url"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	log "github.com/go-pkgz/lgr"
 	"github.com/pkg/errors"
 	"github.com/radio-t/super-bot/app/bot"
 )

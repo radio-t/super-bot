@@ -3,12 +3,11 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
-
-	log "github.com/go-pkgz/lgr"
 )
 
 // Podcasts search bot, returns search result via site-api see https://radio-t.com/api-docs/

@@ -5,12 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
-
-	log "github.com/go-pkgz/lgr"
 )
 
 // Excerpt bot, returns link excerpt

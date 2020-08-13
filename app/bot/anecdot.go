@@ -3,9 +3,9 @@ package bot
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"strings"
 
-	log "github.com/go-pkgz/lgr"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
 )

@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
-	log "github.com/go-pkgz/lgr"
+	"github.com/go-pkgz/lgr"
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/umputun/go-flags"
 
@@ -175,9 +176,9 @@ func export() {
 }
 
 func setupLog(dbg bool) {
+	logOpts := []lgr.Option{lgr.Msec, lgr.LevelBraces}
 	if dbg {
-		log.Setup(log.Debug, log.CallerFile, log.CallerFunc, log.Msec, log.LevelBraces)
-		return
+		logOpts = []lgr.Option{lgr.Debug, lgr.CallerFile, lgr.CallerFunc, lgr.Msec, lgr.LevelBraces}
 	}
-	log.Setup(log.Msec, log.LevelBraces)
+	lgr.SetupStdLogger(logOpts...)
 }

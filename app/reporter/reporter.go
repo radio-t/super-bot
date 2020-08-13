@@ -3,10 +3,10 @@ package reporter
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
-	log "github.com/go-pkgz/lgr"
 	"github.com/radio-t/super-bot/app/bot"
 )
 

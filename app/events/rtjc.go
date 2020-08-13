@@ -4,11 +4,10 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 	"time"
-
-	log "github.com/go-pkgz/lgr"
 )
 
 // pinned defines translation map for messages pinned by bot

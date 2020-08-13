@@ -3,9 +3,8 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
-
-	log "github.com/go-pkgz/lgr"
 )
 
 // Duck bot, returns from duckduckgo via mashape

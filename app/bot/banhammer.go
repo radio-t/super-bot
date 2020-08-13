@@ -63,6 +63,10 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
+	if b.superUser.IsSuper(strings.TrimPrefix(name, "@")) {
+		return Response{}
+	}
+
 	user, found := b.recentUsers[strings.TrimPrefix(name, "@")]
 	if !found {
 		log.Printf("[WARN] can't get ID for user %s", msg.From.Username)

@@ -6,7 +6,6 @@
 // Debug and trace levels can be filtered based on lgr.Trace and lgr.Debug options.
 // ERROR, FATAL and PANIC levels send to err as well. FATAL terminate caller application with os.Exit(1)
 // and PANIC also prints stack trace.
-
 package lgr
 
 import (
@@ -26,12 +25,18 @@ import (
 var levels = []string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "PANIC", "FATAL"}
 
 const (
-	Short      = `{{.DT.Format "2006/01/02 15:04:05"}} {{.Level}} {{.Message}}`
-	WithMsec   = `{{.DT.Format "2006/01/02 15:04:05.000"}} {{.Level}} {{.Message}}`
-	WithPkg    = `{{.DT.Format "2006/01/02 15:04:05.000"}} {{.Level}} ({{.CallerPkg}}) {{.Message}}`
+	// Short logging format
+	Short = `{{.DT.Format "2006/01/02 15:04:05"}} {{.Level}} {{.Message}}`
+	// WithMsec is a logging format with milliseconds
+	WithMsec = `{{.DT.Format "2006/01/02 15:04:05.000"}} {{.Level}} {{.Message}}`
+	// WithPkg is WithMsec logging format with caller package
+	WithPkg = `{{.DT.Format "2006/01/02 15:04:05.000"}} {{.Level}} ({{.CallerPkg}}) {{.Message}}`
+	// ShortDebug is WithMsec logging format with caller file and line
 	ShortDebug = `{{.DT.Format "2006/01/02 15:04:05.000"}} {{.Level}} ({{.CallerFile}}:{{.CallerLine}}) {{.Message}}`
-	FuncDebug  = `{{.DT.Format "2006/01/02 15:04:05.000"}} {{.Level}} ({{.CallerFunc}}) {{.Message}}`
-	FullDebug  = `{{.DT.Format "2006/01/02 15:04:05.000"}} {{.Level}} ({{.CallerFile}}:{{.CallerLine}} {{.CallerFunc}}) {{.Message}}`
+	// FuncDebug is WithMsec logging format with caller function
+	FuncDebug = `{{.DT.Format "2006/01/02 15:04:05.000"}} {{.Level}} ({{.CallerFunc}}) {{.Message}}`
+	// FullDebug is WithMsec logging format with caller file, line and function
+	FullDebug = `{{.DT.Format "2006/01/02 15:04:05.000"}} {{.Level}} ({{.CallerFile}}:{{.CallerLine}} {{.CallerFunc}}) {{.Message}}`
 )
 
 var secretReplacement = []byte("******")
@@ -48,7 +53,7 @@ type Logger struct {
 	levelBraces    bool      // encloses level with [], i.e. [INFO]
 	callerDepth    int       // how many stack frames to skip, relative to the real (reported) frame
 	format         string    // layout template
-	secrets        []string  // sub-strings to secrets by matching
+	secrets        [][]byte  // sub-strings to secrets by matching
 
 	// internal use
 	now           nowFn
@@ -195,7 +200,7 @@ func (l *Logger) logf(format string, args ...interface{}) {
 
 func (l *Logger) hideSecrets(data []byte) []byte {
 	for _, h := range l.secrets {
-		data = bytes.Replace(data, []byte(h), secretReplacement, -1)
+		data = bytes.Replace(data, h, secretReplacement, -1)
 	}
 	return data
 }
@@ -268,15 +273,17 @@ func (l *Logger) formatWithOptions(elems layout) (res string) {
 
 	parts := make([]string, 0, 4)
 
-	parts = append(parts, orElse(l.msec,
-		func() string { return elems.DT.Format("2006/01/02 15:04:05.000") },
-		func() string { return elems.DT.Format("2006/01/02 15:04:05") },
-	))
-
-	parts = append(parts, orElse(l.levelBraces,
-		func() string { return `[` + elems.Level + `]` },
-		func() string { return elems.Level },
-	))
+	parts = append(
+		parts,
+		orElse(l.msec,
+			func() string { return elems.DT.Format("2006/01/02 15:04:05.000") },
+			func() string { return elems.DT.Format("2006/01/02 15:04:05") },
+		),
+		orElse(l.levelBraces,
+			func() string { return `[` + elems.Level + `]` },
+			func() string { return elems.Level },
+		),
+	)
 
 	if l.callerFile || l.callerFunc || l.callerPkg {
 		var callerParts []string

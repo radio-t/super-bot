@@ -69,7 +69,7 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 
 	user, found := b.recentUsers[strings.TrimPrefix(name, "@")]
 	if !found {
-		log.Printf("[WARN] can't get ID for user %s", msg.From.Username)
+		log.Printf("[WARN] can't get ID for user %s", name)
 		return Response{}
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -98,6 +99,9 @@ func (b MultiBot) Help() string {
 		help := child.Help()
 		if help != "" {
 			// WriteString always returns nil err
+			if !strings.HasSuffix(help, "\n") {
+				help += "\n"
+			}
 			_, _ = sb.WriteString(help)
 		}
 	}
@@ -152,6 +156,10 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		log.Printf("[DEBUG] collect %q", r)
 		lines = append(lines, r)
 	}
+
+	sort.Slice(lines, func(i, j int) bool {
+		return lines[i] < lines[j]
+	})
 
 	log.Printf("[DEBUG] answers %d, send %v", len(lines), len(lines) > 0)
 	return Response{

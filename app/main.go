@@ -84,7 +84,7 @@ func main() {
 		bot.NewDuck(opts.MashapeToken, httpClient),
 		bot.NewPodcasts(httpClient, "https://radio-t.com/site-api", 5),
 		bot.NewPrepPost(httpClient, "https://radio-t.com/site-api", 5*time.Minute),
-		bot.NewWTF(time.Hour*24, 7*time.Hour*24),
+		bot.NewWTF(time.Hour*24, 7*time.Hour*24, opts.SuperUsers),
 		bot.NewBanhammer(tbAPI, opts.SuperUsers, 5000),
 	}
 

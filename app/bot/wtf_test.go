@@ -10,7 +10,7 @@ import (
 func TestWTF_OnMessage(t *testing.T) {
 	min := time.Hour * 24
 	max := 7 * time.Hour * 24
-	b := NewWTF(min, max)
+	b := NewWTF(min, max, nil)
 	b.rand = func(n int64) int64 {
 		return 10
 	}

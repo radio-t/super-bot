@@ -47,7 +47,7 @@ func (w WTF) OnMessage(msg Message) (response Response) {
 
 // ReactOn keys
 func (w WTF) ReactOn() []string {
-	return []string{"wtf!", "wtf?"}
+	return []string{"wtf!", "wtf?", "Ни у кого нет, случайно, инвайта в Clubhouse?"}
 }
 
 // Help returns help message

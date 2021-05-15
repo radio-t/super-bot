@@ -114,7 +114,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			// check for all-activity ban
 			if b := l.AllActivityTerm.check(msg.From, msg.Sent); b.active {
-				if b.new {
+				if b.new && !l.SuperUsers.IsSuper(update.Message.From.UserName) {
 					if err := l.applyBan(*msg, l.AllActivityTerm.BanDuration, fromChat, update.Message.From.ID); err != nil {
 						log.Printf("[ERROR] can't ban, %v", err)
 					}

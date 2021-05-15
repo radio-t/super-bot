@@ -85,6 +85,7 @@ func main() {
 		bot.NewPodcasts(httpClient, "https://radio-t.com/site-api", 5),
 		bot.NewPrepPost(httpClient, "https://radio-t.com/site-api", 5*time.Minute),
 		bot.NewWTF(time.Hour*24, 7*time.Hour*24, opts.SuperUsers),
+		bot.NewDuelBot(tbAPI, opts.SuperUsers, time.Minute*5, time.Hour*24),
 		bot.NewBanhammer(tbAPI, opts.SuperUsers, 5000),
 	}
 

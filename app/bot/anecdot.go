@@ -41,7 +41,7 @@ func (a Anecdote) OnMessage(msg Message) (response Response) {
 	case contains([]string{"zaibatsu!", "/zaibatsu"}, msg.Text):
 		return a.jokesrv("zaibatsu")
 	default:
-		return a.jokesrv("oneliners")
+		return a.jokesrv("oneliner")
 	}
 
 }

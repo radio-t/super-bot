@@ -33,11 +33,21 @@ func (a Anecdote) OnMessage(msg Message) (response Response) {
 		return a.chuck()
 	}
 
-	return a.jokesrv("oneliners")
+	switch {
+	case contains([]string{"chuck!", "/chuck"}, msg.Text):
+		return a.chuck()
+	case contains([]string{"facts!", "/facts"}, msg.Text):
+		return a.jokesrv("facts")
+	case contains([]string{"zaibatsu!", "/zaibatsu"}, msg.Text):
+		return a.jokesrv("zaibatsu")
+	default:
+		return a.jokesrv("oneliners")
+	}
+
 }
 
-func (a Anecdote) jokesrv(_ string) (response Response) {
-	reqURL := "https://jokesrv.rubedo.cloud/"
+func (a Anecdote) jokesrv(category string) (response Response) {
+	reqURL := "https://jokesrv.rubedo.cloud/" + category
 
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
@@ -99,5 +109,5 @@ func (a Anecdote) chuck() (response Response) {
 
 // ReactOn keys
 func (a Anecdote) ReactOn() []string {
-	return []string{"анекдот!", "анкедот!", "joke!", "chuck!"}
+	return []string{"анекдот!", "анкедот!", "joke!", "chuck!", "facts!", "zaibatsu!"}
 }

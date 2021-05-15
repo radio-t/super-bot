@@ -65,7 +65,7 @@ func (s StackOverflow) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	r := soRecs.Items[rand.Intn(len(soRecs.Items))]
+	r := soRecs.Items[rand.Intn(len(soRecs.Items))] //nolint:gosec
 	return Response{
 		Text: fmt.Sprintf("[%s](%s) %s", r.Title, r.Link, strings.Join(r.Tags, ",")),
 		Send: true,

@@ -36,7 +36,7 @@ func (a Anecdote) OnMessage(msg Message) (response Response) {
 	return a.jokesrv("oneliners")
 }
 
-func (a Anecdote) jokesrv(category string) (response Response) {
+func (a Anecdote) jokesrv(_ string) (response Response) {
 	reqURL := "https://jokesrv.rubedo.cloud/"
 
 	req, err := makeHTTPRequest(reqURL)

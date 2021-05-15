@@ -8,10 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/radio-t/super-bot/app/bot/mocks"
 )
 
 func TestAnecdot_Help(t *testing.T) {
@@ -23,34 +24,21 @@ func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
 	b := NewAnecdote(mockHTTP)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body: ioutil.NopCloser(strings.NewReader("joke")),
+		Body: ioutil.NopCloser(strings.NewReader(`{"content": "Добраться до вершины не так сложно, как пробраться через толпу у её основания.."}`)),
 	}, nil)
 
 	response := b.OnMessage(Message{Text: "joke!"})
 	require.True(t, response.Send)
-	require.Equal(t, "joke", response.Text)
+	require.Equal(t, "Добраться до вершины не так сложно, как пробраться через толпу у её основания..", response.Text)
 }
 
-func TestAnecdot_ReactsOnJokeRequestAlt(t *testing.T) {
-	mockHTTP := &mocks.HTTPClient{}
-	b := NewAnecdote(mockHTTP)
-
-	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body: ioutil.NopCloser(strings.NewReader("joke")),
-	}, nil)
-
-	response := b.OnMessage(Message{Text: "joke!"})
-	require.True(t, response.Send)
-	require.Equal(t, "joke", response.Text)
-}
-
-func TestAnecdot_RshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
+func TestAnecdot_ujokesrvRetursnNothingOnUnableToDoReq(t *testing.T) {
 	mockHTTP := &mocks.HTTPClient{}
 	b := NewAnecdote(mockHTTP)
 
 	mockHTTP.On("Do", mock.Anything).Return(nil, errors.New("err"))
 
-	response := b.jokesrv()
+	response := b.jokesrv("oneliners")
 	require.False(t, response.Send)
 	require.Empty(t, response.Text)
 }

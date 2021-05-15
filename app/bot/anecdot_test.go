@@ -50,7 +50,7 @@ func TestAnecdot_RshunemaguRetursnNothingOnUnableToDoReq(t *testing.T) {
 
 	mockHTTP.On("Do", mock.Anything).Return(nil, errors.New("err"))
 
-	response := b.rzhunemogu()
+	response := b.jokesrv()
 	require.False(t, response.Send)
 	require.Empty(t, response.Text)
 }

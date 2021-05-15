@@ -2,22 +2,18 @@ package bot
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"strings"
-
-	"golang.org/x/text/encoding/charmap"
-	"golang.org/x/text/transform"
 )
 
-// Anecdote bot, returns from http://rzhunemogu.ru/RandJSON.aspx?CType=1
+// Anecdote bot, returns from https://jokesrv.rubedo.cloud/
 type Anecdote struct {
 	client HTTPClient
 }
 
 // NewAnecdote makes a bot for http://rzhunemogu.ru
 func NewAnecdote(client HTTPClient) *Anecdote {
-	log.Printf("[INFO] anecdote bot with http://rzhunemogu.ru/RandJSON.aspx?CType=1 and http://api.icndb.com/jokes/random")
+	log.Printf("[INFO] anecdote bot with https://jokesrv.rubedo.cloud/ and http://api.icndb.com/jokes/random")
 	return &Anecdote{client: client}
 }
 
@@ -37,11 +33,11 @@ func (a Anecdote) OnMessage(msg Message) (response Response) {
 		return a.chuck()
 	}
 
-	return a.rzhunemogu()
+	return a.jokesrv("oneliners")
 }
 
-func (a Anecdote) rzhunemogu() (response Response) {
-	reqURL := "http://rzhunemogu.ru/RandJSON.aspx?CType=1"
+func (a Anecdote) jokesrv(category string) (response Response) {
+	reqURL := "https://jokesrv.rubedo.cloud/"
 
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
@@ -54,25 +50,18 @@ func (a Anecdote) rzhunemogu() (response Response) {
 		return Response{}
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("[WARN] failed to read body, error=%v", err)
+	rr := struct {
+		Category string `json:"category"`
+		Content  string `json:"content"`
+	}{}
+
+	if err := json.NewDecoder(resp.Body).Decode(&rr); err != nil {
+		log.Printf("[WARN] failed to parse body, error=%v", err)
 		return Response{}
+
 	}
 
-	text := string(body)
-	// this json is not really json? body with \r
-	text = strings.TrimPrefix(text, `{"content":"`)
-	text = strings.TrimSuffix(text, `"}`)
-
-	tr := transform.NewReader(strings.NewReader(text), charmap.Windows1251.NewDecoder())
-	buf, err := ioutil.ReadAll(tr)
-	if err != nil {
-		log.Printf("[WARN] failed to convert string to utf, error=%v", err)
-		return Response{}
-	}
-
-	return Response{Text: string(buf), Send: true}
+	return Response{Text: rr.Content, Send: true}
 }
 
 func (a Anecdote) chuck() (response Response) {

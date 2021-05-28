@@ -16,7 +16,7 @@ import (
 )
 
 func TestAnecdot_Help(t *testing.T) {
-	require.Equal(t, "анекдот!, анкедот!, joke!, chuck!, facts!, zaibatsu! _– расскажет анекдот или шутку_\n",
+	require.Equal(t, "анекдот!, анкедот!, joke!, chuck!, facts!, zaibatsu!, excuse! _– расскажет анекдот или шутку_\n",
 		Anecdote{}.Help())
 }
 

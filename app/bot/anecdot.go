@@ -40,6 +40,8 @@ func (a Anecdote) OnMessage(msg Message) (response Response) {
 		return a.jokesrv("facts")
 	case contains([]string{"zaibatsu!", "/zaibatsu"}, msg.Text):
 		return a.jokesrv("zaibatsu")
+	case contains([]string{"excuse!", "/excuse"}, msg.Text):
+		return a.jokesrv("excuse")
 	default:
 		return a.jokesrv("oneliner")
 	}
@@ -109,5 +111,5 @@ func (a Anecdote) chuck() (response Response) {
 
 // ReactOn keys
 func (a Anecdote) ReactOn() []string {
-	return []string{"анекдот!", "анкедот!", "joke!", "chuck!", "facts!", "zaibatsu!"}
+	return []string{"анекдот!", "анкедот!", "joke!", "chuck!", "facts!", "zaibatsu!", "excuse!"}
 }

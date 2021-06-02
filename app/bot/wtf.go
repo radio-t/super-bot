@@ -24,7 +24,11 @@ func NewWTF(minDuration, maxDuration time.Duration, superUser SuperUser) *WTF {
 
 // OnMessage sets duration of ban randomly
 func (w WTF) OnMessage(msg Message) (response Response) {
-	if !contains(w.ReactOn(), msg.Text) {
+
+	wtfContains := WTFSteroidChecker{
+		message: msg.Text}
+
+	if !wtfContains.Contains() {
 		return Response{}
 	}
 

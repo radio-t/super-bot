@@ -114,6 +114,11 @@ func TestWTFSteroidChecker_Contains(t *testing.T) {
 				message: "Что за wtf!",
 			},
 			want: false},
+		{name: "VVtf!",
+			fields: fields{
+				message: "VVtf!",
+			},
+			want: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -135,13 +140,13 @@ func TestWTFSteroidChecker_WTFUnicodeLibrary_Unique_Check(t *testing.T) {
 		t.Errorf("Library is empty")
 	}
 	checkMap := make(map[string]struct{})
-	for _, listOfUnicodes := range unicodeLibrary {
-		for _, unicodeSymbol := range listOfUnicodes {
+	for mainLetter, listOfUnicodes := range unicodeLibrary {
+		for numInArray, unicodeSymbol := range listOfUnicodes {
 			_, ok := checkMap[unicodeSymbol]
 			if !ok {
 				checkMap[unicodeSymbol] = struct{}{}
 			} else {
-				t.Errorf("Duplicate symbol %s", unicodeSymbol)
+				t.Errorf("Duplicate symbol is %s looks like %s and in %d position in array", unicodeSymbol, mainLetter, numInArray)
 			}
 		}
 	}

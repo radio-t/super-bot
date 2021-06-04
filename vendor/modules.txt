@@ -30,11 +30,9 @@ github.com/technoweenie/multipartstreamer
 github.com/umputun/go-flags
 # golang.org/x/text v0.3.2
 ## explicit
-golang.org/x/text/encoding
-golang.org/x/text/encoding/charmap
-golang.org/x/text/encoding/internal
-golang.org/x/text/encoding/internal/identifier
+golang.org/x/text/runes
 golang.org/x/text/transform
+golang.org/x/text/unicode/norm
 # gopkg.in/yaml.v2 v2.2.8
 ## explicit
 gopkg.in/yaml.v2

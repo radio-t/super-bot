@@ -12,7 +12,6 @@ telegram-bot:
     environment:
         - TELEGRAM_TOKEN
         - TELEGRAM_GROUP
-        - MASHAPE_TOKEN
         - DEBUG=true
     volumes:
         - ./logs:/srv/logs

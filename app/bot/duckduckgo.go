@@ -15,7 +15,7 @@ type Duck struct {
 
 // NewDuck makes a bot for duckduckgo
 func NewDuck(key string, client HTTPClient) *Duck {
-	log.Printf("[INFO] Duck bot with duckduckgo-duckduckgo-zero-click-info.p.mashape.com")
+	log.Printf("[INFO] Duck bot with api.duckduckgo.com")
 	return &Duck{mashapeKey: key, client: client}
 }
 
@@ -32,7 +32,7 @@ func (d *Duck) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	reqURL := fmt.Sprintf("https://duckduckgo-duckduckgo-zero-click-info.p.mashape.com/?format=json&no_html=1&no_redirect=1&q=%s&skip_disambig=1", reqText)
+	reqURL := fmt.Sprintf("https://api.duckduckgo.com/?q=%s&format=json&no_html=1&no_redirect=1&skip_disambig=1", reqText)
 
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {

@@ -151,5 +151,11 @@ func (a Anecdote) chuck() (response Response) {
 
 // ReactOn keys
 func (a Anecdote) ReactOn() []string {
-	return []string{"анекдот!", "анкедот!", "joke!", "chuck!", "facts!", "zaibatsu!", "excuse!"}
+
+	cc, err := a.categories()
+	if err != nil {
+		log.Printf("[WARN] category retrival failed, %v", err)
+	}
+
+	return append([]string{"анекдот!", "анкедот!", "joke!", "chuck!"}, cc...)
 }

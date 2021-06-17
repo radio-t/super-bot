@@ -3,7 +3,6 @@ module github.com/radio-t/super-bot
 go 1.16
 
 require (
-	github.com/go-pkgz/expirable-cache v0.0.3 // indirect
 	github.com/go-pkgz/lcw v0.8.1
 	github.com/go-pkgz/lgr v0.8.0
 	github.com/go-pkgz/syncs v1.1.1

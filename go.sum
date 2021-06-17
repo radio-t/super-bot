@@ -11,8 +11,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
-github.com/go-pkgz/expirable-cache v0.0.3 h1:rTh6qNPp78z0bQE6HDhXBHUwqnV9i09Vm6dksJLXQDc=
-github.com/go-pkgz/expirable-cache v0.0.3/go.mod h1:+IauqN00R2FqNRLCLA+X5YljQJrwB179PfiAoMPlTlQ=
 github.com/go-pkgz/lcw v0.8.1 h1:Bpt2yYTE1J8hIhz8tjdm1WPOgH13eo5iTNsXyop7cMQ=
 github.com/go-pkgz/lcw v0.8.1/go.mod h1:Xw0/ZfApATgbjVPYRZO4XHdWyxAjErDWDWJ7TLlw1Vc=
 github.com/go-pkgz/lgr v0.8.0 h1:tUrlbbpUJ5PKk7vwNZ5EMJz/MOR+Uphz/kU6GVwfAUw=

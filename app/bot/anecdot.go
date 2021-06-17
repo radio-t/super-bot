@@ -113,7 +113,7 @@ func (a Anecdote) jokesrv(category string) (response Response) {
 
 	}
 
-	return Response{Text: rr.Content, Send: true}
+	return Response{Text: strings.TrimSuffix(rr.Content, "."), Send: true}
 }
 
 func (a Anecdote) chuck() (response Response) {

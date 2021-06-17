@@ -26,12 +26,12 @@ func TestAnecdot_ReactsOnJokeRequest(t *testing.T) {
 	b := NewAnecdote(mockHTTP)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body: ioutil.NopCloser(strings.NewReader(`{"content": "Добраться до вершины не так сложно, как пробраться через толпу у её основания.."}`)),
+		Body: ioutil.NopCloser(strings.NewReader(`{"content": "Добраться до вершины не так сложно, как пробраться через толпу у её основания."}`)),
 	}, nil)
 
 	response := b.OnMessage(Message{Text: "joke!"})
 	require.True(t, response.Send)
-	require.Equal(t, "Добраться до вершины не так сложно, как пробраться через толпу у её основания..", response.Text)
+	require.Equal(t, "Добраться до вершины не так сложно, как пробраться через толпу у её основания", response.Text)
 }
 
 func TestAnecdot_ujokesrvRetursnNothingOnUnableToDoReq(t *testing.T) {

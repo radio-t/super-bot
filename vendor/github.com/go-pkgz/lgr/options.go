@@ -78,3 +78,15 @@ func Secret(vals ...string) Option {
 		}
 	}
 }
+
+// Map sets mapper functions to change elements of the logged message based on levels.
+func Map(m Mapper) Option {
+	return func(l *Logger) {
+		l.mapper = m
+	}
+}
+
+// StackTraceOnError turns on stack trace for ERROR level.
+func StackTraceOnError(l *Logger) {
+	l.errorDump = true
+}

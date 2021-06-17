@@ -1,4 +1,5 @@
-# lgr - simple logger with some extras [![Build Status](https://github.com/go-pkgz/lgr/workflows/build/badge.svg)](https://github.com/go-pkgz/lgr/actions) [![Coverage Status](https://coveralls.io/repos/github/go-pkgz/lgr/badge.svg?branch=master)](https://coveralls.io/github/go-pkgz/lgr?branch=master) [![godoc](https://godoc.org/github.com/go-pkgz/lgr?status.svg)](https://godoc.org/github.com/go-pkgz/lgr)
+# lgr - simple logger with some extras 
+[![Build Status](https://github.com/go-pkgz/lgr/workflows/build/badge.svg)](https://github.com/go-pkgz/lgr/actions) [![Coverage Status](https://coveralls.io/repos/github/go-pkgz/lgr/badge.svg?branch=master)](https://coveralls.io/github/go-pkgz/lgr?branch=master) [![godoc](https://godoc.org/github.com/go-pkgz/lgr?status.svg)](https://godoc.org/github.com/go-pkgz/lgr)
 
 ## install
 
@@ -43,6 +44,8 @@ _Without `lgr.Caller*` it will drop `{caller}` part_
 - `lgr.Msec` - adds milliseconds to timestamp
 - `lgr.Format` - sets a custom template, overwrite all other formatting modifiers.
 - `lgr.Secret(secret ...)` - sets list of the secrets to hide from the logging outputs.
+- `lgr.Map(mapper)` - sets mapper functions to change elements of the logging output based on levels.
+- `lgr.StackTraceOnError` - turns on stack trace for ERROR level.
 
 example: `l := lgr.New(lgr.Debug, lgr.Msec)`
 
@@ -79,6 +82,28 @@ _Note: formatter (predefined or custom) adds measurable overhead - the cost will
 - `FATAL` and send messages to both out and err writers and exit(1)
 - `PANIC` does the same as `FATAL` but in addition sends dump of callers and runtime info to err.
 
+### mapper
+
+Elements of the output can be altered with a set of user defined function passed as `lgr.Map` options. Such a mapper changes
+the value of an element (i.e. timestamp, level, message, caller) and has separate functions for each level. Note: both level 
+and messages elements handled by the same function for a given level. 
+
+_A typical use-case is to produce colorful output with a user-define colorization library._
+
+example with [fatih/color](https://github.com/fatih/color):
+
+```go
+	colorizer := lgr.Mapper{
+		ErrorFunc:  func(s string) string { return color.New(color.FgHiRed).Sprint(s) },
+		WarnFunc:   func(s string) string { return color.New(color.FgHiYellow).Sprint(s) },
+		InfoFunc:   func(s string) string { return color.New(color.FgHiWhite).Sprint(s) },
+		DebugFunc:  func(s string) string { return color.New(color.FgWhite).Sprint(s) },
+		CallerFunc: func(s string) string { return color.New(color.FgBlue).Sprint(s) },
+		TimeFunc:   func(s string) string { return color.New(color.FgCyan).Sprint(s) },
+	}
+
+	logOpts := []lgr.Option{lgr.Msec, lgr.LevelBraces, lgr.Map(colorizer)}
+```
 ### adaptors
 
 `lgr` logger can be converted to `io.Writer` or `*log.Logger`

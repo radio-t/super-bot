@@ -40,7 +40,10 @@ func (a Anecdote) OnMessage(msg Message) (response Response) {
 		return a.chuck()
 	}
 
-	cc, _ := a.categories()
+	cc, err := a.categories()
+	if err != nil {
+		log.Printf("[WARN] category retrival failed, %v", err)
+	}
 
 	switch {
 	case contains([]string{"chuck!", "/chuck"}, msg.Text):

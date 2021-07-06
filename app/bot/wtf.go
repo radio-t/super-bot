@@ -42,6 +42,13 @@ func (w WTF) OnMessage(msg Message) (response Response) {
 	}
 
 	banDuration := w.minDuration + time.Second*time.Duration(w.rand(int64(w.maxDuration.Seconds()-w.minDuration.Seconds())))
+	switch w.rand(10) {
+	case 1:
+		banDuration = time.Hour * 666
+	case 2:
+		banDuration = time.Minute*77 + time.Second*7
+	}
+
 	return Response{
 		Text:        fmt.Sprintf("[%s](tg://user?id=%d) получает бан на %v", mention, msg.From.ID, HumanizeDuration(banDuration)),
 		Send:        true,

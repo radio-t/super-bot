@@ -114,7 +114,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			// check for all-activity ban
 			if b := l.AllActivityTerm.check(msg.From, msg.Sent); b.active {
-				if b.new && !l.SuperUsers.IsSuper(update.Message.From.UserName) {
+				if b.new && !l.SuperUsers.IsSuper(update.Message.From.UserName) && fromChat == l.chatID {
 					if err := l.applyBan(*msg, l.AllActivityTerm.BanDuration, fromChat, update.Message.From.ID); err != nil {
 						log.Printf("[ERROR] can't ban, %v", err)
 					}
@@ -134,7 +134,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			}
 
 			// some bots may request direct ban for given duration
-			if resp.Send && resp.BanInterval > 0 && !l.SuperUsers.IsSuper(update.Message.From.UserName) {
+			if resp.Send && resp.BanInterval > 0 && !l.SuperUsers.IsSuper(update.Message.From.UserName) && fromChat == l.chatID {
 				if err := l.banUser(resp.BanInterval, fromChat, update.Message.From.ID); err != nil {
 					log.Printf("[ERROR] can't ban %v on bot response, %v", msg.From, err)
 				} else {

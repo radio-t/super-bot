@@ -80,9 +80,8 @@ func (a Anecdote) categories() ([]string, error) {
 		return nil, err
 	}
 
-	cc := []string{}
+	var cc []string
 	for _, c := range res.([]string) {
-		cc = append(cc, "/"+c)
 		cc = append(cc, c+"!")
 	}
 	return cc, nil

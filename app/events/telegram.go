@@ -113,7 +113,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
 
 			// check for all-activity ban
-			if b := l.AllActivityTerm.check(msg.From, msg.Sent); b.active {
+			if b := l.AllActivityTerm.check(msg.From, msg.Sent, fromChat); b.active {
 				if b.new && !l.SuperUsers.IsSuper(update.Message.From.UserName) && fromChat == l.chatID {
 					if err := l.applyBan(*msg, l.AllActivityTerm.BanDuration, fromChat, update.Message.From.ID); err != nil {
 						log.Printf("[ERROR] can't ban, %v", err)
@@ -162,7 +162,7 @@ func (l *TelegramListener) botActivityBan(resp bot.Response, msg bot.Message, fr
 	}
 
 	// check for bot-activity ban for given users
-	if b := l.BotsActivityTerm.check(msg.From, msg.Sent); b.active {
+	if b := l.BotsActivityTerm.check(msg.From, msg.Sent, fromChat); b.active {
 		if b.new {
 			if err := l.applyBan(msg, l.BotsActivityTerm.BanDuration, fromChat, fromID); err != nil {
 				log.Printf("[ERROR] can't ban, %v", err)
@@ -172,7 +172,7 @@ func (l *TelegramListener) botActivityBan(resp bot.Response, msg bot.Message, fr
 	}
 
 	// check for bot-activity ban for all users
-	if b := l.OverallBotActivityTerm.check(bot.User{}, msg.Sent); b.active {
+	if b := l.OverallBotActivityTerm.check(bot.User{}, msg.Sent, fromChat); b.active {
 		if b.new {
 			if err := l.applyBan(msg, l.BotsActivityTerm.BanDuration, fromChat, fromID); err != nil {
 				log.Printf("[ERROR] can't ban, %v", err)

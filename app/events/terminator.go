@@ -13,7 +13,7 @@ type Terminator struct {
 	BanPenalty    int
 	AllowedPeriod time.Duration
 	Exclude       SuperUser
-	users         map[bot.User]activity
+	users         map[bot.User]map[int64]activity // {user: {chatId: activity} }
 }
 
 type activity struct {
@@ -27,7 +27,7 @@ type ban struct {
 }
 
 // check if user bothered bot too often and ban for BanDuration
-func (t *Terminator) check(user bot.User, sent time.Time) ban {
+func (t *Terminator) check(user bot.User, sent time.Time, chatID int64) ban {
 
 	noBan := ban{active: false, new: false}
 	if t.Exclude.IsSuper(user.Username) {
@@ -35,15 +35,18 @@ func (t *Terminator) check(user bot.User, sent time.Time) ban {
 	}
 
 	if t.users == nil {
-		t.users = make(map[bot.User]activity)
+		t.users = make(map[bot.User]map[int64]activity)
 		log.Printf("[DEBUG] terminator with BanDuration=%v, BanPenalty=%d, excluded=%v", t.BanDuration, t.BanPenalty, t.Exclude)
 	}
 
-	info, found := t.users[user]
+	chatActivity, found := t.users[user]
 	if !found {
-		t.users[user] = activity{lastActivity: sent}
+		t.users[user] = make(map[int64]activity)
+		t.users[user][chatID] = activity{lastActivity: sent}
 		return noBan
 	}
+
+	info := chatActivity[chatID]
 
 	if time.Now().Before(info.lastActivity.Add(t.AllowedPeriod)) {
 		info.penalty++
@@ -58,7 +61,7 @@ func (t *Terminator) check(user bot.User, sent time.Time) ban {
 	if info.penalty == t.BanPenalty {
 		log.Printf("[WARN] banned %v", user)
 		info.penalty++
-		t.users[user] = info
+		t.users[user][chatID] = info
 		return ban{active: true, new: true}
 	}
 
@@ -68,6 +71,6 @@ func (t *Terminator) check(user bot.User, sent time.Time) ban {
 	}
 
 	info.lastActivity = sent
-	t.users[user] = info
+	t.users[user][chatID] = info
 	return noBan
 }

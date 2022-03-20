@@ -20,11 +20,8 @@ linters:
     - typecheck
     - ineffassign
     - varcheck
-    - golint
+    - revive
   disable-all: true
 
 issues:
   exclude-use-default: false
-
-service:
-  golangci-lint-version: 1.39.x

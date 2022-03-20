@@ -17,7 +17,7 @@ import (
 
 func TestAnecdot_Help(t *testing.T) {
 	a := NewAnecdote(http.DefaultClient)
-	require.Equal(t, "анекдот!, анкедот!, joke!, chuck!, oneliner!, facts!, radiot!, pirozhki!, excuse_en!, zaibatsu!, excuse! _– расскажет анекдот или шутку_\n",
+	require.Equal(t, "анекдот!, анкедот!, joke!, chuck!, excuse!, pirozhki!, radiot!, zaibatsu!, excuse_en!, facts!, oneliner! _– расскажет анекдот или шутку_\n",
 		a.Help())
 }
 

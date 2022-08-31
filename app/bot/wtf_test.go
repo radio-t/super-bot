@@ -20,15 +20,34 @@ func TestWTF_OnMessage(t *testing.T) {
 		return 10
 	}
 
-	resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user"}})
-	require.Equal(t, "[@user](tg://user?id=0) получает бан на 1дн 10сек", resp.Text)
-	require.True(t, resp.Send)
-	require.Equal(t, min+10*time.Second, resp.BanInterval)
+	{ // regular user, first wtf
+		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user"}})
+		require.Equal(t, "[@user](tg://user?id=0) получает бан на 1дн 10сек", resp.Text)
+		require.True(t, resp.Send)
+		require.Equal(t, min+10*time.Second, resp.BanInterval)
+	}
 
-	resp = b.OnMessage(Message{Text: "WTF!", From: User{Username: "super"}})
-	require.Equal(t, "", resp.Text)
-	require.False(t, resp.Send)
-	require.Equal(t, time.Duration(0), resp.BanInterval)
+	{ // regular user, second wtf
+		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user"}})
+		require.Equal(t, "[@user](tg://user?id=0) получает бан на 3дн 11ч 10сек", resp.Text)
+		require.True(t, resp.Send)
+		require.Equal(t, min+10*time.Second+59*time.Hour, resp.BanInterval)
+	}
+
+	{ // regular user, third wtf, some time passed since last wtf
+		time.Sleep(time.Second * 5)
+		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user"}})
+		require.Equal(t, "[@user](tg://user?id=0) получает бан на 3дн 6ч 10сек", resp.Text)
+		require.True(t, resp.Send)
+		require.Equal(t, min+10*time.Second+54*time.Hour, resp.BanInterval)
+	}
+
+	{ // admin, allow wtf
+		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "super"}})
+		require.Equal(t, "", resp.Text)
+		require.False(t, resp.Send)
+		require.Equal(t, time.Duration(0), resp.BanInterval)
+	}
 }
 
 func TestWTF_Help(t *testing.T) {

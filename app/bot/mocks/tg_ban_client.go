@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -12,41 +12,20 @@ type TgBanClient struct {
 	mock.Mock
 }
 
-// KickChatMember provides a mock function with given fields: config
-func (_m *TgBanClient) KickChatMember(config tgbotapi.KickChatMemberConfig) (tgbotapi.APIResponse, error) {
-	ret := _m.Called(config)
+// Send provides a mock function with given fields: c
+func (_m *TgBanClient) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
+	ret := _m.Called(c)
 
-	var r0 tgbotapi.APIResponse
-	if rf, ok := ret.Get(0).(func(tgbotapi.KickChatMemberConfig) tgbotapi.APIResponse); ok {
-		r0 = rf(config)
+	var r0 tgbotapi.Message
+	if rf, ok := ret.Get(0).(func(tgbotapi.Chattable) tgbotapi.Message); ok {
+		r0 = rf(c)
 	} else {
-		r0 = ret.Get(0).(tgbotapi.APIResponse)
+		r0 = ret.Get(0).(tgbotapi.Message)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(tgbotapi.KickChatMemberConfig) error); ok {
-		r1 = rf(config)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// UnbanChatMember provides a mock function with given fields: config
-func (_m *TgBanClient) UnbanChatMember(config tgbotapi.ChatMemberConfig) (tgbotapi.APIResponse, error) {
-	ret := _m.Called(config)
-
-	var r0 tgbotapi.APIResponse
-	if rf, ok := ret.Get(0).(func(tgbotapi.ChatMemberConfig) tgbotapi.APIResponse); ok {
-		r0 = rf(config)
-	} else {
-		r0 = ret.Get(0).(tgbotapi.APIResponse)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(tgbotapi.ChatMemberConfig) error); ok {
-		r1 = rf(config)
+	if rf, ok := ret.Get(1).(func(tgbotapi.Chattable) error); ok {
+		r1 = rf(c)
 	} else {
 		r1 = ret.Error(1)
 	}

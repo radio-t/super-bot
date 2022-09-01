@@ -9,8 +9,7 @@ import (
 	"sync"
 	"time"
 
-	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
-
+	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/radio-t/super-bot/app/bot"
 )
 
@@ -39,12 +38,9 @@ type TelegramListener struct {
 }
 
 type tbAPI interface {
-	GetUpdatesChan(config tbapi.UpdateConfig) (tbapi.UpdatesChannel, error)
+	GetUpdatesChan(config tbapi.UpdateConfig) tbapi.UpdatesChannel
 	Send(c tbapi.Chattable) (tbapi.Message, error)
-	PinChatMessage(config tbapi.PinChatMessageConfig) (tbapi.APIResponse, error)
-	UnpinChatMessage(config tbapi.UnpinChatMessageConfig) (tbapi.APIResponse, error)
-	GetChat(config tbapi.ChatConfig) (tbapi.Chat, error)
-	RestrictChatMember(config tbapi.RestrictChatMemberConfig) (tbapi.APIResponse, error)
+	GetChat(config tbapi.ChatInfoConfig) (tbapi.Chat, error)
 }
 
 type msgLogger interface {
@@ -70,10 +66,7 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 	u := tbapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updates, updatesErr := l.TbAPI.GetUpdatesChan(u)
-	if updatesErr != nil {
-		return fmt.Errorf("can't get updates channel: %w", updatesErr)
-	}
+	updates := l.TbAPI.GetUpdatesChan(u)
 
 	for {
 		select {
@@ -157,7 +150,7 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 	}
 }
 
-func (l *TelegramListener) botActivityBan(resp bot.Response, msg bot.Message, fromChat int64, fromID int) bool {
+func (l *TelegramListener) botActivityBan(resp bot.Response, msg bot.Message, fromChat int64, fromID int64) bool {
 	if !resp.Send {
 		return false
 	}
@@ -203,14 +196,14 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	l.saveBotMessage(&res, chatID)
 
 	if resp.Pin {
-		_, err = l.TbAPI.PinChatMessage(tbapi.PinChatMessageConfig{ChatID: chatID, MessageID: res.MessageID, DisableNotification: true})
+		_, err = l.TbAPI.Send(tbapi.PinChatMessageConfig{ChatID: chatID, MessageID: res.MessageID, DisableNotification: true})
 		if err != nil {
 			return fmt.Errorf("can't pin message to telegram: %w", err)
 		}
 	}
 
 	if resp.Unpin {
-		_, err = l.TbAPI.UnpinChatMessage(tbapi.UnpinChatMessageConfig{ChatID: chatID})
+		_, err = l.TbAPI.Send(tbapi.UnpinChatMessageConfig{ChatID: chatID})
 		if err != nil {
 			return fmt.Errorf("can't unpin message to telegram: %w", err)
 		}
@@ -219,7 +212,7 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	return nil
 }
 
-func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, chatID int64, userID int) error {
+func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, chatID int64, userID int64) error {
 	mention := "@" + msg.From.Username
 	if msg.From.Username == "" {
 		mention = msg.From.DisplayName
@@ -254,7 +247,7 @@ func (l *TelegramListener) getChatID(group string) (int64, error) {
 		return chatID, nil
 	}
 
-	chat, err := l.TbAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: "@" + group})
+	chat, err := l.TbAPI.GetChat(tbapi.ChatInfoConfig{ChatConfig: tbapi.ChatConfig{SuperGroupUsername: "@" + group}})
 	if err != nil {
 		return 0, fmt.Errorf("can't get chat for %s: %w", group, err)
 	}
@@ -271,7 +264,7 @@ func (l *TelegramListener) saveBotMessage(msg *tbapi.Message, fromChat int64) {
 
 // The bot must be an administrator in the supergroup for this to work
 // and must have the appropriate admin rights.
-func (l *TelegramListener) banUser(duration time.Duration, chatID int64, userID int) error {
+func (l *TelegramListener) banUser(duration time.Duration, chatID int64, userID int64) error {
 
 	// From Telegram Bot API documentation:
 	// > If user is restricted for more than 366 days or less than 30 seconds from the current time,
@@ -284,23 +277,21 @@ func (l *TelegramListener) banUser(duration time.Duration, chatID int64, userID 
 		duration = 1 * time.Minute
 	}
 
-	resp, err := l.TbAPI.RestrictChatMember(tbapi.RestrictChatMemberConfig{
+	_, err := l.TbAPI.Send(tbapi.RestrictChatMemberConfig{
 		ChatMemberConfig: tbapi.ChatMemberConfig{
 			ChatID: chatID,
 			UserID: userID,
 		},
-		UntilDate:             time.Now().Add(duration).Unix(),
-		CanSendMessages:       new(bool),
-		CanSendMediaMessages:  new(bool),
-		CanSendOtherMessages:  new(bool),
-		CanAddWebPagePreviews: new(bool),
+		UntilDate: time.Now().Add(duration).Unix(),
+		Permissions: &tbapi.ChatPermissions{
+			CanSendMessages:       false,
+			CanSendMediaMessages:  false,
+			CanSendOtherMessages:  false,
+			CanAddWebPagePreviews: false,
+		},
 	})
 	if err != nil {
 		return err
-	}
-
-	if !resp.Ok {
-		return fmt.Errorf("response is not Ok: %v", string(resp.Result))
 	}
 
 	return nil
@@ -326,11 +317,11 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 	}
 
 	switch {
-	case msg.Entities != nil && len(*msg.Entities) > 0:
+	case msg.Entities != nil && len(msg.Entities) > 0:
 		message.Entities = l.transformEntities(msg.Entities)
 
-	case msg.Photo != nil && len(*msg.Photo) > 0:
-		sizes := *msg.Photo
+	case msg.Photo != nil && len(msg.Photo) > 0:
+		sizes := msg.Photo
 		lastSize := sizes[len(sizes)-1]
 		message.Image = &bot.Image{
 			FileID:   lastSize.FileID,
@@ -357,13 +348,13 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 	return &message
 }
 
-func (l *TelegramListener) transformEntities(entities *[]tbapi.MessageEntity) *[]bot.Entity {
-	if entities == nil || len(*entities) == 0 {
+func (l *TelegramListener) transformEntities(entities []tbapi.MessageEntity) *[]bot.Entity {
+	if len(entities) == 0 {
 		return nil
 	}
 
 	var result []bot.Entity
-	for _, entity := range *entities {
+	for _, entity := range entities {
 		e := bot.Entity{
 			Type:   entity.Type,
 			Offset: entity.Offset,

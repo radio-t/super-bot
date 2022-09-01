@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 //go:generate mockery --name TgBanClient --case snake
@@ -28,8 +28,7 @@ type userInfo struct {
 
 // TgBanClient is a subset of tg api limited to ban-related operations only
 type TgBanClient interface {
-	KickChatMember(config tbapi.KickChatMemberConfig) (tbapi.APIResponse, error)
-	UnbanChatMember(config tbapi.ChatMemberConfig) (tbapi.APIResponse, error)
+	Send(c tbapi.Chattable) (tbapi.Message, error)
 }
 
 // NewBanhammer makes a bot for admins reacting on ban!user unban!user
@@ -75,7 +74,7 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 
 	switch cmd {
 	case "ban":
-		_, err := b.tgClient.KickChatMember(tbapi.KickChatMemberConfig{
+		_, err := b.tgClient.Send(tbapi.KickChatMemberConfig{
 			ChatMemberConfig: tbapi.ChatMemberConfig{UserID: user.ID, ChatID: msg.ChatID},
 		})
 		if err != nil {
@@ -85,7 +84,7 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 		log.Printf("[INFO] banned %+v by %+v", user.User, msg.From)
 		return Response{Text: fmt.Sprintf("прощай %s", name), Send: true}
 	case "unban":
-		_, err := b.tgClient.UnbanChatMember(tbapi.ChatMemberConfig{UserID: user.ID, ChatID: msg.ChatID})
+		_, err := b.tgClient.Send(tbapi.UnbanChatMemberConfig{ChatMemberConfig: tbapi.ChatMemberConfig{UserID: user.ID, ChatID: msg.ChatID}})
 		if err != nil {
 			log.Printf("[WARN] failed to unban %s, %v", name, err)
 			return Response{}

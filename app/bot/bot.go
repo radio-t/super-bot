@@ -90,7 +90,7 @@ type Image struct {
 
 // User defines user info of the Message
 type User struct {
-	ID          int
+	ID          int64
 	Username    string
 	DisplayName string
 }

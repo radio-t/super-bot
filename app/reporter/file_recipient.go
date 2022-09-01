@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // FileRecipient knows how to get file by fileID

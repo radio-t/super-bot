@@ -6,8 +6,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // PrepPost bot notifies on new prep topic on the site
@@ -28,7 +26,7 @@ type postInfo struct {
 	Categories []string `json:"categories"`
 }
 
-var errNotPost = errors.New("not prep post")
+var errNotPost = fmt.Errorf("not prep post")
 
 // NewPrepPost makes new PrepPost bot sending and pinning message "Начался сбор тем"
 func NewPrepPost(client HTTPClient, api string, d time.Duration) *PrepPost {
@@ -73,22 +71,22 @@ func (p *PrepPost) recentPrepPost() (pi postInfo, err error) {
 	reqURL := fmt.Sprintf("%s/last/1?categories=prep", p.siteAPI)
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
-		return pi, errors.Wrapf(err, "failed to make request %s", reqURL)
+		return pi, fmt.Errorf("failed to make request %s: %w", reqURL, err)
 	}
 
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return pi, errors.Wrapf(err, "failed to send request %s", reqURL)
+		return pi, fmt.Errorf("failed to send request %s: %w", reqURL, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return pi, errors.Errorf("request %s returned %d", reqURL, resp.StatusCode)
+		return pi, fmt.Errorf("request %s returned %d", reqURL, resp.StatusCode)
 	}
 
 	posts := []postInfo{}
 	if err := json.NewDecoder(resp.Body).Decode(&posts); err != nil {
-		return pi, errors.Wrapf(err, "failed to parse response from %s", reqURL)
+		return pi, fmt.Errorf("failed to parse response from %s: %w", reqURL, err)
 	}
 
 	if len(posts) > 0 {

@@ -1,9 +1,10 @@
 package bot
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestHumanizeDuration(t *testing.T) {

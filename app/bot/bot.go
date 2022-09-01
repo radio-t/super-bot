@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"sort"
@@ -11,12 +12,11 @@ import (
 	"time"
 
 	"github.com/go-pkgz/syncs"
-	"github.com/pkg/errors"
 )
 
-//go:generate mockery -name HTTPClient -case snake
-//go:generate mockery -inpkg -name Interface -case snake
-//go:generate mockery -name SuperUser -case snake
+//go:generate mockery --name HTTPClient --case snake
+//go:generate mockery --inpackage --name Interface --case snake
+//go:generate mockery --name SuperUser --case snake
 
 // genHelpMsg construct help message from bot's ReactOn
 func genHelpMsg(com []string, msg string) string {
@@ -113,7 +113,7 @@ func (b MultiBot) Help() string {
 	return sb.String()
 }
 
-// OnMessage pass msg to all bots and collects reposnses (combining all of them)
+// OnMessage pass msg to all bots and collects responses (combining all of them)
 // noinspection GoShadowedVar
 func (b MultiBot) OnMessage(msg Message) (response Response) {
 	if contains([]string{"help", "/help", "help!"}, msg.Text) {
@@ -197,7 +197,7 @@ func contains(s []string, e string) bool {
 func makeHTTPRequest(url string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to make request %s", url)
+		return nil, fmt.Errorf("failed to make request %s: %w", url, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")

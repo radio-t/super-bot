@@ -2,9 +2,8 @@ package bot
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"regexp"
@@ -61,7 +60,7 @@ func (e *Excerpt) OnMessage(msg Message) (response Response) {
 		Excerpt string `json:"excerpt"`
 	}{}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("[WARN] can't read response for %s, %v", url, err)
 		return Response{}
@@ -81,14 +80,14 @@ func (e *Excerpt) link(input string) (link string, err error) {
 
 	if strings.Contains(input, "twitter.com") {
 		log.Printf("ignore possible twitter link from %s", input)
-		return "", errors.New("ignore twitter")
+		return "", fmt.Errorf("ignore twitter")
 	}
 
 	if l := rLink.FindString(input); l != "" && !rImg.MatchString(l) {
 		log.Printf("found a link %s", l)
 		return l, nil
 	}
-	return "", errors.New("no link found")
+	return "", fmt.Errorf("no link found")
 }
 
 // ReactOn keys

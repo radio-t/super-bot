@@ -2,7 +2,7 @@ package bot
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"testing"
@@ -22,7 +22,7 @@ func TestDuck_OnMessage(t *testing.T) {
 	d := NewDuck("key", mockHTTP)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader([]byte(`{"AbstractText":"the answer", "AbstractSource":"test", "AbstractURL":"http://example.com"}`))),
+		Body: io.NopCloser(bytes.NewReader([]byte(`{"AbstractText":"the answer", "AbstractSource":"test", "AbstractURL":"http://example.com"}`))),
 	}, nil)
 
 	assert.Equal(t, Response{Text: "- the answer\n[test](http://example.com)", Send: true}, d.OnMessage(Message{Text: "?? search"}))

@@ -20,7 +20,7 @@ const (
 type BroadcastParams struct {
 	URL          string        // URL for "ping"
 	PingInterval time.Duration // Ping interval
-	DelayToOff   time.Duration // State will be switched to off in no ok replies from URL in this intrval
+	DelayToOff   time.Duration // State will be switched to off in no ok replies from URL in this interval
 	Client       http.Client   // http client
 }
 

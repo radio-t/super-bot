@@ -2,8 +2,8 @@ FROM umputun/baseimage:buildgo-latest as build
 
 ADD . /build
 WORKDIR  /build
-RUN go test -mod=vendor ./app/...
-RUN cd app && CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o /target/telegram-rt-bot -ldflags \
+RUN go test ./app/...
+RUN cd app && CGO_ENABLED=0 GOOS=linux go build -o /target/telegram-rt-bot -ldflags \
     "-X main.revision=$(git rev-parse --abbrev-ref HEAD)-$(git describe --abbrev=7 --always --tags)-$(date +%Y%m%d-%H:%M:%S)"
 
 

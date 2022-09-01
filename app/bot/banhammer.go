@@ -10,9 +10,9 @@ import (
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-//go:generate mockery -name TgBanClient -case snake
+//go:generate mockery --name TgBanClient --case snake
 
-// Banhammer bot, allows (super users only) to ban or unban anyone
+// Banhammer bot, allows (superusers only) to ban or unban anyone
 type Banhammer struct {
 	tgClient  TgBanClient
 	superUser SuperUser
@@ -49,7 +49,7 @@ func (b *Banhammer) ReactOn() []string {
 }
 
 // OnMessage pass msg to all bots and collects responses
-// In order to translate user name to ID (mandatory for tg kick/unban) collect up to maxRecentUsers recently seen users
+// In order to translate username to ID (mandatory for tg kick/unban) collect up to maxRecentUsers recently seen users
 func (b *Banhammer) OnMessage(msg Message) (response Response) {
 
 	// update list of recent users
@@ -103,7 +103,7 @@ func (b *Banhammer) cleanup() {
 		users = append(users, u)
 	}
 	sort.Slice(users, func(i, j int) bool { return users[i].ts.Before(users[j].ts) })
-	// remove 10% of oldest records
+	// remove 10% of the oldest records
 	for i := 0; i < b.maxRecentUsers/10; i++ {
 		delete(b.recentUsers, users[i].Username)
 	}

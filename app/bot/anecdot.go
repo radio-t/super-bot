@@ -2,13 +2,13 @@ package bot
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/go-pkgz/lcw"
-	"github.com/pkg/errors"
 )
 
 // Anecdote bot, returns from https://jokesrv.rubedo.cloud/
@@ -63,18 +63,21 @@ func (a Anecdote) categories() ([]string, error) {
 		var categories []string
 		req, err := http.NewRequest("GET", "https://jokesrv.rubedo.cloud/categories", nil)
 		if err != nil {
-			return nil, errors.Wrapf(err, "can't make categories request")
+			return nil, fmt.Errorf("can't make categories request: %w", err)
 		}
 		resp, err := a.client.Do(req)
 		if err != nil {
-			return nil, errors.Wrapf(err, "can't send categories request")
+			return nil, fmt.Errorf("can't send categories request: %w", err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			return nil, errors.Errorf("bad response code %d", resp.StatusCode)
+			return nil, fmt.Errorf("bad response code %d", resp.StatusCode)
 		}
 		err = json.NewDecoder(resp.Body).Decode(&categories)
-		return categories, errors.Wrap(err, "can't decode category response")
+		if err != nil {
+			return nil, fmt.Errorf("can't decode category response: %w", err)
+		}
+		return categories, nil
 	})
 	if err != nil {
 		return nil, err

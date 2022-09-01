@@ -1,8 +1,8 @@
 package bot
 
 import (
-	"errors"
-	"io/ioutil"
+	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -37,7 +37,7 @@ func TestPrepPost_OnMessage(t *testing.T) {
 			"errrrr", nil, 400, Response{},
 		},
 		{
-			"", errors.New("error"), 200, Response{},
+			"", fmt.Errorf("error"), 200, Response{},
 		},
 		{
 			`[{"url":"https://radio-t.com/p/2020/02/11/prep-690/","title":"Темы для 690","date":"2020-02-11T23:04:21Z","categories":["prep"]}]`,
@@ -55,7 +55,7 @@ func TestPrepPost_OnMessage(t *testing.T) {
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-				Body:       ioutil.NopCloser(strings.NewReader(tt.body)),
+				Body:       io.NopCloser(strings.NewReader(tt.body)),
 				StatusCode: tt.status,
 			}, tt.err).Times(1)
 			resp := pp.OnMessage(Message{})
@@ -71,12 +71,12 @@ func TestPrepPost_checkDuration(t *testing.T) {
 	pp := NewPrepPost(mockHTTP, "http://example.com", time.Millisecond*50)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body:       ioutil.NopCloser(strings.NewReader(`[{"url":"blah1","title":"Темы для 689","categories":["prep"]}]`)),
+		Body:       io.NopCloser(strings.NewReader(`[{"url":"blah1","title":"Темы для 689","categories":["prep"]}]`)),
 		StatusCode: 200,
 	}, nil).Times(1)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body:       ioutil.NopCloser(strings.NewReader(`[{"url":"blah2","title":"Темы для 689","categories":["prep"]}]`)),
+		Body:       io.NopCloser(strings.NewReader(`[{"url":"blah2","title":"Темы для 689","categories":["prep"]}]`)),
 		StatusCode: 200,
 	}, nil).Times(1)
 

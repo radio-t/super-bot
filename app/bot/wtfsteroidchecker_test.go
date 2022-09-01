@@ -154,6 +154,16 @@ func TestWTFSteroidChecker_Contains(t *testing.T) {
 				message: "¿ȸɯʚ",
 			},
 			want: true},
+		{name: "wtf",
+			fields: fields{
+				message: "wtf",
+			},
+			want: true},
+		{name: "ftw",
+			fields: fields{
+				message: "ftw",
+			},
+			want: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -9,25 +9,23 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-// WTFSteroidChecker check if command wtf{!,?} is written with additional characters
-// "𝀥tf!" should be recognized as "wtf?" and so on
+// WTFSteroidChecker check if command wtf is written with additional characters
+// "𝀥tf" should be recognized as "wtf" and so on
 type WTFSteroidChecker struct {
 	message string
 }
 
-// WTFUnicodeDiacreticLibrary contains diacretic unicode symbols that looks like "w","t","f","!","?"
+// WTFUnicodeDiacreticLibrary contains diacretic unicode symbols that looks like "w","t","f"
 // All symbols that removes by removeDiacretic function
 func (w *WTFSteroidChecker) WTFUnicodeDiacreticLibrary() map[string][]string {
 	repl := make(map[string][]string)
 	repl["w"] = []string{"ᷱ"}
 	repl["t"] = []string{"∤"}
 	repl["f"] = []string{"ᷥ", "ᷫ"}
-	repl["!"] = []string{"︁！"}
-	repl["?"] = []string{}
 	return repl
 }
 
-// WTFUnicodeLibrary contains unicode characters and strings that looks like "w","t","f","!","?"
+// WTFUnicodeLibrary contains unicode characters and strings that looks like "w","t","f"
 func (w *WTFSteroidChecker) WTFUnicodeLibrary() map[string][]string {
 	repl := make(map[string][]string)
 	repl["w"] = []string{
@@ -404,52 +402,12 @@ func (w *WTFSteroidChecker) WTFUnicodeLibrary() map[string][]string {
 		"𝟇",
 		"𝟊",
 		"𝟋"}
-	repl["!"] = []string{
-		"i",
-		"1",
-		"１",
-		"❗",
-		"❕",
-		"║",
-		"|",
-		"ꜟ",
-		"ꜞ",
-		"ꜝ",
-		"¡",
-		"︕",
-		"﹗",
-		"⁉",
-		"‼"}
-	repl["?"] = []string{
-		"7",
-		"７",
-		"❔",
-		"❓",
-		"⍰",
-		"؟",
-		"⸮",
-		"¿",
-		"︖",
-		"﹖",
-		"？",
-		"⁇",
-		"⁈",
-		"‽",
-		"ʔ",
-		"ʡ",
-		"܊",
-		"ॽ",
-		"ɂ",
-		"⫀",
-		"⫂",
-		"ꛫ",
-		"꜅"}
 	return repl
 }
 
 // removeDiacretic smart remove diacritic marks
 // isMn check rune is in Unicode Mn category nonspacing marks
-// Example ẃŧḟ! -> wtf!
+// Example ẃŧḟ -> wtf
 // https://blog.golang.org/normalization#TOC_10.
 // https://pkg.go.dev/golang.org/x/text/runes#Remove
 func (w *WTFSteroidChecker) removeDiacretic() {
@@ -457,7 +415,7 @@ func (w *WTFSteroidChecker) removeDiacretic() {
 	w.message, _, _ = transform.String(t, w.message)
 }
 
-// removeUnicodeAnalog replace characters that looks like "w","t","f","!", "?" with their ASCII representation
+// removeUnicodeAnalog replace characters that looks like "w","t","f" with their ASCII representation
 func (w *WTFSteroidChecker) removeUnicodeAnalog() {
 	replaceMap := w.WTFUnicodeLibrary()
 	for mainLetter, listOfUnicodes := range replaceMap {
@@ -467,7 +425,7 @@ func (w *WTFSteroidChecker) removeUnicodeAnalog() {
 	}
 }
 
-// removeUnicodeDiacreticAnalog replace diacretic characters that looks like "w","t","f","!","?" with their ASCII representation
+// removeUnicodeDiacreticAnalog replace diacretic characters that looks like "w","t","f" with their ASCII representation
 // replace only characters that removes by removeUnicodeDiacreticAnalog function
 func (w *WTFSteroidChecker) removeUnicodeDiacreticAnalog() {
 	replaceMap := w.WTFUnicodeDiacreticLibrary()
@@ -479,8 +437,8 @@ func (w *WTFSteroidChecker) removeUnicodeDiacreticAnalog() {
 }
 
 // removeNotASCIIAndNotRussian delete all non-unicode characters except russian unicode characters
-// Example: W؈T؈F؈! → WTF!
-// "Вот фон!" ↛ "wtf!" correct is "Вот фон!" → "wоt fон!"
+// Example: W؈T؈F؈ → WTF
+// "Вот фон" ↛ "wtf" correct is "Вот фон" → "wоt fон"
 func (w *WTFSteroidChecker) removeNotASCIIAndNotRussian() {
 	w.message = strings.Map(func(r rune) rune {
 		if r > unicode.MaxASCII && (r < 0x0400 && r > 0x04ff) {
@@ -491,10 +449,10 @@ func (w *WTFSteroidChecker) removeNotASCIIAndNotRussian() {
 }
 
 // removeNotLetters delete all non-letter characters
-// Example w_t_f_!, w-t-f-! → wtf!
+// Example w_t_f, w-t-f → wtf
 func (w *WTFSteroidChecker) removeNotLetters() {
 	w.message = strings.Map(func(r rune) rune {
-		if unicode.IsLetter(r) || r == '!' || r == '?' {
+		if unicode.IsLetter(r) {
 			return r
 		}
 		return -1
@@ -512,6 +470,6 @@ func (w *WTFSteroidChecker) Contains() bool {
 	w.removeNotLetters()
 
 	// Straight and reverse order
-	return contains([]string{"wtf!", "wtf?"}, w.message) || contains([]string{"!ftw", "?ftw"}, w.message)
+	return contains([]string{"wtf", "ftw"}, w.message)
 
 }

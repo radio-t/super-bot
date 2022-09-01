@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -54,13 +54,13 @@ func TestBanhammer_OnMessage(t *testing.T) {
 	tg := &mocks.TgBanClient{}
 	b := NewBanhammer(tg, su, 10)
 
-	tg.On("KickChatMember", mock.MatchedBy(func(u tbapi.KickChatMemberConfig) bool {
+	tg.On("Send", mock.MatchedBy(func(u tbapi.BanChatMemberConfig) bool {
 		return u.UserID == 1 && u.ChatID == 123
-	})).Return(tbapi.APIResponse{}, nil)
+	})).Return(tbapi.Message{}, nil)
 
-	tg.On("UnbanChatMember", mock.MatchedBy(func(u tbapi.ChatMemberConfig) bool {
+	tg.On("Send", mock.MatchedBy(func(u tbapi.UnbanChatMemberConfig) bool {
 		return u.UserID == 1 && u.ChatID == 123
-	})).Return(tbapi.APIResponse{}, nil)
+	})).Return(tbapi.Message{}, nil)
 
 	resp := b.OnMessage(Message{Text: "ban! user1", From: User{Username: "user1", ID: 1}})
 	assert.Equal(t, Response{}, resp, "not admin")

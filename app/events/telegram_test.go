@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -42,7 +42,7 @@ func TestTelegramListener_DoNoBots(t *testing.T) {
 	updChan := make(chan tbapi.Update, 1)
 	updChan <- updMsg
 	close(updChan)
-	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
+	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan))
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
@@ -87,7 +87,7 @@ func TestTelegramListener_DoWithBots(t *testing.T) {
 	updChan := make(chan tbapi.Update, 1)
 	updChan <- updMsg
 	close(updChan)
-	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
+	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan))
 
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
@@ -122,24 +122,26 @@ func TestTelegramListener_DoWithRtjc(t *testing.T) {
 
 	updChan := make(chan tbapi.Update, 1)
 
-	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
+	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan))
 
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
 		return c.Text == "rtjc message"
 	})).Return(tbapi.Message{Text: "rtjc message", From: &tbapi.User{UserName: "user"}}, nil)
 
-	tbAPI.On("PinChatMessage", mock.Anything).Return(tbapi.APIResponse{}, nil)
+	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.PinChatMessageConfig) bool {
+		t.Logf("send: %+v", c)
+		return c.ChatID == 123
+	})).Return(tbapi.Message{}, nil)
 	time.AfterFunc(time.Millisecond*50, func() {
-		l.Submit(ctx, "rtjc message", true)
+		assert.NoError(t, l.Submit(ctx, "rtjc message", true))
 	})
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "context deadline exceeded")
 	assert.Equal(t, 1, len(msgLogger.SaveCalls()))
 	assert.Equal(t, "rtjc message", msgLogger.SaveCalls()[0].Msg.Text)
-	tbAPI.AssertNumberOfCalls(t, "Send", 1)
-	tbAPI.AssertNumberOfCalls(t, "PinChatMessage", 1)
+	tbAPI.AssertNumberOfCalls(t, "Send", 2)
 }
 
 func TestTelegramListener_DoWithAutoBan(t *testing.T) {
@@ -184,18 +186,21 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 	updChan <- updMsg
 	close(updChan)
 
-	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
+	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan))
 
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
 		return c.Text == "[@user_name](tg://user?id=1) _тебя слишком много, отдохни..._"
 	})).Return(tbapi.Message{Text: "[@user_name](tg://user?id=1) _тебя слишком много, отдохни..._", From: &tbapi.User{UserName: "user_name", ID: 1}}, nil).Once()
 
-	tbAPI.On("RestrictChatMember", mock.Anything).Return(tbapi.APIResponse{Ok: true}, nil)
+	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.RestrictChatMemberConfig) bool {
+		t.Logf("send: %+v", c)
+		return c.ChatID == 123
+	})).Return(tbapi.Message{}, nil)
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
 
-	tbAPI.AssertNumberOfCalls(t, "Send", 1)
+	tbAPI.AssertNumberOfCalls(t, "Send", 2)
 	assert.Equal(t, 6, len(msgLogger.SaveCalls()))
 	assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
 	assert.Equal(t, "user_name", msgLogger.SaveCalls()[0].Msg.From.Username)
@@ -238,14 +243,17 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 	updChan := make(chan tbapi.Update, 1)
 	updChan <- updMsg
 	close(updChan)
-	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
+	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan))
 
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
 		return c.Text == "bot's answer"
 	})).Return(tbapi.Message{Text: "bot's answer", From: &tbapi.User{UserName: "user"}}, nil)
 
-	tbAPI.On("RestrictChatMember", mock.Anything).Return(tbapi.APIResponse{Ok: true}, nil)
+	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.RestrictChatMemberConfig) bool {
+		t.Logf("send: %+v", c)
+		return c.ChatID == 123
+	})).Return(tbapi.Message{}, nil)
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
@@ -253,7 +261,7 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 	assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
 	assert.Equal(t, "user", msgLogger.SaveCalls()[0].Msg.From.Username)
 	assert.Equal(t, "bot's answer", msgLogger.SaveCalls()[1].Msg.Text)
-	tbAPI.AssertNumberOfCalls(t, "Send", 1)
+	tbAPI.AssertNumberOfCalls(t, "Send", 2)
 }
 
 func TestTelegramListener_DoPinMessages(t *testing.T) {
@@ -292,17 +300,17 @@ func TestTelegramListener_DoPinMessages(t *testing.T) {
 	updChan := make(chan tbapi.Update, 1)
 	updChan <- updMsg
 	close(updChan)
-	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
+	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan))
 
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
 		return c.Text == "bot's answer"
 	})).Return(tbapi.Message{MessageID: 456, Text: "bot's answer", From: &tbapi.User{UserName: "user"}}, nil)
 
-	tbAPI.On("PinChatMessage", mock.MatchedBy(func(c tbapi.PinChatMessageConfig) bool {
+	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.PinChatMessageConfig) bool {
 		t.Logf("pin chat message: %+v", c)
 		return c.MessageID == 456
-	})).Return(tbapi.APIResponse{Ok: true}, nil)
+	})).Return(tbapi.Message{}, nil)
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
@@ -346,17 +354,17 @@ func TestTelegramListener_DoUnpinMessages(t *testing.T) {
 	updChan := make(chan tbapi.Update, 1)
 	updChan <- updMsg
 	close(updChan)
-	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
+	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan))
 
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
 		return c.Text == "bot's answer"
 	})).Return(tbapi.Message{MessageID: 456, Text: "bot's answer", From: &tbapi.User{UserName: "user"}}, nil)
 
-	tbAPI.On("UnpinChatMessage", mock.MatchedBy(func(c tbapi.UnpinChatMessageConfig) bool {
+	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.UnpinChatMessageConfig) bool {
 		t.Logf("unpin chat message: %+v", c)
 		return c.ChatID == 123
-	})).Return(tbapi.APIResponse{Ok: true}, nil)
+	})).Return(tbapi.Message{}, nil)
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
@@ -395,7 +403,7 @@ func TestTelegramListener_DoNotSaveMessagesFromOtherChats(t *testing.T) {
 	updChan := make(chan tbapi.Update, 1)
 	updChan <- updMsg
 	close(updChan)
-	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
+	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan))
 
 	tbAPI.On("Send", mock.Anything).Return(tbapi.Message{Text: "bot's answer", From: &tbapi.User{UserName: "user"}}, nil)
 
@@ -464,20 +472,20 @@ func TestTelegram_transformPhoto(t *testing.T) {
 		l.transform(
 			&tbapi.Message{
 				Date: 1578627415,
-				Photo: &[]tbapi.PhotoSize{
-					tbapi.PhotoSize{
+				Photo: []tbapi.PhotoSize{
+					{
 						FileID:   "AgADAgADFKwxG8r0qUiQByxwp9Gi4s1qwQ8ABAEAAwIAA20AA5C9AgABFgQ",
 						Width:    320,
 						Height:   149,
 						FileSize: 6262,
 					},
-					tbapi.PhotoSize{
+					{
 						FileID:   "AgADAgADFKwxG8r0qUiQByxwp9Gi4s1qwQ8ABAEAAwIAA3gAA5G9AgABFgQ",
 						Width:    800,
 						Height:   373,
 						FileSize: 30240,
 					},
-					tbapi.PhotoSize{
+					{
 						FileID:   "AgADAgADFKwxG8r0qUiQByxwp9Gi4s1qwQ8ABAEAAwIAA3kAA5K9AgABFgQ",
 						Width:    1280,
 						Height:   597,
@@ -485,7 +493,7 @@ func TestTelegram_transformPhoto(t *testing.T) {
 					},
 				},
 				Caption: "caption",
-				CaptionEntities: &[]tbapi.MessageEntity{
+				CaptionEntities: []tbapi.MessageEntity{
 					{
 						Type:   "bold",
 						Offset: 0,
@@ -521,7 +529,7 @@ func TestTelegram_transformEntities(t *testing.T) {
 			&tbapi.Message{
 				Date: 1578627415,
 				Text: "@username тебя слишком много, отдохни...",
-				Entities: &[]tbapi.MessageEntity{
+				Entities: []tbapi.MessageEntity{
 					{
 						Type:   "mention",
 						Offset: 0,

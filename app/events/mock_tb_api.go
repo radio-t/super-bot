@@ -3,7 +3,7 @@
 package events
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -13,18 +13,18 @@ type mockTbAPI struct {
 }
 
 // GetChat provides a mock function with given fields: config
-func (_m *mockTbAPI) GetChat(config tgbotapi.ChatConfig) (tgbotapi.Chat, error) {
+func (_m *mockTbAPI) GetChat(config tgbotapi.ChatInfoConfig) (tgbotapi.Chat, error) {
 	ret := _m.Called(config)
 
 	var r0 tgbotapi.Chat
-	if rf, ok := ret.Get(0).(func(tgbotapi.ChatConfig) tgbotapi.Chat); ok {
+	if rf, ok := ret.Get(0).(func(tgbotapi.ChatInfoConfig) tgbotapi.Chat); ok {
 		r0 = rf(config)
 	} else {
 		r0 = ret.Get(0).(tgbotapi.Chat)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(tgbotapi.ChatConfig) error); ok {
+	if rf, ok := ret.Get(1).(func(tgbotapi.ChatInfoConfig) error); ok {
 		r1 = rf(config)
 	} else {
 		r1 = ret.Error(1)
@@ -34,7 +34,7 @@ func (_m *mockTbAPI) GetChat(config tgbotapi.ChatConfig) (tgbotapi.Chat, error) 
 }
 
 // GetUpdatesChan provides a mock function with given fields: config
-func (_m *mockTbAPI) GetUpdatesChan(config tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error) {
+func (_m *mockTbAPI) GetUpdatesChan(config tgbotapi.UpdateConfig) tgbotapi.UpdatesChannel {
 	ret := _m.Called(config)
 
 	var r0 tgbotapi.UpdatesChannel
@@ -46,56 +46,7 @@ func (_m *mockTbAPI) GetUpdatesChan(config tgbotapi.UpdateConfig) (tgbotapi.Upda
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(tgbotapi.UpdateConfig) error); ok {
-		r1 = rf(config)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// PinChatMessage provides a mock function with given fields: config
-func (_m *mockTbAPI) PinChatMessage(config tgbotapi.PinChatMessageConfig) (tgbotapi.APIResponse, error) {
-	ret := _m.Called(config)
-
-	var r0 tgbotapi.APIResponse
-	if rf, ok := ret.Get(0).(func(tgbotapi.PinChatMessageConfig) tgbotapi.APIResponse); ok {
-		r0 = rf(config)
-	} else {
-		r0 = ret.Get(0).(tgbotapi.APIResponse)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(tgbotapi.PinChatMessageConfig) error); ok {
-		r1 = rf(config)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// RestrictChatMember provides a mock function with given fields: config
-func (_m *mockTbAPI) RestrictChatMember(config tgbotapi.RestrictChatMemberConfig) (tgbotapi.APIResponse, error) {
-	ret := _m.Called(config)
-
-	var r0 tgbotapi.APIResponse
-	if rf, ok := ret.Get(0).(func(tgbotapi.RestrictChatMemberConfig) tgbotapi.APIResponse); ok {
-		r0 = rf(config)
-	} else {
-		r0 = ret.Get(0).(tgbotapi.APIResponse)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(tgbotapi.RestrictChatMemberConfig) error); ok {
-		r1 = rf(config)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // Send provides a mock function with given fields: c
@@ -112,27 +63,6 @@ func (_m *mockTbAPI) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func(tgbotapi.Chattable) error); ok {
 		r1 = rf(c)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// UnpinChatMessage provides a mock function with given fields: config
-func (_m *mockTbAPI) UnpinChatMessage(config tgbotapi.UnpinChatMessageConfig) (tgbotapi.APIResponse, error) {
-	ret := _m.Called(config)
-
-	var r0 tgbotapi.APIResponse
-	if rf, ok := ret.Get(0).(func(tgbotapi.UnpinChatMessageConfig) tgbotapi.APIResponse); ok {
-		r0 = rf(config)
-	} else {
-		r0 = ret.Get(0).(tgbotapi.APIResponse)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(tgbotapi.UnpinChatMessageConfig) error); ok {
-		r1 = rf(config)
 	} else {
 		r1 = ret.Error(1)
 	}

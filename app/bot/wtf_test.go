@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/radio-t/super-bot/app/bot/mocks"
@@ -47,6 +48,15 @@ func TestWTF_OnMessage(t *testing.T) {
 		require.Equal(t, "", resp.Text)
 		require.False(t, resp.Send)
 		require.Equal(t, time.Duration(0), resp.BanInterval)
+	}
+
+	{ // admin, reply wtf
+		msg := Message{Text: "WTF!", From: User{Username: "super"}}
+		msg.ReplyTo.From = User{Username: "user", ID: 1, DisplayName: "User"}
+		resp := b.OnMessage(msg)
+		assert.Equal(t, "[@user](tg://user?id=1) получает бан на 3дн 11ч 10сек", resp.Text)
+		assert.True(t, resp.Send)
+		assert.Equal(t, min+10*time.Second+59*time.Hour, resp.BanInterval)
 	}
 }
 

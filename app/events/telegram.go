@@ -337,6 +337,18 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 		}
 	}
 
+	if msg.ReplyToMessage != nil {
+		message.ReplyTo.Text = msg.ReplyToMessage.Text
+		message.ReplyTo.Sent = msg.ReplyToMessage.Time()
+		if msg.ReplyToMessage.From != nil {
+			message.ReplyTo.From = bot.User{
+				ID:          msg.ReplyToMessage.From.ID,
+				Username:    msg.ReplyToMessage.From.UserName,
+				DisplayName: msg.ReplyToMessage.From.FirstName + " " + msg.From.LastName,
+			}
+		}
+	}
+
 	return &message
 }
 

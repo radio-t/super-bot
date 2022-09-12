@@ -35,7 +35,11 @@ func (w *WTF) OnMessage(msg Message) (response Response) {
 	}
 
 	if w.superUser.IsSuper(msg.From.Username) {
-		return Response{}
+		if msg.ReplyTo.From.ID == 0 { // not reply, ignore for supers
+			return Response{}
+		}
+		log.Printf("[INFO] wtf requested by %q for %q", msg.From.Username, msg.ReplyTo.From.Username)
+		msg.From = msg.ReplyTo.From // set From from ReplyTo.From for supers, so it will ban the user replied to
 	}
 
 	mention := "@" + msg.From.Username

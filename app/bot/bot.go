@@ -60,6 +60,11 @@ type Message struct {
 	Text     string    `json:",omitempty"`
 	Entities *[]Entity `json:",omitempty"`
 	Image    *Image    `json:",omitempty"`
+	ReplyTo  struct {
+		From User
+		Text string `json:",omitempty"`
+		Sent time.Time
+	} `json:",omitempty"`
 }
 
 // Entity represents one special entity in a text message.
@@ -109,7 +114,7 @@ func (b MultiBot) Help() string {
 }
 
 // OnMessage pass msg to all bots and collects reposnses (combining all of them)
-//noinspection GoShadowedVar
+// noinspection GoShadowedVar
 func (b MultiBot) OnMessage(msg Message) (response Response) {
 	if contains([]string{"help", "/help", "help!"}, msg.Text) {
 		return Response{

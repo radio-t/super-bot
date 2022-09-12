@@ -42,6 +42,10 @@ func (w *WTF) OnMessage(msg Message) (response Response) {
 		msg.From = msg.ReplyTo.From // set From from ReplyTo.From for supers, so it will ban the user replied to
 	}
 
+	if w.superUser.IsSuper(msg.From.Username) {
+		return Response{} // don't allow supers to ban other supers
+	}
+
 	mention := "@" + msg.From.Username
 	if msg.From.Username == "" {
 		mention = msg.From.DisplayName

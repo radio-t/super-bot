@@ -1,7 +1,13 @@
+# github.com/cespare/xxhash/v2 v2.1.2
+## explicit; go 1.11
+github.com/cespare/xxhash/v2
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/go-pkgz/lcw v0.8.1
+# github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
+## explicit
+github.com/dgryski/go-rendezvous
+# github.com/go-pkgz/lcw v1.0.1
 ## explicit; go 1.15
 github.com/go-pkgz/lcw
 github.com/go-pkgz/lcw/eventbus
@@ -12,15 +18,16 @@ github.com/go-pkgz/lgr
 # github.com/go-pkgz/syncs v1.2.0
 ## explicit; go 1.16
 github.com/go-pkgz/syncs
-# github.com/go-redis/redis/v7 v7.4.1
-## explicit; go 1.11
-github.com/go-redis/redis/v7
-github.com/go-redis/redis/v7/internal
-github.com/go-redis/redis/v7/internal/consistenthash
-github.com/go-redis/redis/v7/internal/hashtag
-github.com/go-redis/redis/v7/internal/pool
-github.com/go-redis/redis/v7/internal/proto
-github.com/go-redis/redis/v7/internal/util
+# github.com/go-redis/redis/v8 v8.11.5
+## explicit; go 1.17
+github.com/go-redis/redis/v8
+github.com/go-redis/redis/v8/internal
+github.com/go-redis/redis/v8/internal/hashtag
+github.com/go-redis/redis/v8/internal/hscan
+github.com/go-redis/redis/v8/internal/pool
+github.com/go-redis/redis/v8/internal/proto
+github.com/go-redis/redis/v8/internal/rand
+github.com/go-redis/redis/v8/internal/util
 # github.com/go-telegram-bot-api/telegram-bot-api v4.6.5-0.20200113063019-aa124ef1e84e+incompatible
 ## explicit
 github.com/go-telegram-bot-api/telegram-bot-api
@@ -37,16 +44,16 @@ github.com/hashicorp/go-multierror
 ## explicit; go 1.12
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
-# github.com/pkg/errors v0.9.1
-## explicit
-github.com/pkg/errors
+# github.com/jessevdk/go-flags v1.5.0
+## explicit; go 1.15
+github.com/jessevdk/go-flags
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/stretchr/objx v0.3.0
+# github.com/stretchr/objx v0.4.0
 ## explicit; go 1.12
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.7.1
+# github.com/stretchr/testify v1.8.0
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
@@ -54,16 +61,15 @@ github.com/stretchr/testify/require
 # github.com/technoweenie/multipartstreamer v1.0.1
 ## explicit
 github.com/technoweenie/multipartstreamer
-# github.com/umputun/go-flags v1.5.1
-## explicit; go 1.12
-github.com/umputun/go-flags
+# golang.org/x/sys v0.0.0-20220829200755-d48e67d00261
+## explicit; go 1.17
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/unix
 # golang.org/x/text v0.3.7
 ## explicit; go 1.17
 golang.org/x/text/runes
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# gopkg.in/yaml.v2 v2.2.8
-## explicit
-# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+# gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3

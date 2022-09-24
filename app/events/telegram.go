@@ -10,13 +10,11 @@ import (
 	"time"
 
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/pkg/errors"
-
 	"github.com/radio-t/super-bot/app/bot"
 )
 
-//go:generate mockery -inpkg -name tbAPI -case snake
-//go:generate mockery -inpkg -name msgLogger -case snake
+//go:generate mockery --inpackage --name tbAPI --case snake
+//go:generate mockery --inpackage --name msgLogger --case snake
 
 // TelegramListener listens to tg update, forward to bots and send back responses
 // Not thread safe
@@ -57,7 +55,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 	log.Printf("[INFO] start telegram listener for %q", l.Group)
 
 	if l.chatID, err = l.getChatID(l.Group); err != nil {
-		return errors.Wrapf(err, "failed to get chat ID for group %q", l.Group)
+		return fmt.Errorf("failed to get chat ID for group %q: %w", l.Group, err)
 	}
 
 	l.msgs.once.Do(func() {
@@ -72,7 +70,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 	var updates tbapi.UpdatesChannel
 	if updates, err = l.TbAPI.GetUpdatesChan(u); err != nil {
-		return errors.Wrap(err, "can't get updates channel")
+		return fmt.Errorf("can't get updates channel: %w", err)
 	}
 
 	for {
@@ -83,7 +81,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 		case update, ok := <-updates:
 			if !ok {
-				return errors.Errorf("telegram update chan closed")
+				return fmt.Errorf("telegram update chan closed")
 			}
 
 			if update.Message == nil {
@@ -196,7 +194,7 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	tbMsg.DisableWebPagePreview = !resp.Preview
 	res, err := l.TbAPI.Send(tbMsg)
 	if err != nil {
-		return errors.Wrapf(err, "can't send message to telegram %q", resp.Text)
+		return fmt.Errorf("can't send message to telegram %q: %w", resp.Text, err)
 	}
 
 	l.saveBotMessage(&res, chatID)
@@ -204,14 +202,14 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	if resp.Pin {
 		_, err = l.TbAPI.PinChatMessage(tbapi.PinChatMessageConfig{ChatID: chatID, MessageID: res.MessageID, DisableNotification: true})
 		if err != nil {
-			return errors.Wrap(err, "can't pin message to telegram")
+			return fmt.Errorf("can't pin message to telegram: %w", err)
 		}
 	}
 
 	if resp.Unpin {
 		_, err = l.TbAPI.UnpinChatMessage(tbapi.UnpinChatMessageConfig{ChatID: chatID})
 		if err != nil {
-			return errors.Wrap(err, "can't unpin message to telegram")
+			return fmt.Errorf("can't unpin message to telegram: %w", err)
 		}
 	}
 
@@ -226,10 +224,13 @@ func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, cha
 	m := fmt.Sprintf("[%s](tg://user?id=%d) _тебя слишком много, отдохни..._", mention, userID)
 
 	if err := l.sendBotResponse(bot.Response{Text: m, Send: true}, chatID); err != nil {
-		return errors.Wrapf(err, "failed to send ban message for %v", msg.From)
+		return fmt.Errorf("failed to send ban message for %v: %w", msg.From, err)
 	}
 	err := l.banUser(duration, chatID, userID)
-	return errors.Wrapf(err, "failed to ban user %v", msg.From)
+	if err != nil {
+		return fmt.Errorf("failed to ban user %v: %w", msg.From, err)
+	}
+	return nil
 }
 
 // Submit message text to telegram's group
@@ -252,7 +253,7 @@ func (l *TelegramListener) getChatID(group string) (int64, error) {
 
 	chat, err := l.TbAPI.GetChat(tbapi.ChatConfig{SuperGroupUsername: "@" + group})
 	if err != nil {
-		return 0, errors.Wrapf(err, "can't get chat for %s", group)
+		return 0, fmt.Errorf("can't get chat for %s: %w", group, err)
 	}
 
 	return chat.ID, nil

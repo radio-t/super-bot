@@ -9,19 +9,20 @@ linters:
   enable:
     - unconvert
     - megacheck
-    - structcheck
     - gas
     - gocyclo
     - dupl
     - misspell
     - unparam
-    - varcheck
-    - deadcode
+    - unused
     - typecheck
     - ineffassign
-    - varcheck
     - revive
   disable-all: true
 
 issues:
   exclude-use-default: false
+  exclude-rules:
+    - text: "package-comments: should have a package comment"
+      linters:
+        - revive

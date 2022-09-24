@@ -191,11 +191,11 @@ func TestWTFSteroidChecker_WTFUnicodeLibrary_Unique_Check(t *testing.T) {
 	}
 }
 
-// TestWTFSteroidChecker_WTFUnicodeDiacreticLibrary_Unique_Check check that all symbols in diacretic library are unique
+// TestWTFSteroidChecker_WTFUnicodeDiacriticLibrary_Unique_Check check that all symbols in diacritic library are unique
 // and key ASCII symbol is not in library
-func TestWTFSteroidChecker_WTFUnicodeDiacreticLibrary_Unique_Check(t *testing.T) {
+func TestWTFSteroidChecker_WTFUnicodeDiacriticLibrary_Unique_Check(t *testing.T) {
 	w := WTFSteroidChecker{}
-	unicodeLibrary := w.WTFUnicodeDiacreticLibrary()
+	unicodeLibrary := w.WTFUnicodeDiacriticLibrary()
 	if len(unicodeLibrary) <= 0 {
 		t.Errorf("Library is empty")
 	}
@@ -215,32 +215,32 @@ func TestWTFSteroidChecker_WTFUnicodeDiacreticLibrary_Unique_Check(t *testing.T)
 	}
 }
 
-// TestWTFSteroidChecker_WTFUnicodeLibrary_Diacretic_Check library should not have diacretic symbols
-// diacretic symbols remove separetly
-func TestWTFSteroidChecker_WTFUnicodeLibrary_Diacretic_Check(t *testing.T) {
+// TestWTFSteroidChecker_WTFUnicodeLibrary_Diacritic_Check library should not have diacritic symbols
+// diacritic symbols remove separately
+func TestWTFSteroidChecker_WTFUnicodeLibrary_Diacritic_Check(t *testing.T) {
 	w := WTFSteroidChecker{}
 	unicodeLibrary := w.WTFUnicodeLibrary()
 	for mainLetter, listOfUnicodes := range unicodeLibrary {
 		for numInArray, unicodeSymbol := range listOfUnicodes {
 			trans := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-			withoutDiacretic, _, _ := transform.String(trans, unicodeSymbol)
-			if unicodeSymbol != withoutDiacretic {
-				t.Errorf("Should not be diacretic symbol in library %s looks like %s and in %d position in array", unicodeSymbol, mainLetter, numInArray)
+			withoutDiacritic, _, _ := transform.String(trans, unicodeSymbol)
+			if unicodeSymbol != withoutDiacritic {
+				t.Errorf("Should not be diacritic symbol in library %s looks like %s and in %d position in array", unicodeSymbol, mainLetter, numInArray)
 			}
 		}
 	}
 }
 
-// TestWTFSteroidChecker_WTFUnicodeDiacreticLibrary_Diacretic_Check library should have only diacretic symbols
-func TestWTFSteroidChecker_WTFUnicodeDiacreticLibrary_Diacretic_Check(t *testing.T) {
+// TestWTFSteroidChecker_WTFUnicodeDiacriticLibrary_Diacritic_Check library should have only diacritic symbols
+func TestWTFSteroidChecker_WTFUnicodeDiacriticLibrary_Diacritic_Check(t *testing.T) {
 	w := WTFSteroidChecker{}
-	unicodeLibrary := w.WTFUnicodeDiacreticLibrary()
+	unicodeLibrary := w.WTFUnicodeDiacriticLibrary()
 	for mainLetter, listOfUnicodes := range unicodeLibrary {
 		for numInArray, unicodeSymbol := range listOfUnicodes {
 			trans := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-			withoutDiacretic, _, _ := transform.String(trans, unicodeSymbol)
-			if unicodeSymbol == withoutDiacretic {
-				t.Errorf("Should not be not diacretic in library %s looks like %s and in %d position in array", unicodeSymbol, mainLetter, numInArray)
+			withoutDiacritic, _, _ := transform.String(trans, unicodeSymbol)
+			if unicodeSymbol == withoutDiacritic {
+				t.Errorf("Should not be not diacritic in library %s looks like %s and in %d position in array", unicodeSymbol, mainLetter, numInArray)
 			}
 		}
 	}

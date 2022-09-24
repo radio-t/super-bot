@@ -3,7 +3,7 @@ package bot
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -33,7 +33,7 @@ func TestNewsBot_ReactionOnNewsRequest(t *testing.T) {
 	require.NoError(t, err)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(articleJSON)),
+		Body: io.NopCloser(bytes.NewReader(articleJSON)),
 	}, nil)
 
 	require.Equal(
@@ -56,7 +56,7 @@ func TestNewsBot_ReactionOnNewsRequestAlt(t *testing.T) {
 	require.NoError(t, err)
 
 	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(articleJSON)),
+		Body: io.NopCloser(bytes.NewReader(articleJSON)),
 	}, nil)
 
 	require.Equal(

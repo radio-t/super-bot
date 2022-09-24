@@ -8,8 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // Sys implements basic bot function to respond on ping and others from basic.data file.
@@ -77,7 +75,7 @@ func (p Sys) OnMessage(msg Message) (response Response) {
 func (p *Sys) loadBasicData() error {
 	bdata, err := readLines(p.dataLocation + "/basic.data")
 	if err != nil {
-		return errors.Wrap(err, "can't load basic.data")
+		return fmt.Errorf("can't load basic.data: %w", err)
 	}
 
 	for _, line := range bdata {
@@ -110,7 +108,7 @@ func (p *Sys) loadSayData() error {
 func readLines(path string) ([]string, error) {
 	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
-		return nil, errors.Wrapf(err, "can't open %s", path)
+		return nil, fmt.Errorf("can't open %s: %w", path, err)
 	}
 	defer f.Close() //nolint
 

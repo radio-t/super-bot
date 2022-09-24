@@ -1,15 +1,15 @@
 package storage
 
 import (
-	"github.com/stretchr/testify/require"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewLocalCreatesPathIfNotExists(t *testing.T) {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmp)
 
@@ -18,7 +18,7 @@ func TestNewLocalCreatesPathIfNotExists(t *testing.T) {
 }
 
 func TestNewLocal(t *testing.T) {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmp)
 
@@ -27,7 +27,7 @@ func TestNewLocal(t *testing.T) {
 }
 
 func TestFileExists(t *testing.T) {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmp)
 

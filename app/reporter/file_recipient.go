@@ -1,12 +1,12 @@
 package reporter
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"time"
 
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/pkg/errors"
 )
 
 // FileRecipient knows how to get file by fileID
@@ -35,17 +35,17 @@ func NewTelegramFileRecipient(botAPI *tbapi.BotAPI, timeout time.Duration) FileR
 func (tfd TelegramFileRecipient) GetFile(fileID string) (io.ReadCloser, error) {
 	url, err := tfd.botAPI.GetFileDirectURL(fileID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "get file direct URL (fileID: %s)", fileID)
+		return nil, fmt.Errorf("get file direct URL (fileID: %s): %w", fileID, err)
 	}
 
 	resp, err := tfd.httpClient.Get(url)
 	if err != nil {
-		return nil, errors.Wrapf(err, "file by direct URL (fileID: %s)", fileID)
+		return nil, fmt.Errorf("file by direct URL (fileID: %s): %w", fileID, err)
 		// don't expose `url` – it contains Bot API Token
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, errors.Wrapf(err, "non-200 response from file direct URL (fileID: %s)", fileID)
+		return nil, fmt.Errorf("non-200 response from file direct URL (fileID: %s): %w", fileID, err)
 	}
 
 	return resp.Body, nil

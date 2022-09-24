@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/radio-t/super-bot/app/bot"
 )
 
@@ -37,8 +36,8 @@ type ExporterParams struct {
 	BotUsername    string
 	SuperUsers     SuperUser
 	BroadcastUsers SuperUser // Users who can send "bot.MsgBroadcastStarted" and "bot.MsgBroadcastStarted" messages.
-	// it maybe just bot, or bot + some or all SuperUsers.
-	// Cannot use SuperUsers field for same purpose becase they used to mark messages as "from host" in template
+	// it may be just bot, or bot + some or all SuperUsers.
+	// Cannot use SuperUsers field for same purpose because they used to mark messages as "from host" in template
 }
 
 // SuperUser knows which user is a superuser
@@ -83,12 +82,12 @@ func (e *Exporter) Export(showNum int, yyyymmdd int) error {
 
 	messages, err := readMessages(from, e.ExporterParams.BroadcastUsers)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read messages from %s", from)
+		return fmt.Errorf("failed to read messages from %s: %w", from, err)
 	}
 
 	fh, err := os.OpenFile(to, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666) // nolint
 	if err != nil {
-		return errors.Wrapf(err, "failed to open destination file %s", to)
+		return fmt.Errorf("failed to open destination file %s: %w", to, err)
 	}
 
 	defer func() {
@@ -99,11 +98,11 @@ func (e *Exporter) Export(showNum int, yyyymmdd int) error {
 
 	h, err := e.toHTML(messages, showNum)
 	if err != nil {
-		return errors.Wrapf(err, "can't export #%d", showNum)
+		return fmt.Errorf("can't export #%d: %w", showNum, err)
 	}
 
 	if _, err = fh.WriteString(h); err != nil {
-		return errors.Wrapf(err, "failed to write HTML to file %s", to)
+		return fmt.Errorf("failed to write HTML to file %s: %w", to, err)
 	}
 
 	log.Printf("[INFO] exported %d lines to %s", len(messages), to)
@@ -157,12 +156,12 @@ func (e *Exporter) toHTML(messages []bot.Message, num int) (string, error) {
 	name := e.TemplateFile[strings.LastIndex(e.TemplateFile, "/")+1:]
 	t, err := template.New(name).Funcs(funcMap).ParseFiles(e.TemplateFile)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to parse template")
+		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
 
 	var h bytes.Buffer
 	if err := t.ExecuteTemplate(&h, name, data); err != nil {
-		return "", errors.Wrap(err, "failed to process template")
+		return "", fmt.Errorf("failed to process template: %w", err)
 	}
 	return h.String(), nil
 }
@@ -183,7 +182,7 @@ func (e *Exporter) maybeDownloadFile(fileID string) error {
 
 	fileExists, err := e.storage.FileExists(fileID)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check if file %s exists", fileID)
+		return fmt.Errorf("failed to check if file %s exists: %w", fileID, err)
 	}
 
 	if fileExists {
@@ -194,19 +193,19 @@ func (e *Exporter) maybeDownloadFile(fileID string) error {
 	log.Printf("[DEBUG] downloading file %s", fileID)
 	body, err := e.fileRecipient.GetFile(fileID)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get file body for %s", fileID)
+		return fmt.Errorf("failed to get file body for %s: %w", fileID, err)
 	}
 	defer body.Close()
 
-	bodyBytes, err := ioutil.ReadAll(body)
+	bodyBytes, err := io.ReadAll(body)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read file body for %s", fileID)
+		return fmt.Errorf("failed to read file body for %s: %w", fileID, err)
 	}
 	log.Printf("[DEBUG] downloaded file %s", fileID)
 
 	fileURL, err := e.storage.CreateFile(fileID, bodyBytes)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create file %s", fileID)
+		return fmt.Errorf("failed to create file %s: %w", fileID, err)
 	}
 
 	e.fileIDToURL[fileID] = fileURL
@@ -336,7 +335,7 @@ func format(text string, entities *[]bot.Entity) (out template.HTML) {
 	return template.HTML(strings.ReplaceAll(result, "\n", "<br>")) // nolint
 }
 
-// getDecoration returns pair of HTML tags (decorations) for Telegram Entity
+// getDecoration returns a pair of HTML tags (decorations) for Telegram Entity
 func getDecoration(entity bot.Entity, body []rune) (string, string) {
 	switch entity.Type {
 	case "bold":
@@ -363,7 +362,7 @@ func getDecoration(entity bot.Entity, body []rune) (string, string) {
 	case "url":
 		urlRaw := string(body)
 
-		// fix links without scheme so they will be non-relative in browser
+		// fix links without scheme, so they will be non-relative in browser
 		u, err := url.Parse(urlRaw)
 		if err != nil {
 			log.Printf("[ERROR] failed parse URL %s", urlRaw)

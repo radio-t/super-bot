@@ -15,9 +15,9 @@ type WTFSteroidChecker struct {
 	message string
 }
 
-// WTFUnicodeDiacreticLibrary contains diacretic unicode symbols that looks like "w","t","f","!","?"
-// All symbols that removes by removeDiacretic function
-func (w *WTFSteroidChecker) WTFUnicodeDiacreticLibrary() map[string][]string {
+// WTFUnicodeDiacriticLibrary contains diacritic unicode symbols that looks like "w","t","f","!","?"
+// All symbols that removes by removeDiacritic function
+func (w *WTFSteroidChecker) WTFUnicodeDiacriticLibrary() map[string][]string {
 	repl := make(map[string][]string)
 	repl["w"] = []string{"ᷱ"}
 	repl["t"] = []string{"∤"}
@@ -447,12 +447,12 @@ func (w *WTFSteroidChecker) WTFUnicodeLibrary() map[string][]string {
 	return repl
 }
 
-// removeDiacretic smart remove diacritic marks
+// removeDiacritic smart remove diacritic marks
 // isMn check rune is in Unicode Mn category nonspacing marks
 // Example ẃŧḟ! -> wtf!
 // https://blog.golang.org/normalization#TOC_10.
 // https://pkg.go.dev/golang.org/x/text/runes#Remove
-func (w *WTFSteroidChecker) removeDiacretic() {
+func (w *WTFSteroidChecker) removeDiacritic() {
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 	w.message, _, _ = transform.String(t, w.message)
 }
@@ -467,10 +467,10 @@ func (w *WTFSteroidChecker) removeUnicodeAnalog() {
 	}
 }
 
-// removeUnicodeDiacreticAnalog replace diacretic characters that looks like "w","t","f","!","?" with their ASCII representation
-// replace only characters that removes by removeUnicodeDiacreticAnalog function
-func (w *WTFSteroidChecker) removeUnicodeDiacreticAnalog() {
-	replaceMap := w.WTFUnicodeDiacreticLibrary()
+// removeUnicodeDiacriticAnalog replace diacritic characters that looks like "w","t","f","!","?" with their ASCII representation
+// replace only characters that removes by removeUnicodeDiacriticAnalog function
+func (w *WTFSteroidChecker) removeUnicodeDiacriticAnalog() {
+	replaceMap := w.WTFUnicodeDiacriticLibrary()
 	for mainLetter, listOfUnicodes := range replaceMap {
 		for _, unicodeSymbol := range listOfUnicodes {
 			w.message = strings.ReplaceAll(w.message, unicodeSymbol, mainLetter)
@@ -505,8 +505,8 @@ func (w *WTFSteroidChecker) removeNotLetters() {
 func (w *WTFSteroidChecker) Contains() bool {
 
 	w.message = strings.ToLower(w.message)
-	w.removeUnicodeDiacreticAnalog()
-	w.removeDiacretic()
+	w.removeUnicodeDiacriticAnalog()
+	w.removeDiacritic()
 	w.removeUnicodeAnalog()
 	w.removeNotASCIIAndNotRussian()
 	w.removeNotLetters()

@@ -12,8 +12,7 @@ import (
 
 	"github.com/go-pkgz/lgr"
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/umputun/go-flags"
-
+	"github.com/jessevdk/go-flags"
 	"github.com/radio-t/super-bot/app/bot"
 	"github.com/radio-t/super-bot/app/events"
 	"github.com/radio-t/super-bot/app/reporter"

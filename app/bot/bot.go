@@ -38,6 +38,7 @@ type Response struct {
 	Unpin       bool          // enable unpin
 	Preview     bool          // enable web preview
 	BanInterval time.Duration // bots banning user set the interval
+	User        User          // user to ban
 }
 
 // HTTPClient wrap http.Client to allow mocking

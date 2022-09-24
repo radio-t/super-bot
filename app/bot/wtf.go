@@ -69,6 +69,7 @@ func (w *WTF) OnMessage(msg Message) (response Response) {
 		Text:        fmt.Sprintf("[%s](tg://user?id=%d) получает бан на %v", mention, msg.From.ID, HumanizeDuration(banDuration)),
 		Send:        true,
 		BanInterval: banDuration,
+		User:        msg.From,
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api"
+
 	"github.com/radio-t/super-bot/app/bot"
 )
 
@@ -132,11 +133,11 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			}
 
 			// some bots may request direct ban for given duration
-			if resp.Send && resp.BanInterval > 0 && !l.SuperUsers.IsSuper(update.Message.From.UserName) && fromChat == l.chatID {
-				if err := l.banUser(resp.BanInterval, fromChat, update.Message.From.ID); err != nil {
-					log.Printf("[ERROR] can't ban %v on bot response, %v", msg.From, err)
+			if resp.Send && resp.BanInterval > 0 && !l.SuperUsers.IsSuper(resp.User.Username) && fromChat == l.chatID {
+				if err := l.banUser(resp.BanInterval, fromChat, resp.User.ID); err != nil {
+					log.Printf("[ERROR] can't ban %v on bot response, %v", resp.User, err)
 				} else {
-					log.Printf("[INFO] %v banned by bot for %v", msg.From, resp.BanInterval)
+					log.Printf("[INFO] %v banned by bot for %v", resp.User, resp.BanInterval)
 				}
 			}
 

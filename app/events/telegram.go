@@ -344,7 +344,7 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 			message.ReplyTo.From = bot.User{
 				ID:          msg.ReplyToMessage.From.ID,
 				Username:    msg.ReplyToMessage.From.UserName,
-				DisplayName: msg.ReplyToMessage.From.FirstName + " " + msg.From.LastName,
+				DisplayName: msg.ReplyToMessage.From.FirstName + " " + msg.ReplyToMessage.From.LastName,
 			}
 		}
 	}

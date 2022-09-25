@@ -240,7 +240,7 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 		Message: &tbapi.Message{
 			Chat: &tbapi.Chat{ID: 123},
 			Text: "text 123",
-			From: &tbapi.User{UserName: "user"},
+			From: &tbapi.User{UserName: "user", ID: 123},
 			Date: int(time.Date(2020, 2, 11, 19, 35, 55, 9, time.UTC).Unix()),
 		},
 	}
@@ -255,7 +255,7 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 	bots.On("OnMessage", mock.MatchedBy(func(msg bot.Message) bool {
 		t.Logf("on-message: %+v", msg)
 		return msg.Text == "text 123" && msg.From.Username == "user"
-	})).Return(bot.Response{Send: true, Text: "bot's answer", BanInterval: 2 * time.Minute})
+	})).Return(bot.Response{Send: true, Text: "bot's answer", BanInterval: 2 * time.Minute, User: bot.User{Username: "user", ID: 1}})
 
 	msgLogger.On("Save", mock.MatchedBy(func(msg *bot.Message) bool {
 		t.Logf("save: %+v", msg)

@@ -339,6 +339,7 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 		}
 	}
 
+	// fill in the message's reply-to message
 	if msg.ReplyToMessage != nil {
 		message.ReplyTo.Text = msg.ReplyToMessage.Text
 		message.ReplyTo.Sent = msg.ReplyToMessage.Time()

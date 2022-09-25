@@ -22,15 +22,16 @@ func TestWTF_OnMessage(t *testing.T) {
 	}
 
 	{ // regular user, first wtf
-		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user"}})
-		require.Equal(t, "[@user](tg://user?id=0) получает бан на 1дн 10сек", resp.Text)
+		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user", ID: 1}})
+		require.Equal(t, "[@user](tg://user?id=1) получает бан на 1дн 10сек", resp.Text)
 		require.True(t, resp.Send)
 		require.Equal(t, min+10*time.Second, resp.BanInterval)
+		assert.Equal(t, User{Username: "user", ID: 1}, resp.User)
 	}
 
 	{ // regular user, second wtf
-		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user"}})
-		require.Equal(t, "[@user](tg://user?id=0) получает бан на 3дн 11ч 10сек", resp.Text)
+		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user", ID: 1}})
+		require.Equal(t, "[@user](tg://user?id=1) получает бан на 3дн 11ч 10сек", resp.Text)
 		require.True(t, resp.Send)
 		require.Equal(t, min+10*time.Second+59*time.Hour, resp.BanInterval)
 	}

@@ -34,21 +34,23 @@ func (w *WTF) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
+	wtfUser := msg.From
 	if w.superUser.IsSuper(msg.From.Username) {
 		if msg.ReplyTo.From.ID == 0 { // not reply, ignore for supers
 			return Response{}
 		}
-		log.Printf("[INFO] wtf requested by %q for %q:%d", msg.From.Username, msg.ReplyTo.From.Username, msg.ReplyTo.From.ID)
-		msg.From = msg.ReplyTo.From // set From from ReplyTo.From for supers, so it will ban the user replied to
+		log.Printf("[INFO] wtf requested by %q for %q, id:%d", msg.From.Username, msg.ReplyTo.From.Username, msg.ReplyTo.From.ID)
+		wtfUser = msg.ReplyTo.From // set WTF user from ReplyTo.From for supers, so it will ban the user replied to
 	}
 
-	if w.superUser.IsSuper(msg.From.Username) {
+	if w.superUser.IsSuper(wtfUser.Username) {
+		log.Printf("[WARN] WTF requested of user %q, ignored (super)", wtfUser.Username)
 		return Response{} // don't allow supers to ban other supers
 	}
 
-	mention := "@" + msg.From.Username
-	if msg.From.Username == "" {
-		mention = msg.From.DisplayName
+	mention := "@" + wtfUser.Username
+	if wtfUser.Username == "" {
+		mention = wtfUser.DisplayName
 	}
 
 	banDuration := w.minDuration + time.Second*time.Duration(w.rand(int64(w.maxDuration.Seconds()-w.minDuration.Seconds())))
@@ -66,10 +68,10 @@ func (w *WTF) OnMessage(msg Message) (response Response) {
 	w.lastWtf = time.Now()
 
 	return Response{
-		Text:        fmt.Sprintf("[%s](tg://user?id=%d) получает бан на %v", mention, msg.From.ID, HumanizeDuration(banDuration)),
+		Text:        fmt.Sprintf("[%s](tg://user?id=%d) получает бан на %v", mention, wtfUser.ID, HumanizeDuration(banDuration)),
 		Send:        true,
 		BanInterval: banDuration,
-		User:        msg.From,
+		User:        wtfUser,
 	}
 }
 

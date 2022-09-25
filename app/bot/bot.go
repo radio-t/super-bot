@@ -127,6 +127,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 	resps := make(chan string)
 	var pin, unpin int32
 	var banInterval time.Duration
+	var user User
 	var mutex = &sync.Mutex{}
 
 	wg := syncs.NewSizedGroup(4)
@@ -146,6 +147,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 					if resp.BanInterval > banInterval {
 						banInterval = resp.BanInterval
 					}
+					user = resp.User
 					mutex.Unlock()
 				}
 			}
@@ -174,6 +176,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		Pin:         atomic.LoadInt32(&pin) > 0,
 		Unpin:       atomic.LoadInt32(&unpin) > 0,
 		BanInterval: banInterval,
+		User:        user,
 	}
 }
 

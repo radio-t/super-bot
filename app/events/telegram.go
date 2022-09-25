@@ -134,6 +134,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 
 			// some bots may request direct ban for given duration
 			if resp.Send && resp.BanInterval > 0 && !l.SuperUsers.IsSuper(resp.User.Username) && fromChat == l.chatID {
+				log.Printf("[DEBUG] ban initiated for %+v", resp)
 				if err := l.banUser(resp.BanInterval, fromChat, resp.User.ID); err != nil {
 					log.Printf("[ERROR] can't ban %v on bot response, %v", resp.User, err)
 				} else {

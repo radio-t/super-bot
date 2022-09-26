@@ -31,17 +31,17 @@ func TestWTF_OnMessage(t *testing.T) {
 
 	{ // regular user, second wtf
 		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user", ID: 1}})
-		require.Equal(t, "[@user](tg://user?id=1) получает бан на 3дн 11ч 10сек", resp.Text)
+		require.Equal(t, "[@user](tg://user?id=1) получает бан на 13дн 7ч 10сек", resp.Text)
 		require.True(t, resp.Send)
-		require.Equal(t, min+10*time.Second+59*time.Hour, resp.BanInterval)
+		require.Equal(t, min+10*time.Second+59*5*time.Hour, resp.BanInterval)
 	}
 
 	{ // regular user, third wtf, some time passed since last wtf
 		time.Sleep(time.Second * 5)
 		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "user"}})
-		require.Equal(t, "[@user](tg://user?id=0) получает бан на 3дн 6ч 10сек", resp.Text)
+		require.Equal(t, "[@user](tg://user?id=0) получает бан на 12дн 6ч 10сек", resp.Text)
 		require.True(t, resp.Send)
-		require.Equal(t, min+10*time.Second+54*time.Hour, resp.BanInterval)
+		require.Equal(t, min+10*time.Second+5*54*time.Hour, resp.BanInterval)
 	}
 
 	{ // admin, allow wtf
@@ -55,9 +55,9 @@ func TestWTF_OnMessage(t *testing.T) {
 		msg := Message{Text: "WTF!", From: User{Username: "super"}}
 		msg.ReplyTo.From = User{Username: "user", ID: 1, DisplayName: "User"}
 		resp := b.OnMessage(msg)
-		assert.Equal(t, "[@user](tg://user?id=1) получает бан на 3дн 11ч 10сек", resp.Text)
+		assert.Equal(t, "[@user](tg://user?id=1) получает бан на 13дн 7ч 10сек", resp.Text)
 		assert.True(t, resp.Send)
-		assert.Equal(t, min+10*time.Second+59*time.Hour, resp.BanInterval)
+		assert.Equal(t, min+10*time.Second+5*59*time.Hour, resp.BanInterval)
 	}
 }
 

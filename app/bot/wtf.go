@@ -54,8 +54,8 @@ func (w *WTF) OnMessage(msg Message) (response Response) {
 	}
 
 	banDuration := w.minDuration + time.Second*time.Duration(w.rand(int64(w.maxDuration.Seconds()-w.minDuration.Seconds())))
-	if time.Since(w.lastWtf) < w.tooSoon { // if last wtf was less than 1 minute ago, add more to result
-		increase := time.Hour * time.Duration(w.tooSoon.Seconds()-time.Since(w.lastWtf).Seconds())
+	if time.Since(w.lastWtf) < w.tooSoon { // if last wtf was less than 1 minute ago, add more time to ban duration
+		increase := time.Hour * 5 * time.Duration(w.tooSoon.Seconds()-time.Since(w.lastWtf).Seconds())
 		log.Printf("[INFO] wtf from %v in %v is too soon, adding %v to ban duration", mention, time.Since(w.lastWtf), increase)
 		banDuration += increase
 	}

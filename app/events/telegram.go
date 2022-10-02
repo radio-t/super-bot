@@ -13,7 +13,7 @@ import (
 	"github.com/radio-t/super-bot/app/bot"
 )
 
-//go:generate mockery --inpackage --name tbAPI --case snake
+//go:generate moq --out mock_tb_api.go . tbAPI
 //go:generate moq --out mock_msg_logger.go . msgLogger
 
 // TelegramListener listens to tg update, forward to bots and send back responses
@@ -40,6 +40,7 @@ type TelegramListener struct {
 type tbAPI interface {
 	GetUpdatesChan(config tbapi.UpdateConfig) tbapi.UpdatesChannel
 	Send(c tbapi.Chattable) (tbapi.Message, error)
+	Request(c tbapi.Chattable) (*tbapi.APIResponse, error)
 	GetChat(config tbapi.ChatInfoConfig) (tbapi.Chat, error)
 }
 
@@ -277,7 +278,7 @@ func (l *TelegramListener) banUser(duration time.Duration, chatID int64, userID 
 		duration = 1 * time.Minute
 	}
 
-	_, err := l.TbAPI.Send(tbapi.RestrictChatMemberConfig{
+	resp, err := l.TbAPI.Request(tbapi.RestrictChatMemberConfig{
 		ChatMemberConfig: tbapi.ChatMemberConfig{
 			ChatID: chatID,
 			UserID: userID,
@@ -292,6 +293,9 @@ func (l *TelegramListener) banUser(duration time.Duration, chatID int64, userID 
 	})
 	if err != nil {
 		return err
+	}
+	if !resp.Ok {
+		return fmt.Errorf("response is not Ok: %v", string(resp.Result))
 	}
 
 	return nil

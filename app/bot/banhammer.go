@@ -10,7 +10,7 @@ import (
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-//go:generate mockery --name TgBanClient --case snake
+//go:generate moq --out mocks/tg_ban_client.go --pkg mocks --skip-ensure . TgBanClient:TgBanClient
 
 // Banhammer bot, allows (superusers only) to ban or unban anyone
 type Banhammer struct {

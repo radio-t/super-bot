@@ -15,7 +15,7 @@ import (
 )
 
 //go:generate mockery --inpackage --name tbAPI --case snake
-//go:generate mockery --inpackage --name msgLogger --case snake
+//go:generate moq --out mock_msg_logger.go . msgLogger
 
 // TelegramListener listens to tg update, forward to bots and send back responses
 // Not thread safe

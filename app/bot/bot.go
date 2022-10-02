@@ -14,9 +14,9 @@ import (
 	"github.com/go-pkgz/syncs"
 )
 
-//go:generate mockery --name HTTPClient --case snake
-//go:generate mockery --inpackage --name Interface --case snake
-//go:generate mockery --name SuperUser --case snake
+//go:generate moq --out mocks/http_client.go --pkg mocks --skip-ensure . HTTPClient:HTTPClient
+//go:generate moq --out mock_interface.go . Interface
+//go:generate moq --out mocks/super_user.go --pkg mocks --skip-ensure . SuperUser:SuperUser
 
 // genHelpMsg construct help message from bot's ReactOn
 func genHelpMsg(com []string, msg string) string {

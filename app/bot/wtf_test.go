@@ -11,9 +11,12 @@ import (
 )
 
 func TestWTF_OnMessage(t *testing.T) {
-	su := &mocks.SuperUser{}
-	su.On("IsSuper", "user").Return(false)
-	su.On("IsSuper", "super").Return(true)
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "super" {
+			return true
+		}
+		return false
+	}}
 	min := time.Hour * 24
 	max := 7 * time.Hour * 24
 	b := NewWTF(min, max, su)
@@ -59,6 +62,7 @@ func TestWTF_OnMessage(t *testing.T) {
 		assert.True(t, resp.Send)
 		assert.Equal(t, min+10*time.Second+5*59*time.Hour, resp.BanInterval)
 	}
+	assert.Equal(t, 9, len(su.IsSuperCalls()))
 }
 
 func TestWTF_Help(t *testing.T) {

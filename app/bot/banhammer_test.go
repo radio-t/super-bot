@@ -7,7 +7,6 @@ import (
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestBanhammer_Help(t *testing.T) {
@@ -51,16 +50,10 @@ func TestBanhammer_OnMessage(t *testing.T) {
 		}
 		return false
 	}}
-	tg := &mocks.TgBanClient{}
+	tg := &mocks.TgBanClient{SendFunc: func(c tbapi.Chattable) (tbapi.Message, error) {
+		return tbapi.Message{}, nil
+	}}
 	b := NewBanhammer(tg, su, 10)
-
-	tg.On("Send", mock.MatchedBy(func(u tbapi.BanChatMemberConfig) bool {
-		return u.UserID == 1 && u.ChatID == 123
-	})).Return(tbapi.Message{}, nil)
-
-	tg.On("Send", mock.MatchedBy(func(u tbapi.UnbanChatMemberConfig) bool {
-		return u.UserID == 1 && u.ChatID == 123
-	})).Return(tbapi.Message{}, nil)
 
 	resp := b.OnMessage(Message{Text: "ban! user1", From: User{Username: "user1", ID: 1}})
 	assert.Equal(t, Response{}, resp, "not admin")
@@ -75,5 +68,9 @@ func TestBanhammer_OnMessage(t *testing.T) {
 	assert.Equal(t, Response{Text: "амнистия для user1", Send: true}, resp)
 
 	assert.Equal(t, 5, len(su.IsSuperCalls()))
-	tg.AssertExpectations(t)
+	assert.Equal(t, 2, len(tg.SendCalls()))
+	assert.Equal(t, int64(1), tg.SendCalls()[0].C.(tbapi.BanChatMemberConfig).UserID)
+	assert.Equal(t, int64(123), tg.SendCalls()[0].C.(tbapi.BanChatMemberConfig).ChatID)
+	assert.Equal(t, int64(1), tg.SendCalls()[1].C.(tbapi.UnbanChatMemberConfig).UserID)
+	assert.Equal(t, int64(123), tg.SendCalls()[1].C.(tbapi.UnbanChatMemberConfig).ChatID)
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,12 +17,12 @@ func TestDuck_Help(t *testing.T) {
 }
 
 func TestDuck_OnMessage(t *testing.T) {
-	mockHTTP := &mocks.HTTPClient{}
+	mockHTTP := &mocks.HTTPClient{DoFunc: func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			Body: io.NopCloser(bytes.NewReader([]byte(`{"AbstractText":"the answer", "AbstractSource":"test", "AbstractURL":"http://example.com"}`))),
+		}, nil
+	}}
 	d := NewDuck("key", mockHTTP)
-
-	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body: io.NopCloser(bytes.NewReader([]byte(`{"AbstractText":"the answer", "AbstractSource":"test", "AbstractURL":"http://example.com"}`))),
-	}, nil)
 
 	assert.Equal(t, Response{Text: "- the answer\n[test](http://example.com)", Send: true}, d.OnMessage(Message{Text: "?? search"}))
 }

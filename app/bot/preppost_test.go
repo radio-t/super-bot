@@ -11,7 +11,6 @@ import (
 
 	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestPrepPost_OnMessage(t *testing.T) {
@@ -54,10 +53,12 @@ func TestPrepPost_OnMessage(t *testing.T) {
 
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-				Body:       io.NopCloser(strings.NewReader(tt.body)),
-				StatusCode: tt.status,
-			}, tt.err).Times(1)
+			mockHTTP.DoFunc = func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					Body:       io.NopCloser(strings.NewReader(tt.body)),
+					StatusCode: tt.status,
+				}, tt.err
+			}
 			resp := pp.OnMessage(Message{})
 			assert.Equal(t, tt.resp, resp)
 			time.Sleep(time.Millisecond * 11)
@@ -67,24 +68,26 @@ func TestPrepPost_OnMessage(t *testing.T) {
 }
 
 func TestPrepPost_checkDuration(t *testing.T) {
-	mockHTTP := &mocks.HTTPClient{}
+	hit := false
+	mockHTTP := &mocks.HTTPClient{DoFunc: func(req *http.Request) (*http.Response, error) {
+		if !hit {
+			hit = true
+			return &http.Response{
+				Body:       io.NopCloser(strings.NewReader(`[{"url":"blah1","title":"Темы для 689","categories":["prep"]}]`)),
+				StatusCode: 200,
+			}, nil
+		}
+		return &http.Response{
+			Body:       io.NopCloser(strings.NewReader(`[{"url":"blah2","title":"Темы для 689","categories":["prep"]}]`)),
+			StatusCode: 200,
+		}, nil
+	}}
 	pp := NewPrepPost(mockHTTP, "http://example.com", time.Millisecond*50)
-
-	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body:       io.NopCloser(strings.NewReader(`[{"url":"blah1","title":"Темы для 689","categories":["prep"]}]`)),
-		StatusCode: 200,
-	}, nil).Times(1)
-
-	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body:       io.NopCloser(strings.NewReader(`[{"url":"blah2","title":"Темы для 689","categories":["prep"]}]`)),
-		StatusCode: 200,
-	}, nil).Times(1)
 
 	for i := 0; i < 10; i++ {
 		pp.OnMessage(Message{})
 		time.Sleep(6 * time.Millisecond)
 	}
 
-	mockHTTP.AssertNumberOfCalls(t, "Do", 2)
-	mockHTTP.AssertExpectations(t)
+	assert.Equal(t, 2, len(mockHTTP.DoCalls()))
 }

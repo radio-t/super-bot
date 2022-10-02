@@ -9,14 +9,10 @@ import (
 	"time"
 
 	"github.com/radio-t/super-bot/app/bot/mocks"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewsBot_ReactionOnNewsRequest(t *testing.T) {
-	mockHTTP := &mocks.HTTPClient{}
-	b := NewNews(mockHTTP, "", 5)
-
 	articles := []newsArticle{
 		{
 			Title: "title1",
@@ -32,9 +28,12 @@ func TestNewsBot_ReactionOnNewsRequest(t *testing.T) {
 	articleJSON, err := json.Marshal(articles)
 	require.NoError(t, err)
 
-	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body: io.NopCloser(bytes.NewReader(articleJSON)),
-	}, nil)
+	mockHTTP := &mocks.HTTPClient{DoFunc: func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			Body: io.NopCloser(bytes.NewReader(articleJSON)),
+		}, nil
+	}}
+	b := NewNews(mockHTTP, "", 5)
 
 	require.Equal(
 		t,
@@ -45,19 +44,18 @@ func TestNewsBot_ReactionOnNewsRequest(t *testing.T) {
 }
 
 func TestNewsBot_ReactionOnNewsRequestAlt(t *testing.T) {
-	mockHTTP := &mocks.HTTPClient{}
-	b := NewNews(mockHTTP, "", 5)
-
 	article := newsArticle{
 		Title: "title",
 		Link:  "link",
 	}
 	articleJSON, err := json.Marshal([]newsArticle{article})
 	require.NoError(t, err)
-
-	mockHTTP.On("Do", mock.Anything).Return(&http.Response{
-		Body: io.NopCloser(bytes.NewReader(articleJSON)),
-	}, nil)
+	mockHTTP := &mocks.HTTPClient{DoFunc: func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			Body: io.NopCloser(bytes.NewReader(articleJSON)),
+		}, nil
+	}}
+	b := NewNews(mockHTTP, "", 5)
 
 	require.Equal(
 		t,

@@ -12,10 +12,12 @@ func TestGenHelpMsg(t *testing.T) {
 }
 
 func TestMultiBotHelp(t *testing.T) {
-	b1 := &MockInterface{}
-	b1.On("Help").Return("b1 help")
-	b2 := &MockInterface{}
-	b2.On("Help").Return("b2 help")
+	b1 := &InterfaceMock{HelpFunc: func() string {
+		return "b1 help"
+	}}
+	b2 := &InterfaceMock{HelpFunc: func() string {
+		return "b2 help"
+	}}
 
 	// Must return concatenated b1 and b2 without space
 	// Line formatting only in genHelpMsg()
@@ -23,9 +25,14 @@ func TestMultiBotHelp(t *testing.T) {
 }
 
 func TestMultiBotReactsOnHelp(t *testing.T) {
-	b := &MockInterface{}
-	b.On("ReactOn").Return([]string{"help"})
-	b.On("Help").Return("help")
+	b := &InterfaceMock{
+		ReactOnFunc: func() []string {
+			return []string{"help"}
+		},
+		HelpFunc: func() string {
+			return "help"
+		},
+	}
 
 	mb := MultiBot{b}
 	resp := mb.OnMessage(Message{Text: "help"})
@@ -37,18 +44,14 @@ func TestMultiBotReactsOnHelp(t *testing.T) {
 func TestMultiBotCombinesAllBotResponses(t *testing.T) {
 	msg := Message{Text: "cmd"}
 
-	b1 := &MockInterface{}
-	b1.On("ReactOn").Return([]string{"cmd"})
-	b1.On("OnMessage", msg).Return(Response{
-		Text: "b1 resp",
-		Send: true,
-	})
-	b2 := &MockInterface{}
-	b2.On("ReactOn").Return([]string{"cmd"})
-	b2.On("OnMessage", msg).Return(Response{
-		Text: "b2 resp",
-		Send: true,
-	})
+	b1 := &InterfaceMock{
+		ReactOnFunc:   func() []string { return []string{"cmd"} },
+		OnMessageFunc: func(m Message) Response { return Response{Send: true, Text: "b1 resp"} },
+	}
+	b2 := &InterfaceMock{
+		ReactOnFunc:   func() []string { return []string{"cmd"} },
+		OnMessageFunc: func(m Message) Response { return Response{Send: true, Text: "b2 resp"} },
+	}
 
 	mb := MultiBot{b1, b2}
 	resp := mb.OnMessage(msg)

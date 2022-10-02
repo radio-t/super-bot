@@ -45,12 +45,14 @@ func TestBanhammer_parse(t *testing.T) {
 }
 
 func TestBanhammer_OnMessage(t *testing.T) {
-	su := &mocks.SuperUser{}
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "admin" {
+			return true
+		}
+		return false
+	}}
 	tg := &mocks.TgBanClient{}
 	b := NewBanhammer(tg, su, 10)
-
-	su.On("IsSuper", "admin").Return(true).Times(2)
-	su.On("IsSuper", "user1").Return(false).Times(3)
 
 	tg.On("KickChatMember", mock.MatchedBy(func(u tbapi.KickChatMemberConfig) bool {
 		return u.UserID == 1 && u.ChatID == 123
@@ -72,6 +74,6 @@ func TestBanhammer_OnMessage(t *testing.T) {
 	resp = b.OnMessage(Message{Text: "unban! user1", From: User{Username: "admin"}, ChatID: 123})
 	assert.Equal(t, Response{Text: "амнистия для user1", Send: true}, resp)
 
-	su.AssertExpectations(t)
+	assert.Equal(t, 5, len(su.IsSuperCalls()))
 	tg.AssertExpectations(t)
 }

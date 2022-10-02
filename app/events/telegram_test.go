@@ -13,9 +13,11 @@ import (
 )
 
 func TestTelegramListener_DoNoBots(t *testing.T) {
-	msgLogger := &mockMsgLogger{}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
 	tbAPI := &mockTbAPI{}
-	bots := &bot.MockInterface{}
+	bots := &bot.InterfaceMock{OnMessageFunc: func(msg bot.Message) bot.Response {
+		return bot.Response{Send: false}
+	}}
 
 	l := TelegramListener{
 		MsgLogger: msgLogger,
@@ -42,22 +44,24 @@ func TestTelegramListener_DoNoBots(t *testing.T) {
 	close(updChan)
 	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
 
-	bots.On("OnMessage", mock.Anything).Return(bot.Response{Send: false})
-	msgLogger.On("Save", mock.MatchedBy(func(msg *bot.Message) bool {
-		t.Logf("%v", msg)
-		return msg.Text == "text 123" && msg.From.Username == "user"
-	}))
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
 
-	msgLogger.AssertExpectations(t)
-	msgLogger.AssertNumberOfCalls(t, "Save", 1)
+	assert.Equal(t, 1, len(msgLogger.SaveCalls()))
+	assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
+	assert.Equal(t, "user", msgLogger.SaveCalls()[0].Msg.From.Username)
 }
 
 func TestTelegramListener_DoWithBots(t *testing.T) {
-	msgLogger := &mockMsgLogger{}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
 	tbAPI := &mockTbAPI{}
-	bots := &bot.MockInterface{}
+	bots := &bot.InterfaceMock{OnMessageFunc: func(msg bot.Message) bot.Response {
+		t.Logf("on-message: %+v", msg)
+		if msg.Text == "text 123" && msg.From.Username == "user" {
+			return bot.Response{Send: true, Text: "bot's answer"}
+		}
+		return bot.Response{}
+	}}
 
 	l := TelegramListener{
 		MsgLogger: msgLogger,
@@ -85,20 +89,6 @@ func TestTelegramListener_DoWithBots(t *testing.T) {
 	close(updChan)
 	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
 
-	bots.On("OnMessage", mock.MatchedBy(func(msg bot.Message) bool {
-		t.Logf("on-message: %+v", msg)
-		return msg.Text == "text 123" && msg.From.Username == "user"
-	})).Return(bot.Response{Send: true, Text: "bot's answer"})
-
-	msgLogger.On("Save", mock.MatchedBy(func(msg *bot.Message) bool {
-		t.Logf("save: %+v", msg)
-		return msg.Text == "text 123" && msg.From.Username == "user"
-	}))
-	msgLogger.On("Save", mock.MatchedBy(func(msg *bot.Message) bool {
-		t.Logf("save: %+v", msg)
-		return msg.Text == "bot's answer"
-	}))
-
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
 		return c.Text == "bot's answer"
@@ -106,15 +96,17 @@ func TestTelegramListener_DoWithBots(t *testing.T) {
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
-	msgLogger.AssertExpectations(t)
-	msgLogger.AssertNumberOfCalls(t, "Save", 2)
+	assert.Equal(t, 2, len(msgLogger.SaveCalls()))
+	assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
+	assert.Equal(t, "user", msgLogger.SaveCalls()[0].Msg.From.Username)
+	assert.Equal(t, "bot's answer", msgLogger.SaveCalls()[1].Msg.Text)
 	tbAPI.AssertNumberOfCalls(t, "Send", 1)
 }
 
 func TestTelegramListener_DoWithRtjc(t *testing.T) {
-	msgLogger := &mockMsgLogger{}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
 	tbAPI := &mockTbAPI{}
-	bots := &bot.MockInterface{}
+	bots := &bot.InterfaceMock{}
 
 	l := TelegramListener{
 		MsgLogger: msgLogger,
@@ -132,11 +124,6 @@ func TestTelegramListener_DoWithRtjc(t *testing.T) {
 
 	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
 
-	msgLogger.On("Save", mock.MatchedBy(func(msg *bot.Message) bool {
-		t.Logf("save: %+v", msg)
-		return msg.Text == "rtjc message"
-	}))
-
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
 		return c.Text == "rtjc message"
@@ -149,16 +136,18 @@ func TestTelegramListener_DoWithRtjc(t *testing.T) {
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "context deadline exceeded")
-	msgLogger.AssertExpectations(t)
-	msgLogger.AssertNumberOfCalls(t, "Save", 1)
+	assert.Equal(t, 1, len(msgLogger.SaveCalls()))
+	assert.Equal(t, "rtjc message", msgLogger.SaveCalls()[0].Msg.Text)
 	tbAPI.AssertNumberOfCalls(t, "Send", 1)
 	tbAPI.AssertNumberOfCalls(t, "PinChatMessage", 1)
 }
 
 func TestTelegramListener_DoWithAutoBan(t *testing.T) {
-	msgLogger := &mockMsgLogger{}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
 	tbAPI := &mockTbAPI{}
-	bots := &bot.MockInterface{}
+	bots := &bot.InterfaceMock{OnMessageFunc: func(msg bot.Message) bot.Response {
+		return bot.Response{Send: false}
+	}}
 
 	l := TelegramListener{
 		MsgLogger: msgLogger,
@@ -197,16 +186,6 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 
 	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
 
-	bots.On("OnMessage", mock.Anything).Return(bot.Response{Send: false})
-	msgLogger.On("Save", mock.MatchedBy(func(msg *bot.Message) bool {
-		t.Logf("%v", msg)
-		return msg.Text == "text 123" && msg.From.Username == "user_name"
-	}))
-	msgLogger.On("Save", mock.MatchedBy(func(msg *bot.Message) bool {
-		t.Logf("%v", msg)
-		return msg.Text == "[@user_name](tg://user?id=1) _тебя слишком много, отдохни..._" && msg.From.Username == "user_name"
-	})).Once()
-
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
 		return c.Text == "[@user_name](tg://user?id=1) _тебя слишком много, отдохни..._"
@@ -217,14 +196,23 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 	assert.EqualError(t, err, "telegram update chan closed")
 
 	tbAPI.AssertNumberOfCalls(t, "Send", 1)
-	msgLogger.AssertExpectations(t)
-	msgLogger.AssertNumberOfCalls(t, "Save", 6)
+	assert.Equal(t, 6, len(msgLogger.SaveCalls()))
+	assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
+	assert.Equal(t, "user_name", msgLogger.SaveCalls()[0].Msg.From.Username)
+	assert.Equal(t, "user_name", msgLogger.SaveCalls()[5].Msg.From.Username)
+	assert.Equal(t, "[@user_name](tg://user?id=1) _тебя слишком много, отдохни..._", msgLogger.SaveCalls()[4].Msg.Text)
 }
 
 func TestTelegramListener_DoWithBotBan(t *testing.T) {
-	msgLogger := &mockMsgLogger{}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
 	tbAPI := &mockTbAPI{}
-	bots := &bot.MockInterface{}
+	bots := &bot.InterfaceMock{OnMessageFunc: func(msg bot.Message) bot.Response {
+		t.Logf("on-message: %+v", msg)
+		if msg.Text == "text 123" && msg.From.Username == "user" {
+			return bot.Response{Send: true, Text: "bot's answer", BanInterval: 2 * time.Minute, User: bot.User{Username: "user", ID: 1}}
+		}
+		return bot.Response{}
+	}}
 
 	l := TelegramListener{
 		MsgLogger: msgLogger,
@@ -252,20 +240,6 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 	close(updChan)
 	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
 
-	bots.On("OnMessage", mock.MatchedBy(func(msg bot.Message) bool {
-		t.Logf("on-message: %+v", msg)
-		return msg.Text == "text 123" && msg.From.Username == "user"
-	})).Return(bot.Response{Send: true, Text: "bot's answer", BanInterval: 2 * time.Minute, User: bot.User{Username: "user", ID: 1}})
-
-	msgLogger.On("Save", mock.MatchedBy(func(msg *bot.Message) bool {
-		t.Logf("save: %+v", msg)
-		return msg.Text == "text 123" && msg.From.Username == "user"
-	}))
-	msgLogger.On("Save", mock.MatchedBy(func(msg *bot.Message) bool {
-		t.Logf("save: %+v", msg)
-		return msg.Text == "bot's answer"
-	}))
-
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
 		return c.Text == "bot's answer"
@@ -275,17 +249,24 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
-	msgLogger.AssertExpectations(t)
-	msgLogger.AssertNumberOfCalls(t, "Save", 2)
+	assert.Equal(t, 2, len(msgLogger.SaveCalls()))
+	assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
+	assert.Equal(t, "user", msgLogger.SaveCalls()[0].Msg.From.Username)
+	assert.Equal(t, "bot's answer", msgLogger.SaveCalls()[1].Msg.Text)
 	tbAPI.AssertNumberOfCalls(t, "Send", 1)
 }
 
 func TestTelegramListener_DoPinMessages(t *testing.T) {
-	msgLogger := &mockMsgLogger{}
-	msgLogger.On("Save", mock.Anything).Return()
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
 
 	tbAPI := &mockTbAPI{}
-	bots := &bot.MockInterface{}
+	bots := &bot.InterfaceMock{OnMessageFunc: func(msg bot.Message) bot.Response {
+		t.Logf("on-message: %+v", msg)
+		if msg.Text == "text 123" && msg.From.Username == "user" {
+			return bot.Response{Send: true, Text: "bot's answer", Pin: true}
+		}
+		return bot.Response{}
+	}}
 
 	l := TelegramListener{
 		MsgLogger: msgLogger,
@@ -312,11 +293,6 @@ func TestTelegramListener_DoPinMessages(t *testing.T) {
 	updChan <- updMsg
 	close(updChan)
 	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
-
-	bots.On("OnMessage", mock.MatchedBy(func(msg bot.Message) bool {
-		t.Logf("on-message: %+v", msg)
-		return msg.Text == "text 123" && msg.From.Username == "user"
-	})).Return(bot.Response{Send: true, Text: "bot's answer", Pin: true})
 
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
@@ -330,16 +306,21 @@ func TestTelegramListener_DoPinMessages(t *testing.T) {
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
-	bots.AssertExpectations(t)
+	assert.Equal(t, 1, len(bots.OnMessageCalls()))
 	tbAPI.AssertExpectations(t)
 }
 
 func TestTelegramListener_DoUnpinMessages(t *testing.T) {
-	msgLogger := &mockMsgLogger{}
-	msgLogger.On("Save", mock.Anything).Return()
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
 
 	tbAPI := &mockTbAPI{}
-	bots := &bot.MockInterface{}
+	bots := &bot.InterfaceMock{OnMessageFunc: func(msg bot.Message) bot.Response {
+		t.Logf("on-message: %+v", msg)
+		if msg.Text == "text 123" && msg.From.Username == "user" {
+			return bot.Response{Send: true, Text: "bot's answer", Unpin: true}
+		}
+		return bot.Response{}
+	}}
 
 	l := TelegramListener{
 		MsgLogger: msgLogger,
@@ -367,11 +348,6 @@ func TestTelegramListener_DoUnpinMessages(t *testing.T) {
 	close(updChan)
 	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
 
-	bots.On("OnMessage", mock.MatchedBy(func(msg bot.Message) bool {
-		t.Logf("on-message: %+v", msg)
-		return msg.Text == "text 123" && msg.From.Username == "user"
-	})).Return(bot.Response{Send: true, Text: "bot's answer", Unpin: true})
-
 	tbAPI.On("Send", mock.MatchedBy(func(c tbapi.MessageConfig) bool {
 		t.Logf("send: %+v", c)
 		return c.Text == "bot's answer"
@@ -384,14 +360,16 @@ func TestTelegramListener_DoUnpinMessages(t *testing.T) {
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
-	bots.AssertExpectations(t)
+	assert.Equal(t, 1, len(bots.OnMessageCalls()))
 	tbAPI.AssertExpectations(t)
 }
 
 func TestTelegramListener_DoNotSaveMessagesFromOtherChats(t *testing.T) {
-	msgLogger := &mockMsgLogger{}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
 	tbAPI := &mockTbAPI{}
-	bots := &bot.MockInterface{}
+	bots := &bot.InterfaceMock{OnMessageFunc: func(msg bot.Message) bot.Response {
+		return bot.Response{Send: true, Text: "bot's answer"}
+	}}
 
 	l := TelegramListener{
 		MsgLogger: msgLogger,
@@ -419,14 +397,13 @@ func TestTelegramListener_DoNotSaveMessagesFromOtherChats(t *testing.T) {
 	close(updChan)
 	tbAPI.On("GetUpdatesChan", mock.Anything).Return(tbapi.UpdatesChannel(updChan), nil)
 
-	bots.On("OnMessage", mock.Anything).Return(bot.Response{Send: true, Text: "bot's answer"})
 	tbAPI.On("Send", mock.Anything).Return(tbapi.Message{Text: "bot's answer", From: &tbapi.User{UserName: "user"}}, nil)
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
 
-	msgLogger.AssertNotCalled(t, "Save", mock.Anything)
-	bots.AssertExpectations(t)
+	assert.Equal(t, 0, len(msgLogger.SaveCalls()))
+	assert.Equal(t, 1, len(bots.OnMessageCalls()))
 	tbAPI.AssertExpectations(t)
 }
 

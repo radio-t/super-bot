@@ -175,9 +175,9 @@ func export() {
 }
 
 func setupLog(dbg bool) {
-	logOpts := []lgr.Option{lgr.Msec, lgr.LevelBraces}
+	logOpts := []lgr.Option{lgr.Msec, lgr.LevelBraces, lgr.StackTraceOnError}
 	if dbg {
-		logOpts = []lgr.Option{lgr.Debug, lgr.CallerFile, lgr.CallerFunc, lgr.Msec, lgr.LevelBraces}
+		logOpts = []lgr.Option{lgr.Debug, lgr.CallerFile, lgr.CallerFunc, lgr.Msec, lgr.LevelBraces, lgr.StackTraceOnError}
 	}
 	lgr.SetupStdLogger(logOpts...)
 }

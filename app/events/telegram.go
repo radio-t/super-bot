@@ -52,11 +52,12 @@ type msgLogger interface {
 }
 
 // Do process all events, blocked call
-func (l *TelegramListener) Do(ctx context.Context) (err error) {
+func (l *TelegramListener) Do(ctx context.Context) error {
 	log.Printf("[INFO] start telegram listener for %q", l.Group)
 
-	if l.chatID, err = l.getChatID(l.Group); err != nil {
-		return fmt.Errorf("failed to get chat ID for group %q: %w", l.Group, err)
+	var getChatErr error
+	if l.chatID, getChatErr = l.getChatID(l.Group); getChatErr != nil {
+		return fmt.Errorf("failed to get chat ID for group %q: %w", l.Group, getChatErr)
 	}
 
 	l.msgs.once.Do(func() {
@@ -69,9 +70,9 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 	u := tbapi.NewUpdate(0)
 	u.Timeout = 60
 
-	var updates tbapi.UpdatesChannel
-	if updates, err = l.TbAPI.GetUpdatesChan(u); err != nil {
-		return fmt.Errorf("can't get updates channel: %w", err)
+	updates, updatesErr := l.TbAPI.GetUpdatesChan(u)
+	if updatesErr != nil {
+		return fmt.Errorf("can't get updates channel: %w", updatesErr)
 	}
 
 	for {
@@ -90,9 +91,9 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 				continue
 			}
 
-			msgJSON, err := json.Marshal(update.Message)
-			if err != nil {
-				log.Printf("[ERROR] failed to marshal update.Message to json: %v", err)
+			msgJSON, errJSON := json.Marshal(update.Message)
+			if errJSON != nil {
+				log.Printf("[ERROR] failed to marshal update.Message to json: %v", errJSON)
 				continue
 			}
 			log.Printf("[DEBUG] %s", string(msgJSON))
@@ -115,7 +116,7 @@ func (l *TelegramListener) Do(ctx context.Context) (err error) {
 			if b := l.AllActivityTerm.check(msg.From, msg.Sent, fromChat); b.active {
 				if b.new && !l.SuperUsers.IsSuper(update.Message.From.UserName) && fromChat == l.chatID {
 					if err := l.applyBan(*msg, l.AllActivityTerm.BanDuration, fromChat, update.Message.From.ID); err != nil {
-						log.Printf("[ERROR] can't ban, %v", err)
+						log.Printf("[ERROR] can't ban for all activity, %v", err)
 					}
 				}
 				continue
@@ -165,7 +166,7 @@ func (l *TelegramListener) botActivityBan(resp bot.Response, msg bot.Message, fr
 	if b := l.BotsActivityTerm.check(msg.From, msg.Sent, fromChat); b.active {
 		if b.new {
 			if err := l.applyBan(msg, l.BotsActivityTerm.BanDuration, fromChat, fromID); err != nil {
-				log.Printf("[ERROR] can't ban, %v", err)
+				log.Printf("[ERROR] can't ban on bot activity for given user, %v", err)
 			}
 		}
 		return true
@@ -175,7 +176,7 @@ func (l *TelegramListener) botActivityBan(resp bot.Response, msg bot.Message, fr
 	if b := l.OverallBotActivityTerm.check(bot.User{}, msg.Sent, fromChat); b.active {
 		if b.new {
 			if err := l.applyBan(msg, l.BotsActivityTerm.BanDuration, fromChat, fromID); err != nil {
-				log.Printf("[ERROR] can't ban, %v", err)
+				log.Printf("[ERROR] can't ban on bot activity for all users, %v", err)
 			}
 		}
 		return true

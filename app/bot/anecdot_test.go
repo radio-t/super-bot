@@ -15,7 +15,20 @@ import (
 )
 
 func TestAnecdot_Help(t *testing.T) {
-	a := NewAnecdote(http.DefaultClient)
+	mockHTTP := &mocks.HTTPClient{DoFunc: func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body: io.NopCloser(strings.NewReader(`[
+	"excuse",
+	"pirozhki",
+	"radiot",
+	"zaibatsu",
+	"excuse_en",
+	"facts",
+	"oneliner"
+]`))}, nil
+	}}
+	a := NewAnecdote(mockHTTP)
 	require.Equal(t, "анекдот!, анкедот!, joke!, chuck!, excuse!, pirozhki!, radiot!, zaibatsu!, excuse_en!, facts!, oneliner! _– расскажет анекдот или шутку_\n",
 		a.Help())
 }

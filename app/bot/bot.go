@@ -39,6 +39,7 @@ type Response struct {
 	Preview     bool          // enable web preview
 	BanInterval time.Duration // bots banning user set the interval
 	User        User          // user to ban
+	ChannelID   int64         // channel to ban, if set then User and BanInterval are ignored
 }
 
 // HTTPClient wrap http.Client to allow mocking
@@ -51,20 +52,34 @@ type SuperUser interface {
 	IsSuper(userName string) bool
 }
 
+// SenderChat is the sender of the message, sent on behalf of a chat. The
+// channel itself for channel messages. The supergroup itself for messages
+// from anonymous group administrators. The linked channel for messages
+// automatically forwarded to the discussion group
+type SenderChat struct {
+	// ID is a unique identifier for this chat
+	ID int64 `json:"id"`
+	// field below used only for logging purposes
+	// UserName for private chats, supergroups and channels if available, optional
+	UserName string `json:"username,omitempty"`
+}
+
 // Message is primary record to pass data from/to bots
 type Message struct {
-	ID       int
-	From     User
-	ChatID   int64
-	Sent     time.Time
-	HTML     string    `json:",omitempty"`
-	Text     string    `json:",omitempty"`
-	Entities *[]Entity `json:",omitempty"`
-	Image    *Image    `json:",omitempty"`
-	ReplyTo  struct {
-		From User
-		Text string `json:",omitempty"`
-		Sent time.Time
+	ID         int
+	From       User
+	SenderChat SenderChat `json:"sender_chat,omitempty"`
+	ChatID     int64
+	Sent       time.Time
+	HTML       string    `json:",omitempty"`
+	Text       string    `json:",omitempty"`
+	Entities   *[]Entity `json:",omitempty"`
+	Image      *Image    `json:",omitempty"`
+	ReplyTo    struct {
+		From       User
+		Text       string `json:",omitempty"`
+		Sent       time.Time
+		SenderChat SenderChat `json:"sender_chat,omitempty"`
 	} `json:",omitempty"`
 }
 
@@ -126,6 +141,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 
 	resps := make(chan string)
 	var pin, unpin int32
+	var channelID int64
 	var banInterval time.Duration
 	var user User
 	var mutex = &sync.Mutex{}
@@ -148,6 +164,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 						banInterval = resp.BanInterval
 					}
 					user = resp.User
+					channelID = resp.ChannelID
 					mutex.Unlock()
 				}
 			}
@@ -177,6 +194,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		Unpin:       atomic.LoadInt32(&unpin) > 0,
 		BanInterval: banInterval,
 		User:        user,
+		ChannelID:   channelID,
 	}
 }
 

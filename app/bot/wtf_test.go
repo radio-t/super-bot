@@ -50,6 +50,15 @@ func TestWTF_OnMessage(t *testing.T) {
 		require.Equal(t, min+10*time.Second+5*54*time.Hour, resp.BanInterval)
 	})
 
+	t.Run("channel, first wtf", func(t *testing.T) {
+		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "ChannelBot", ID: 136817688}, SenderChat: SenderChat{ID: 123, UserName: "channel_with_underscores"}})
+		require.Equal(t, "@channel\\_with\\_underscores получает бан на навсегда", resp.Text)
+		require.True(t, resp.Send)
+		require.Equal(t, min+10*time.Second+59*5*time.Hour, resp.BanInterval)
+		assert.Equal(t, User{Username: "ChannelBot", ID: 136817688}, resp.User)
+		assert.Equal(t, int64(123), resp.ChannelID)
+	})
+
 	t.Run("admin, allow wtf", func(t *testing.T) {
 		resp := b.OnMessage(Message{Text: "WTF!", From: User{Username: "super"}})
 		require.Equal(t, "", resp.Text)
@@ -62,6 +71,16 @@ func TestWTF_OnMessage(t *testing.T) {
 		msg.ReplyTo.From = User{Username: "user", ID: 1, DisplayName: "User"}
 		resp := b.OnMessage(msg)
 		assert.Equal(t, "@user получает бан на 13дн 7ч 10сек", resp.Text)
+		assert.True(t, resp.Send)
+		assert.Equal(t, min+10*time.Second+5*59*time.Hour, resp.BanInterval)
+	})
+
+	t.Run("admin, reply wtf to channel", func(t *testing.T) {
+		msg := Message{Text: "WTF!", From: User{Username: "super"}}
+		msg.ReplyTo.From = User{Username: "ChannelBot", ID: 136817688}
+		msg.ReplyTo.SenderChat = SenderChat{ID: 123, UserName: "channel"}
+		resp := b.OnMessage(msg)
+		assert.Equal(t, "@channel получает бан на навсегда", resp.Text)
 		assert.True(t, resp.Send)
 		assert.Equal(t, min+10*time.Second+5*59*time.Hour, resp.BanInterval)
 	})
@@ -88,7 +107,7 @@ func TestWTF_OnMessage(t *testing.T) {
 		require.True(t, resp.Send)
 		require.Equal(t, time.Minute*77+time.Second*7, resp.BanInterval)
 	})
-	assert.Equal(t, 15, len(su.IsSuperCalls()))
+	assert.Equal(t, 19, len(su.IsSuperCalls()))
 }
 
 func TestWTF_Help(t *testing.T) {

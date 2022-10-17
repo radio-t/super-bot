@@ -27,8 +27,8 @@ type ban struct {
 	new    bool
 }
 
-// check if user bothered bot too often and ban for BanDuration
-func (t *Terminator) check(user bot.User, sent time.Time, chatID int64) ban {
+// check if user\channel bothered bot too often and ban for BanDuration
+func (t *Terminator) check(user bot.User, senderChat bot.SenderChat, sent time.Time, chatID int64) ban {
 	noBan := ban{active: false, new: false}
 	if t.Exclude.IsSuper(user.Username) {
 		return noBan
@@ -37,6 +37,13 @@ func (t *Terminator) check(user bot.User, sent time.Time, chatID int64) ban {
 	if t.users == nil {
 		t.users = make(map[bot.User]map[int64]activity)
 		log.Printf("[DEBUG] terminator with BanDuration=%v, BanPenalty=%d, excluded=%v", t.BanDuration, t.BanPenalty, t.Exclude)
+	}
+
+	// This userID is a bot which means that message was sent on behalf of the channel,
+	// so we convert the user checked for bannable activity to the channel data.
+	// https://docs.python-telegram-bot.org/en/stable/telegram.constants.html#telegram.constants.FAKE_CHANNEL_ID
+	if user.ID == 136817688 {
+		user = bot.User{ID: senderChat.ID, Username: senderChat.UserName}
 	}
 
 	chatActivity, found := t.users[user]

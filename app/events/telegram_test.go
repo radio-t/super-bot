@@ -31,6 +31,17 @@ func TestTelegramListener_DoNoBots(t *testing.T) {
 
 	updMsg := tbapi.Update{
 		Message: &tbapi.Message{
+			ReplyToMessage: &tbapi.Message{
+				SenderChat: &tbapi.Chat{
+					ID:        4321,
+					UserName:  "another_user",
+					FirstName: "first",
+					LastName:  "last",
+				},
+				Chat: &tbapi.Chat{ID: 123},
+				Text: "text 123",
+				From: &tbapi.User{UserName: "user"},
+			},
 			Chat: &tbapi.Chat{ID: 123},
 			Text: "text 123",
 			From: &tbapi.User{UserName: "user"},
@@ -223,6 +234,45 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 		assert.Equal(t, "user_name", msgLogger.SaveCalls()[5].Msg.From.Username)
 		assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", msgLogger.SaveCalls()[4].Msg.Text)
 	})
+
+	t.Run("test for channel", func(t *testing.T) {
+		now := int(time.Now().Unix())
+		updMsg := tbapi.Update{
+			Message: &tbapi.Message{
+				Chat: &tbapi.Chat{ID: 123},
+				Text: "text 321",
+				From: &tbapi.User{UserName: "ChannelBot", ID: 136817688},
+				SenderChat: &tbapi.Chat{
+					ID:       12345,
+					UserName: "test_bot",
+				},
+				Date: now,
+			},
+		}
+
+		updChan := make(chan tbapi.Update, 5)
+		updChan <- updMsg
+		updChan <- updMsg
+		updChan <- updMsg
+		updChan <- updMsg
+		updChan <- updMsg
+		close(updChan)
+		tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+
+		err := l.Do(ctx)
+		assert.EqualError(t, err, "telegram update chan closed")
+
+		assert.Equal(t, 2, len(tbAPI.SendCalls()))
+		assert.Equal(t, "@test\\_bot _пал смертью храбрых, заблокирован навечно..._", tbAPI.SendCalls()[1].C.(tbapi.MessageConfig).Text)
+		assert.Equal(t, 2, len(tbAPI.RequestCalls()))
+		assert.Equal(t, int64(123), tbAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).ChatID)
+		assert.Equal(t, int64(12345), tbAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
+		assert.Equal(t, 12, len(msgLogger.SaveCalls()))
+		assert.Equal(t, "text 321", msgLogger.SaveCalls()[6].Msg.Text)
+		assert.Equal(t, "ChannelBot", msgLogger.SaveCalls()[6].Msg.From.Username)
+		assert.Equal(t, "user_name", msgLogger.SaveCalls()[10].Msg.From.Username)
+		assert.Equal(t, "@test\\_bot _пал смертью храбрых, заблокирован навечно..._", msgLogger.SaveCalls()[10].Msg.Text)
+	})
 }
 
 func TestTelegramListener_DoWithBotsActivityBan(t *testing.T) {
@@ -386,6 +436,12 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 		if msg.Text == "text 123" && msg.From.Username == "user" {
 			return bot.Response{Send: true, Text: "bot's answer", BanInterval: 2 * time.Minute, User: bot.User{Username: "user", ID: 1}}
 		}
+		if msg.From.Username == "ChannelBot" {
+			return bot.Response{Send: true, Text: "bot's answer for channel", BanInterval: 2 * time.Minute, User: bot.User{Username: "user", ID: 1}, ChannelID: msg.SenderChat.ID}
+		}
+		if msg.From.Username == "admin" {
+			return bot.Response{Send: true, Text: "bot's answer for admin", BanInterval: 2 * time.Minute, User: bot.User{Username: "user", ID: 1}, ChannelID: msg.ReplyTo.SenderChat.ID}
+		}
 		return bot.Response{}
 	}}
 
@@ -429,6 +485,72 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 		assert.Equal(t, "bot's answer", tbAPI.SendCalls()[0].C.(tbapi.MessageConfig).Text)
 		assert.Equal(t, 1, len(tbAPI.RequestCalls()))
 		assert.Equal(t, int64(123), tbAPI.RequestCalls()[0].C.(tbapi.RestrictChatMemberConfig).ChatID)
+	})
+
+	t.Run("test ban of the channel", func(t *testing.T) {
+		updMsg := tbapi.Update{
+			Message: &tbapi.Message{
+				Chat: &tbapi.Chat{ID: 123},
+				Text: "text 321",
+				From: &tbapi.User{UserName: "ChannelBot", ID: 136817688},
+				SenderChat: &tbapi.Chat{
+					ID:       12345,
+					UserName: "test_bot",
+				},
+				Date: int(time.Date(2020, 2, 11, 19, 35, 55, 9, time.UTC).Unix()),
+			},
+		}
+
+		updChan := make(chan tbapi.Update, 1)
+		updChan <- updMsg
+		close(updChan)
+		tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+
+		err := l.Do(ctx)
+		assert.EqualError(t, err, "telegram update chan closed")
+		assert.Equal(t, 4, len(msgLogger.SaveCalls()))
+		assert.Equal(t, "text 321", msgLogger.SaveCalls()[2].Msg.Text)
+		assert.Equal(t, "ChannelBot", msgLogger.SaveCalls()[2].Msg.From.Username)
+		assert.Equal(t, "bot's answer for channel", msgLogger.SaveCalls()[3].Msg.Text)
+		assert.Equal(t, 2, len(tbAPI.SendCalls()))
+		assert.Equal(t, "bot's answer for channel", tbAPI.SendCalls()[1].C.(tbapi.MessageConfig).Text)
+		assert.Equal(t, 2, len(tbAPI.RequestCalls()))
+		assert.Equal(t, int64(123), tbAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).ChatID)
+		assert.Equal(t, int64(12345), tbAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
+	})
+
+	t.Run("test ban of the channel on behalf of the superuser", func(t *testing.T) {
+		updMsg := tbapi.Update{
+			Message: &tbapi.Message{
+				ReplyToMessage: &tbapi.Message{
+					SenderChat: &tbapi.Chat{
+						ID:       54321,
+						UserName: "original_bot",
+					},
+				},
+				Chat: &tbapi.Chat{ID: 123},
+				Text: "text 543",
+				From: &tbapi.User{UserName: "admin", ID: 555},
+				Date: int(time.Date(2020, 2, 11, 19, 37, 55, 9, time.UTC).Unix()),
+			},
+		}
+
+		updChan := make(chan tbapi.Update, 1)
+		updChan <- updMsg
+		close(updChan)
+		tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+
+		err := l.Do(ctx)
+		assert.EqualError(t, err, "telegram update chan closed")
+		assert.Equal(t, 6, len(msgLogger.SaveCalls()))
+		assert.Equal(t, "text 543", msgLogger.SaveCalls()[4].Msg.Text)
+		assert.Equal(t, "admin", msgLogger.SaveCalls()[4].Msg.From.Username)
+		assert.Equal(t, "bot's answer for admin", msgLogger.SaveCalls()[5].Msg.Text)
+		assert.Equal(t, 3, len(tbAPI.SendCalls()))
+		assert.Equal(t, "bot's answer for admin", tbAPI.SendCalls()[2].C.(tbapi.MessageConfig).Text)
+		assert.Equal(t, 3, len(tbAPI.RequestCalls()))
+		assert.Equal(t, int64(123), tbAPI.RequestCalls()[2].C.(tbapi.BanChatSenderChatConfig).ChatID)
+		assert.Equal(t, int64(54321), tbAPI.RequestCalls()[2].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
 	})
 }
 

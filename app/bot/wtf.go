@@ -35,11 +35,19 @@ func (w *WTF) OnMessage(msg Message) (response Response) {
 	}
 
 	wtfUser := msg.From
+	var wtfChannelID int64
+	var wtfChannelUsername string
 	if w.superUser.IsSuper(msg.From.Username) {
 		if msg.ReplyTo.From.ID == 0 { // not reply, ignore for supers
 			return Response{}
 		}
-		log.Printf("[INFO] wtf requested by %q for %q, id:%d", msg.From.Username, msg.ReplyTo.From.Username, msg.ReplyTo.From.ID)
+		wtfRequested := fmt.Sprintf("[INFO] wtf requested by %q for %q, id:%d", msg.From.Username, msg.ReplyTo.From.Username, msg.ReplyTo.From.ID)
+		if msg.ReplyTo.SenderChat.ID != 0 {
+			wtfChannelID = msg.ReplyTo.SenderChat.ID
+			wtfChannelUsername = msg.ReplyTo.SenderChat.UserName
+			wtfRequested = fmt.Sprintf("[INFO] wtf requested by %q for %q, id:%d", msg.From.Username, wtfChannelUsername, wtfChannelID)
+		}
+		log.Print(wtfRequested)
 		wtfUser = msg.ReplyTo.From // set WTF user from ReplyTo.From for supers, so it will ban the user replied to
 	}
 
@@ -48,9 +56,18 @@ func (w *WTF) OnMessage(msg Message) (response Response) {
 		return Response{} // don't allow supers to ban other supers
 	}
 
+	// message from channel, not banned by superuser above
+	if msg.From.ID == 136817688 && wtfChannelID == 0 {
+		wtfChannelID = msg.SenderChat.ID
+		wtfChannelUsername = msg.SenderChat.UserName
+	}
+
 	mention := "@" + wtfUser.Username
 	if wtfUser.Username == "" {
 		mention = wtfUser.DisplayName
+	}
+	if wtfChannelID != 0 {
+		mention = "@" + wtfChannelUsername
 	}
 
 	banDuration := w.minDuration + time.Second*time.Duration(w.rand(int64(w.maxDuration.Seconds()-w.minDuration.Seconds())))
@@ -67,11 +84,17 @@ func (w *WTF) OnMessage(msg Message) (response Response) {
 	}
 	w.lastWtf = time.Now()
 
+	durationString := HumanizeDuration(banDuration)
+	if wtfChannelID != 0 {
+		durationString = "навсегда"
+	}
+
 	return Response{
-		Text:        fmt.Sprintf("%s получает бан на %v", EscapeMarkDownV1Text(mention), HumanizeDuration(banDuration)),
+		Text:        fmt.Sprintf("%s получает бан на %v", EscapeMarkDownV1Text(mention), durationString),
 		Send:        true,
 		BanInterval: banDuration,
 		User:        wtfUser,
+		ChannelID:   wtfChannelID,
 	}
 }
 

@@ -14,8 +14,8 @@ import (
 //
 //		// make and configure a mocked bot.TgBanClient
 //		mockedTgBanClient := &TgBanClient{
-//			SendFunc: func(c tbapi.Chattable) (tbapi.Message, error) {
-//				panic("mock out the Send method")
+//			RequestFunc: func(c tbapi.Chattable) (*tbapi.APIResponse, error) {
+//				panic("mock out the Request method")
 //			},
 //		}
 //
@@ -24,48 +24,48 @@ import (
 //
 //	}
 type TgBanClient struct {
-	// SendFunc mocks the Send method.
-	SendFunc func(c tbapi.Chattable) (tbapi.Message, error)
+	// RequestFunc mocks the Request method.
+	RequestFunc func(c tbapi.Chattable) (*tbapi.APIResponse, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// Send holds details about calls to the Send method.
-		Send []struct {
+		// Request holds details about calls to the Request method.
+		Request []struct {
 			// C is the c argument value.
 			C tbapi.Chattable
 		}
 	}
-	lockSend sync.RWMutex
+	lockRequest sync.RWMutex
 }
 
-// Send calls SendFunc.
-func (mock *TgBanClient) Send(c tbapi.Chattable) (tbapi.Message, error) {
-	if mock.SendFunc == nil {
-		panic("TgBanClient.SendFunc: method is nil but TgBanClient.Send was just called")
+// Request calls RequestFunc.
+func (mock *TgBanClient) Request(c tbapi.Chattable) (*tbapi.APIResponse, error) {
+	if mock.RequestFunc == nil {
+		panic("TgBanClient.RequestFunc: method is nil but TgBanClient.Request was just called")
 	}
 	callInfo := struct {
 		C tbapi.Chattable
 	}{
 		C: c,
 	}
-	mock.lockSend.Lock()
-	mock.calls.Send = append(mock.calls.Send, callInfo)
-	mock.lockSend.Unlock()
-	return mock.SendFunc(c)
+	mock.lockRequest.Lock()
+	mock.calls.Request = append(mock.calls.Request, callInfo)
+	mock.lockRequest.Unlock()
+	return mock.RequestFunc(c)
 }
 
-// SendCalls gets all the calls that were made to Send.
+// RequestCalls gets all the calls that were made to Request.
 // Check the length with:
 //
-//	len(mockedTgBanClient.SendCalls())
-func (mock *TgBanClient) SendCalls() []struct {
+//	len(mockedTgBanClient.RequestCalls())
+func (mock *TgBanClient) RequestCalls() []struct {
 	C tbapi.Chattable
 } {
 	var calls []struct {
 		C tbapi.Chattable
 	}
-	mock.lockSend.RLock()
-	calls = mock.calls.Send
-	mock.lockSend.RUnlock()
+	mock.lockRequest.RLock()
+	calls = mock.calls.Request
+	mock.lockRequest.RUnlock()
 	return calls
 }

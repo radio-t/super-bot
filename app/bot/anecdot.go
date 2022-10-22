@@ -19,7 +19,7 @@ type Anecdote struct {
 
 // NewAnecdote makes a bot for http://rzhunemogu.ru
 func NewAnecdote(client HTTPClient) *Anecdote {
-	log.Printf("[INFO] anecdote bot with https://jokesrv.rubedo.cloud/ and http://api.icndb.com/jokes/random")
+	log.Printf("[INFO] anecdote bot with https://jokesrv.rubedo.cloud/ and https://api.chucknorris.io/jokes/random")
 	c, _ := lcw.NewExpirableCache(lcw.MaxKeys(100), lcw.TTL(time.Hour))
 	return &Anecdote{client: client, categCache: c}
 }
@@ -115,20 +115,16 @@ func (a Anecdote) jokesrv(category string) (response Response) {
 
 	}
 
-	return Response{Text: strings.TrimSuffix(rr.Content, "."), Send: true}
+	return Response{Text: EscapeMarkDownV1Text(strings.TrimSuffix(rr.Content, ".")), Send: true}
 }
 
 func (a Anecdote) chuck() (response Response) {
 
 	chuckResp := struct {
-		Type  string
-		Value struct {
-			Categories []string
-			Joke       string
-		}
+		Value string
 	}{}
 
-	reqURL := "http://api.icndb.com/jokes/random"
+	reqURL := "https://api.chucknorris.io/jokes/random"
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {
 		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
@@ -146,7 +142,7 @@ func (a Anecdote) chuck() (response Response) {
 		return Response{}
 	}
 	return Response{
-		Text: "- " + strings.Replace(chuckResp.Value.Joke, "&quot;", "\"", -1),
+		Text: EscapeMarkDownV1Text(chuckResp.Value),
 		Send: true,
 	}
 }

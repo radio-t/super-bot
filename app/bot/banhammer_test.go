@@ -50,8 +50,8 @@ func TestBanhammer_OnMessage(t *testing.T) {
 		}
 		return false
 	}}
-	tg := &mocks.TgBanClient{SendFunc: func(c tbapi.Chattable) (tbapi.Message, error) {
-		return tbapi.Message{}, nil
+	tg := &mocks.TgBanClient{RequestFunc: func(c tbapi.Chattable) (*tbapi.APIResponse, error) {
+		return &tbapi.APIResponse{Ok: true}, nil
 	}}
 	b := NewBanhammer(tg, su, 10)
 
@@ -68,9 +68,9 @@ func TestBanhammer_OnMessage(t *testing.T) {
 	assert.Equal(t, Response{Text: "амнистия для user1", Send: true}, resp)
 
 	assert.Equal(t, 5, len(su.IsSuperCalls()))
-	assert.Equal(t, 2, len(tg.SendCalls()))
-	assert.Equal(t, int64(1), tg.SendCalls()[0].C.(tbapi.BanChatMemberConfig).UserID)
-	assert.Equal(t, int64(123), tg.SendCalls()[0].C.(tbapi.BanChatMemberConfig).ChatID)
-	assert.Equal(t, int64(1), tg.SendCalls()[1].C.(tbapi.UnbanChatMemberConfig).UserID)
-	assert.Equal(t, int64(123), tg.SendCalls()[1].C.(tbapi.UnbanChatMemberConfig).ChatID)
+	assert.Equal(t, 2, len(tg.RequestCalls()))
+	assert.Equal(t, int64(1), tg.RequestCalls()[0].C.(tbapi.BanChatMemberConfig).UserID)
+	assert.Equal(t, int64(123), tg.RequestCalls()[0].C.(tbapi.BanChatMemberConfig).ChatID)
+	assert.Equal(t, int64(1), tg.RequestCalls()[1].C.(tbapi.UnbanChatMemberConfig).UserID)
+	assert.Equal(t, int64(123), tg.RequestCalls()[1].C.(tbapi.UnbanChatMemberConfig).ChatID)
 }

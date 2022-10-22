@@ -24,7 +24,7 @@ func TestDuck_OnMessage(t *testing.T) {
 	}}
 	d := NewDuck("key", mockHTTP)
 
-	assert.Equal(t, Response{Text: "- the answer\n[test](http://example.com)", Send: true}, d.OnMessage(Message{Text: "?? search"}))
+	assert.Equal(t, Response{Text: "the answer\n[test](http://example.com)", Send: true}, d.OnMessage(Message{Text: "?? search"}))
 }
 
 func TestDuck_request(t *testing.T) {

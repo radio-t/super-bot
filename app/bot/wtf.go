@@ -68,7 +68,7 @@ func (w *WTF) OnMessage(msg Message) (response Response) {
 	w.lastWtf = time.Now()
 
 	return Response{
-		Text:        fmt.Sprintf("[%s](tg://user?id=%d) получает бан на %v", mention, wtfUser.ID, HumanizeDuration(banDuration)),
+		Text:        fmt.Sprintf("%s получает бан на %v", EscapeMarkDownV1Text(mention), HumanizeDuration(banDuration)),
 		Send:        true,
 		BanInterval: banDuration,
 		User:        wtfUser,

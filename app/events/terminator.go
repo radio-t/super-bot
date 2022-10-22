@@ -1,6 +1,7 @@
 package events
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -28,7 +29,6 @@ type ban struct {
 
 // check if user bothered bot too often and ban for BanDuration
 func (t *Terminator) check(user bot.User, sent time.Time, chatID int64) ban {
-
 	noBan := ban{active: false, new: false}
 	if t.Exclude.IsSuper(user.Username) {
 		return noBan
@@ -58,15 +58,20 @@ func (t *Terminator) check(user bot.User, sent time.Time, chatID int64) ban {
 		info.penalty = 0
 	}
 
+	loggedUser := fmt.Sprintf("%v", user)
+	if user.ID == 0 && user.Username == "" {
+		loggedUser = "everyone due to overall bot activity"
+	}
+
 	if info.penalty == t.BanPenalty {
-		log.Printf("[WARN] banned %v", user)
+		log.Printf("[WARN] banned %s", loggedUser)
 		info.penalty++
 		t.users[user][chatID] = info
 		return ban{active: true, new: true}
 	}
 
 	if info.penalty >= t.BanPenalty {
-		log.Printf("[DEBUG] still banned %v", user)
+		log.Printf("[DEBUG] still banned %v", loggedUser)
 		return ban{active: true, new: false}
 	}
 

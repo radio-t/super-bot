@@ -71,7 +71,7 @@ func (d *Duck) OnMessage(msg Message) (response Response) {
 		}
 	}
 
-	respMD := fmt.Sprintf("- %s\n[%s](%s)", duckResp.AbstractText, duckResp.AbstractSource, mdLink(duckResp.AbstractURL))
+	respMD := fmt.Sprintf("%s\n[%s](%s)", EscapeMarkDownV1Text(duckResp.AbstractText), duckResp.AbstractSource, mdLink(duckResp.AbstractURL))
 	return Response{
 		Text: respMD,
 		Send: true,

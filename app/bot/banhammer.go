@@ -28,7 +28,7 @@ type userInfo struct {
 
 // TgBanClient is a subset of tg api limited to ban-related operations only
 type TgBanClient interface {
-	Send(c tbapi.Chattable) (tbapi.Message, error)
+	Request(c tbapi.Chattable) (*tbapi.APIResponse, error)
 }
 
 // NewBanhammer makes a bot for admins reacting on ban!user unban!user
@@ -74,7 +74,7 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 
 	switch cmd {
 	case "ban":
-		_, err := b.tgClient.Send(tbapi.KickChatMemberConfig{
+		_, err := b.tgClient.Request(tbapi.KickChatMemberConfig{
 			ChatMemberConfig: tbapi.ChatMemberConfig{UserID: user.ID, ChatID: msg.ChatID},
 		})
 		if err != nil {
@@ -84,7 +84,7 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 		log.Printf("[INFO] banned %+v by %+v", user.User, msg.From)
 		return Response{Text: fmt.Sprintf("прощай %s", name), Send: true}
 	case "unban":
-		_, err := b.tgClient.Send(tbapi.UnbanChatMemberConfig{ChatMemberConfig: tbapi.ChatMemberConfig{UserID: user.ID, ChatID: msg.ChatID}})
+		_, err := b.tgClient.Request(tbapi.UnbanChatMemberConfig{ChatMemberConfig: tbapi.ChatMemberConfig{UserID: user.ID, ChatID: msg.ChatID}})
 		if err != nil {
 			log.Printf("[WARN] failed to unban %s, %v", name, err)
 			return Response{}

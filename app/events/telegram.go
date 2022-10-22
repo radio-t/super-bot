@@ -197,14 +197,14 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	l.saveBotMessage(&res, chatID)
 
 	if resp.Pin {
-		_, err = l.TbAPI.Send(tbapi.PinChatMessageConfig{ChatID: chatID, MessageID: res.MessageID, DisableNotification: true})
+		_, err = l.TbAPI.Request(tbapi.PinChatMessageConfig{ChatID: chatID, MessageID: res.MessageID, DisableNotification: true})
 		if err != nil {
 			return fmt.Errorf("can't pin message to telegram: %w", err)
 		}
 	}
 
 	if resp.Unpin {
-		_, err = l.TbAPI.Send(tbapi.UnpinChatMessageConfig{ChatID: chatID})
+		_, err = l.TbAPI.Request(tbapi.UnpinChatMessageConfig{ChatID: chatID})
 		if err != nil {
 			return fmt.Errorf("can't unpin message to telegram: %w", err)
 		}
@@ -218,7 +218,7 @@ func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, cha
 	if msg.From.Username == "" {
 		mention = msg.From.DisplayName
 	}
-	m := fmt.Sprintf("[%s](tg://user?id=%d) _тебя слишком много, отдохни..._", mention, userID)
+	m := fmt.Sprintf("%s _тебя слишком много, отдохни..._", bot.EscapeMarkDownV1Text(mention))
 
 	if err := l.sendBotResponse(bot.Response{Text: m, Send: true}, chatID); err != nil {
 		return fmt.Errorf("failed to send ban message for %v: %w", msg.From, err)
@@ -266,7 +266,6 @@ func (l *TelegramListener) saveBotMessage(msg *tbapi.Message, fromChat int64) {
 // The bot must be an administrator in the supergroup for this to work
 // and must have the appropriate admin rights.
 func (l *TelegramListener) banUser(duration time.Duration, chatID int64, userID int64) error {
-
 	// From Telegram Bot API documentation:
 	// > If user is restricted for more than 366 days or less than 30 seconds from the current time,
 	// > they are considered to be restricted forever

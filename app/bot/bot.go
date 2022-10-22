@@ -20,7 +20,7 @@ import (
 
 // genHelpMsg construct help message from bot's ReactOn
 func genHelpMsg(com []string, msg string) string {
-	return strings.Join(com, ", ") + " _– " + msg + "_\n"
+	return EscapeMarkDownV1Text(strings.Join(com, ", ")) + " _– " + msg + "_\n"
 }
 
 // Interface is a bot reactive spec. response will be sent if "send" result is true
@@ -206,4 +206,15 @@ func makeHTTPRequest(url string) (*http.Request, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	return req, nil
+}
+
+// EscapeMarkDownV1Text escapes markdownV1 special characters, used in places where we want to send text as-is.
+// For example, telegram username with underscores would be italicized if we don't escape it.
+// https://core.telegram.org/bots/api#markdown-style
+func EscapeMarkDownV1Text(text string) string {
+	escSymbols := []string{"_", "*", "`", "["}
+	for _, esc := range escSymbols {
+		text = strings.Replace(text, esc, "\\"+esc, -1)
+	}
+	return text
 }

@@ -29,7 +29,7 @@ func TestAnecdot_Help(t *testing.T) {
 ]`))}, nil
 	}}
 	a := NewAnecdote(mockHTTP)
-	require.Equal(t, "анекдот!, анкедот!, joke!, chuck!, excuse!, pirozhki!, radiot!, zaibatsu!, excuse_en!, facts!, oneliner! _– расскажет анекдот или шутку_\n",
+	require.Equal(t, "анекдот!, анкедот!, joke!, chuck!, excuse!, pirozhki!, radiot!, zaibatsu!, excuse\\_en!, facts!, oneliner! _– расскажет анекдот или шутку_\n",
 		a.Help())
 }
 
@@ -91,10 +91,18 @@ func TestAnecdotReactsOnChuckMessageUnableToDoReq(t *testing.T) {
 func TestAnecdotReactsOnChuckMessage(t *testing.T) {
 	mockHTTP := &mocks.HTTPClient{DoFunc: func(req *http.Request) (*http.Response, error) {
 		return &http.Response{
-			Body: io.NopCloser(bytes.NewReader([]byte(`{"Value" : {"Joke" : "&quot;joke&quot;"}}`))),
+			Body: io.NopCloser(bytes.NewReader([]byte(`{
+"categories":[],
+"created_at":"2020-01-05 13:42:23.880601",
+"icon_url":"https://assets.chucknorris.host/img/avatar/chuck-norris.png",
+"id":"Lf-jNoPpSZqXoTySlBCtfg",
+"updated_at":"2020-01-05 13:42:23.880601",
+"url":"https://api.chucknorris.io/jokes/Lf-jNoPpSZqXoTySlBCtfg",
+"value":"Chuck Norris got pulled over by a cop once. The cop was lucky to leave with a _warning_."}
+`))),
 		}, nil
 	}}
 	b := NewAnecdote(mockHTTP)
 
-	require.Equal(t, Response{Text: "- \"joke\"", Send: true}, b.OnMessage(Message{Text: "chuck!"}))
+	require.Equal(t, Response{Text: "Chuck Norris got pulled over by a cop once. The cop was lucky to leave with a \\_warning\\_.", Send: true}, b.OnMessage(Message{Text: "chuck!"}))
 }

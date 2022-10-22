@@ -62,6 +62,9 @@ func (n News) OnMessage(msg Message) (response Response) {
 
 	var lines []string
 	for _, a := range articles {
+		if a.Title == "" {
+			a.Title = "безымянная новость"
+		}
 		lines = append(lines, fmt.Sprintf("- [%s](%s) %s", a.Title, a.Link, a.Ts.Format("2006-01-02")))
 	}
 	return Response{

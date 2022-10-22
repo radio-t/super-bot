@@ -42,5 +42,9 @@ func HumanizeDuration(d time.Duration) string {
 		result += fmt.Sprintf("%vсек", seconds)
 	}
 
+	if d == 666*time.Hour {
+		result += " (666 часов)"
+	}
+
 	return result
 }

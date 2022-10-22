@@ -56,7 +56,7 @@ func (p Sys) OnMessage(msg Message) (response Response) {
 	if strings.EqualFold(msg.Text, "say!") {
 		if p.say != nil && len(p.say) > 0 {
 			return Response{
-				Text: fmt.Sprintf("_%s_", p.say[rand.Intn(len(p.say))]), //nolint:gosec
+				Text: fmt.Sprintf("_%s_", EscapeMarkDownV1Text(p.say[rand.Intn(len(p.say))])), //nolint:gosec
 				Send: true,
 			}
 		}

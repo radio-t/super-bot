@@ -85,6 +85,10 @@ func main() {
 		bot.NewPrepPost(httpClient, "https://radio-t.com/site-api", 5*time.Minute),
 		bot.NewWTF(time.Hour*24, 7*time.Hour*24, opts.SuperUsers),
 		bot.NewBanhammer(tbAPI, opts.SuperUsers, 5000),
+		bot.NewWhen(
+			[]string{"когда?", "when?"},
+			func() time.Time { return time.Now() },
+		),
 	}
 
 	if sb, err := bot.NewSys(opts.SysData); err == nil {

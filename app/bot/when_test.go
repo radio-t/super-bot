@@ -96,7 +96,7 @@ func TestWhenBot_humanizeDuration(t *testing.T) {
 	}
 }
 
-func TestWhenBot_closestPrevNextWeekdays(t *testing.T) {
+func TestWhenBot_closestPrevNextStreams(t *testing.T) {
 	t.Parallel()
 
 	table := []struct {
@@ -132,7 +132,7 @@ func TestWhenBot_closestPrevNextWeekdays(t *testing.T) {
 
 	for _, row := range table {
 		t.Run("", func(t *testing.T) {
-			res1, res2 := closestPrevNextWeekdays(row.in, time.Saturday, 20, 0)
+			res1, res2 := closestPrevNextStreams(row.in)
 			assert.Equal(t, row.exp1, res1)
 			assert.Equal(t, row.exp2, res2)
 		})

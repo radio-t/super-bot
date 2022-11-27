@@ -50,14 +50,13 @@ func when(now time.Time) string {
 	diffToNext := nextStream.Sub(now)
 
 	var whenCountdown string
-	switch {
-	case diffToPrev < avgDuration:
+	if diffToPrev < avgDuration {
 		whenCountdown = fmt.Sprintf(
 			"\nНачался %s назад. \nСкорее всего еще идет. \nСледующий через %s",
 			humanizeDuration(diffToPrev, tooSmallDuration),
 			humanizeDuration(diffToNext, tooSmallDuration),
 		)
-	case diffToNext >= 0:
+	} else {
 		whenCountdown = fmt.Sprintf(
 			"\nНачнется через %s",
 			humanizeDuration(diffToNext, tooSmallDuration),

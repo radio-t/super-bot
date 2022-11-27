@@ -2,8 +2,8 @@ package bot
 
 import (
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"log"
-	"strings"
 	"time"
 )
 
@@ -42,28 +42,43 @@ func (w *When) ReactOn() []string {
 func when(now time.Time) string {
 	const avgDuration = 2 * time.Hour
 	const whenPrefix = "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)"
-	const tooSmallDuration = "пару секунд"
 
 	now = now.UTC()
 	prevStream, nextStream := closestPrevNextWeekdays(now, time.Saturday, 20, 0)
 	diffToPrev := -prevStream.Sub(now)
-	diffToNext := nextStream.Sub(now)
 
 	var whenCountdown string
 	if diffToPrev < avgDuration {
 		whenCountdown = fmt.Sprintf(
 			"\nНачался %s назад. \nСкорее всего еще идет. \nСледующий через %s",
-			humanizeDuration(diffToPrev, tooSmallDuration),
-			humanizeDuration(diffToNext, tooSmallDuration),
+			humanizeDuration(now, prevStream),
+			humanizeDuration(now, nextStream),
 		)
 	} else {
 		whenCountdown = fmt.Sprintf(
 			"\nНачнется через %s",
-			humanizeDuration(diffToNext, tooSmallDuration),
+			humanizeDuration(now, nextStream),
 		)
 	}
 
 	return whenPrefix + whenCountdown
+}
+
+// NOTE: copied from humanize.defaultMagnitudes
+var ruMagnitudes = []humanize.RelTimeMagnitude{
+	{time.Second, "пару секунд", time.Second},
+	{2 * time.Second, "1s", 1},
+	{time.Minute, "%ds", time.Second},
+	{2 * time.Minute, "1m", 1},
+	{time.Hour, "%dm", time.Minute},
+	{2 * time.Hour, "1h", 1},
+	{3 * time.Hour, "%dh", time.Hour},
+	{humanize.Day, "%dh", time.Hour},
+	{2 * humanize.Day, "1d", 1},
+	{5 * humanize.Day, "%dd", humanize.Day},
+	{humanize.Week, "%dd", humanize.Day},
+	{2 * humanize.Week, "1w", 1},
+	{humanize.Month, "%dw", humanize.Week},
 }
 
 // closestPrevNextWeekdays returns closest next `weekday` at `hour`:`minute` after `t`.
@@ -82,46 +97,6 @@ func closestPrevNextWeekdays(t time.Time, weekday time.Weekday, hour, minute int
 	return nextDt.Add(-week), nextDt
 }
 
-func humanizeDuration(d time.Duration, defaultVal string) string {
-	const maxParts = 2
-	units := []struct {
-		duration time.Duration
-		name     string
-	}{
-		{
-			duration: 24 * time.Hour,
-			name:     "d",
-		},
-		{
-			duration: time.Hour,
-			name:     "h",
-		},
-		{
-			duration: time.Minute,
-			name:     "m",
-		},
-		{
-			duration: time.Second,
-			name:     "s",
-		},
-	}
-
-	var res []string
-	for _, unit := range units {
-		unitCount := int(d / unit.duration)
-		if unitCount > 0 {
-			res = append(res, fmt.Sprintf("%d%s", unitCount, unit.name))
-			if len(res) == maxParts {
-				break
-			}
-
-			d = d - time.Duration(unitCount)*unit.duration
-		}
-	}
-
-	if len(res) == 0 {
-		return defaultVal
-	}
-
-	return strings.Join(res, " ")
+func humanizeDuration(baseDt, nextDt time.Time) string {
+	return humanize.CustomRelTime(baseDt, nextDt, "", "", ruMagnitudes)
 }

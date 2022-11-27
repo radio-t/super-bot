@@ -30,7 +30,7 @@ func TestWhenBot_when(t *testing.T) {
 	}{
 		{
 			in:  time.Date(2022, 1, 1, 1, 1, 0, 0, time.UTC),
-			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачнется через 18h 59m",
+			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачнется через 18h",
 		},
 		{
 			in:  time.Date(2022, 1, 1, 20, 00, 0, 0, time.UTC),
@@ -38,11 +38,11 @@ func TestWhenBot_when(t *testing.T) {
 		},
 		{
 			in:  time.Date(2022, 1, 1, 20, 01, 0, 0, time.UTC),
-			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачался 1m назад. \nСкорее всего еще идет. \nСледующий через 6d 23h",
+			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачался 1m назад. \nСкорее всего еще идет. \nСледующий через 6d",
 		},
 		{
 			in:  time.Date(2022, 1, 1, 22, 01, 0, 0, time.UTC),
-			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачнется через 6d 21h",
+			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачнется через 6d",
 		},
 	}
 
@@ -52,20 +52,19 @@ func TestWhenBot_when(t *testing.T) {
 			assert.Equal(t, row.exp, res)
 		})
 	}
-
 }
 
 func TestWhenBot_humanizeDuration(t *testing.T) {
 	t.Parallel()
 
+	baseDt := time.Time{}
 	table := []struct {
-		in         time.Duration
-		defaultVal string
-		exp        string
+		in  time.Duration
+		exp string
 	}{
 		{
 			in:  0,
-			exp: "",
+			exp: "пару секунд",
 		},
 		{
 			in:  11 * time.Second,
@@ -77,26 +76,21 @@ func TestWhenBot_humanizeDuration(t *testing.T) {
 		},
 		{
 			in:  3*time.Minute + 59*time.Second,
-			exp: "3m 59s",
+			exp: "3m",
 		},
 		{
 			in:  2*time.Hour + 13*time.Second,
-			exp: "2h 13s",
+			exp: "2h",
 		},
 		{
 			in:  3*24*time.Hour + 4*time.Hour + 5*time.Minute + 6*time.Second,
-			exp: "3d 4h",
-		},
-		{
-			in:         0,
-			defaultVal: "right now",
-			exp:        "right now",
+			exp: "3d",
 		},
 	}
 
 	for _, row := range table {
 		t.Run("", func(t *testing.T) {
-			res := humanizeDuration(row.in, row.defaultVal)
+			res := humanizeDuration(baseDt, baseDt.Add(row.in))
 			assert.Equal(t, row.exp, res)
 		})
 	}

@@ -3,6 +3,7 @@ module github.com/radio-t/super-bot
 go 1.17
 
 require (
+	github.com/dustin/go-humanize v1.0.0
 	github.com/go-pkgz/lcw v1.0.1
 	github.com/go-pkgz/lgr v0.10.4
 	github.com/go-pkgz/syncs v1.2.0

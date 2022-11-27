@@ -10,18 +10,14 @@ import (
 func TestWhenBot(t *testing.T) {
 	t.Parallel()
 
-	now := time.Date(2006, 8, 27, 11, 33, 0, 0, time.UTC)
-	b := NewWhen(
-		[]string{"test1?", "test2?"},
-		func() time.Time { return now },
-	)
+	b := NewWhen()
 
 	t.Run("react_on", func(t *testing.T) {
-		assert.Equal(t, []string{"test1?", "test2?"}, b.ReactOn())
+		assert.Equal(t, []string{"когда?", "when?"}, b.ReactOn())
 	})
 
 	t.Run("help", func(t *testing.T) {
-		assert.Equal(t, "test1?, test2? _– расписание эфиров Радио-Т_\n", b.Help())
+		assert.Equal(t, "когда?, when? _– расписание эфиров Радио-Т_\n", b.Help())
 	})
 }
 

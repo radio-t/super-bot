@@ -8,19 +8,13 @@ import (
 )
 
 // When bot is answer on question "when the stream is started".
-type When struct {
-	now     func() time.Time
-	reactOn []string
-}
+type When struct{}
 
 // NewWhen makes a new When bot.
-func NewWhen(reactOn []string, nowFunc func() time.Time) *When {
+func NewWhen() *When {
 	log.Printf("[INFO] new when bot is started")
 
-	return &When{
-		reactOn: reactOn,
-		now:     nowFunc,
-	}
+	return &When{}
 }
 
 // Help returns help message
@@ -35,14 +29,14 @@ func (w *When) OnMessage(msg Message) Response {
 	}
 
 	return Response{
-		Text: when(w.now()),
+		Text: when(time.Now()),
 		Send: true,
 	}
 }
 
 // ReactOn keys
 func (w *When) ReactOn() []string {
-	return w.reactOn
+	return []string{"когда?", "when?"}
 }
 
 func when(now time.Time) string {

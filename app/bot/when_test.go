@@ -90,7 +90,7 @@ func TestWhenBot_closestPrevNextStreams(t *testing.T) {
 
 	for _, row := range table {
 		t.Run("", func(t *testing.T) {
-			res1, res2 := closestPrevNextStreams(row.in)
+			res1, res2 := closestPrevNextShows(row.in)
 			assert.Equal(t, row.exp1, res1)
 			assert.Equal(t, row.exp2, res2)
 		})

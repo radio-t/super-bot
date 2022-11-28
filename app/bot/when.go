@@ -43,7 +43,7 @@ func when(now time.Time) string {
 	const whenPrefix = "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)"
 
 	now = now.UTC()
-	prevStream, nextStream := closestPrevNextStreams(now)
+	prevStream, nextStream := closestPrevNextShows(now)
 	diffToPrev := -prevStream.Sub(now)
 	diffToNext := nextStream.Sub(now)
 
@@ -64,21 +64,16 @@ func when(now time.Time) string {
 	return whenPrefix + whenCountdown
 }
 
-// closestPrevNextStreams returns closest next `weekday` at `hour`:`minute` after `t`.
-func closestPrevNextStreams(t time.Time) (time.Time, time.Time) {
-	const streamStartWeekday = time.Saturday
-	const streamStartHour = 20
-	const streamStartMinute = 0
-	const daysInWeek = 7
-	const week = daysInWeek * 24 * time.Hour
+// closestPrevNextShows returns closest next `weekday` at `hour`:`minute` after `t`.
+func closestPrevNextShows(t time.Time) (time.Time, time.Time) {
+	const week = 7 * Day
 
-	daysDiff := int((daysInWeek + (streamStartWeekday - t.Weekday())) % daysInWeek)
-	year, month, day := t.AddDate(0, 0, daysDiff).Date()
+	next := t.AddDate(0, 0, int(time.Saturday-t.Weekday()))
+	next = time.Date(next.Year(), next.Month(), next.Day(), 20, 0, 0, 0, time.UTC)
 
-	nextDt := time.Date(year, month, day, streamStartHour, streamStartMinute, 0, 0, t.Location())
-	if t.After(nextDt) {
-		return nextDt, nextDt.Add(week)
+	if t.After(next) {
+		return next, next.Add(week)
 	}
 
-	return nextDt.Add(-week), nextDt
+	return next.Add(-week), next
 }

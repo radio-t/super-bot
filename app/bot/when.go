@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"github.com/dustin/go-humanize"
 	"log"
 	"time"
 )
@@ -46,39 +45,23 @@ func when(now time.Time) string {
 	now = now.UTC()
 	prevStream, nextStream := closestPrevNextStreams(now)
 	diffToPrev := -prevStream.Sub(now)
+	diffToNext := nextStream.Sub(now)
 
 	var whenCountdown string
 	if diffToPrev < avgDuration {
 		whenCountdown = fmt.Sprintf(
 			"\nНачался %s назад. \nСкорее всего еще идет. \nСледующий через %s",
-			humanizeDuration(now, prevStream),
-			humanizeDuration(now, nextStream),
+			HumanizeDuration(diffToPrev),
+			HumanizeDuration(diffToNext),
 		)
 	} else {
 		whenCountdown = fmt.Sprintf(
 			"\nНачнется через %s",
-			humanizeDuration(now, nextStream),
+			HumanizeDuration(diffToNext),
 		)
 	}
 
 	return whenPrefix + whenCountdown
-}
-
-// NOTE: copied from humanize.defaultMagnitudes
-var ruMagnitudes = []humanize.RelTimeMagnitude{
-	{time.Second, "пару секунд", time.Second},
-	{2 * time.Second, "1s", 1},
-	{time.Minute, "%ds", time.Second},
-	{2 * time.Minute, "1m", 1},
-	{time.Hour, "%dm", time.Minute},
-	{2 * time.Hour, "1h", 1},
-	{3 * time.Hour, "%dh", time.Hour},
-	{humanize.Day, "%dh", time.Hour},
-	{2 * humanize.Day, "1d", 1},
-	{5 * humanize.Day, "%dd", humanize.Day},
-	{humanize.Week, "%dd", humanize.Day},
-	{2 * humanize.Week, "1w", 1},
-	{humanize.Month, "%dw", humanize.Week},
 }
 
 // closestPrevNextStreams returns closest next `weekday` at `hour`:`minute` after `t`.
@@ -98,8 +81,4 @@ func closestPrevNextStreams(t time.Time) (time.Time, time.Time) {
 	}
 
 	return nextDt.Add(-week), nextDt
-}
-
-func humanizeDuration(baseDt, nextDt time.Time) string {
-	return humanize.CustomRelTime(baseDt, nextDt, "", "", ruMagnitudes)
 }

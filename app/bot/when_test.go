@@ -30,7 +30,7 @@ func TestWhenBot_when(t *testing.T) {
 	}{
 		{
 			in:  time.Date(2022, 1, 1, 1, 1, 0, 0, time.UTC),
-			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачнется через 18h",
+			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачнется через 18ч 59мин",
 		},
 		{
 			in:  time.Date(2022, 1, 1, 20, 00, 0, 0, time.UTC),
@@ -38,59 +38,17 @@ func TestWhenBot_when(t *testing.T) {
 		},
 		{
 			in:  time.Date(2022, 1, 1, 20, 01, 0, 0, time.UTC),
-			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачался 1m назад. \nСкорее всего еще идет. \nСледующий через 6d",
+			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачался 1мин назад. \nСкорее всего еще идет. \nСледующий через 6дн 23ч 59мин",
 		},
 		{
 			in:  time.Date(2022, 1, 1, 22, 01, 0, 0, time.UTC),
-			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачнется через 6d",
+			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачнется через 6дн 21ч 59мин",
 		},
 	}
 
 	for _, row := range table {
 		t.Run("", func(t *testing.T) {
 			res := when(row.in)
-			assert.Equal(t, row.exp, res)
-		})
-	}
-}
-
-func TestWhenBot_humanizeDuration(t *testing.T) {
-	t.Parallel()
-
-	baseDt := time.Time{}
-	table := []struct {
-		in  time.Duration
-		exp string
-	}{
-		{
-			in:  0,
-			exp: "пару секунд",
-		},
-		{
-			in:  11 * time.Second,
-			exp: "11s",
-		},
-		{
-			in:  1 * time.Minute,
-			exp: "1m",
-		},
-		{
-			in:  3*time.Minute + 59*time.Second,
-			exp: "3m",
-		},
-		{
-			in:  2*time.Hour + 13*time.Second,
-			exp: "2h",
-		},
-		{
-			in:  3*24*time.Hour + 4*time.Hour + 5*time.Minute + 6*time.Second,
-			exp: "3d",
-		},
-	}
-
-	for _, row := range table {
-		t.Run("", func(t *testing.T) {
-			res := humanizeDuration(baseDt, baseDt.Add(row.in))
 			assert.Equal(t, row.exp, res)
 		})
 	}

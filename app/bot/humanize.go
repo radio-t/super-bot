@@ -15,7 +15,7 @@ func HumanizeDuration(d time.Duration) string {
 	hours := int64(d.Hours()) % 24
 	days := int64(d.Hours()) / 24
 
-	result := ""
+	var result string
 	first := true
 	if days > 0 {
 		result += fmt.Sprintf("%vдн", days)
@@ -44,6 +44,10 @@ func HumanizeDuration(d time.Duration) string {
 
 	if d == 666*time.Hour {
 		result += " (666 часов)"
+	}
+
+	if result == "" {
+		result = "пару секунд"
 	}
 
 	return result

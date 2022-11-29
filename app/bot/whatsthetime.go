@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// WhatsTheTime anwsers which time is on hosts timezones
+// WhatsTheTime answers which time is on hosts timezones
 // uses whatsthetime.data file as configuration
 type WhatsTheTime struct {
 	hosts []host

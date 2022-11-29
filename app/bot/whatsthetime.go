@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// WhatsTheTime anwsers which time is on hosts timezones
+// uses whatsthetime.data file as configuration
 type WhatsTheTime struct {
 	hosts []host
 }
@@ -26,7 +28,7 @@ func NewWhatsTheTime(dataLocation string) (*WhatsTheTime, error) {
 	return &res, nil
 }
 
-func (p *WhatsTheTime) loadTimeData(dataLocation string) error {
+func (w *WhatsTheTime) loadTimeData(dataLocation string) error {
 	data, err := readLines(dataLocation + "/whatsthetime.data")
 	if err != nil {
 		return fmt.Errorf("can't load whatsthetime.data: %w", err)
@@ -42,12 +44,13 @@ func (p *WhatsTheTime) loadTimeData(dataLocation string) error {
 			name: elems[0],
 			timezone: elems[1],
 		}
-		p.hosts = append(p.hosts, host)
+		w.hosts = append(w.hosts, host)
 		log.Printf("[DEBUG] loaded basic response, %s, %s", host.name, host.timezone)
 	}
 	return nil
 }
 
+// OnMessage returns one entry
 func (w *WhatsTheTime) OnMessage(msg Message) (response Response) {
 	if !contains(w.ReactOn(), msg.Text) {
 		return Response{}
@@ -57,7 +60,7 @@ func (w *WhatsTheTime) OnMessage(msg Message) (response Response) {
 	for _, host := range w.hosts {
 		location, err := time.LoadLocation(host.timezone)
 		if err != nil {
-			log.Printf("[ERROR] can't load location for %s: %s", host.timezone, err)
+			log.Printf("[DEBUG] can't load location for %s: %s", host.timezone, err)
 			continue
 		}
 		responseString += fmt.Sprintf("У %s сейчас %s\n", host.name, time.Now().In(location).Format("15:04"))
@@ -65,10 +68,12 @@ func (w *WhatsTheTime) OnMessage(msg Message) (response Response) {
 	return Response{Text: responseString, Send: true}
 }
 
-func (p *WhatsTheTime) ReactOn() []string {
+// ReactOn returns reaction keys
+func (w *WhatsTheTime) ReactOn() []string {
 	return []string{"время!", "time!", "который час?"}
 }
 
-func (p *WhatsTheTime) Help() (line string) {
-	return genHelpMsg(p.ReactOn(), "подcкажет время у ведущих")
+// Help returns help message
+func (w *WhatsTheTime) Help() (line string) {
+	return genHelpMsg(w.ReactOn(), "подcкажет время у ведущих")
 }

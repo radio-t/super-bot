@@ -10,12 +10,13 @@ import (
 // WhatsTheTime answers which time is on hosts timezones
 // uses whatsthetime.data file as configuration
 type WhatsTheTime struct {
-	hosts []host
+	hosts []Host
 }
 
-type host struct {
-	name string
-	timezone string
+// Host is structure with name and timezone
+type Host struct {
+	Name string
+	Timezone string
 }
 
 // NewWhatsTheTime makes new What's The Time bot and load data to []hosts
@@ -40,12 +41,12 @@ func (w *WhatsTheTime) loadTimeData(dataLocation string) error {
 			log.Printf("[DEBUG] bad format %s, ignored", line)
 			continue
 		}
-		host := host{
-			name: elems[0],
-			timezone: elems[1],
+		host := Host{
+			Name: elems[0],
+			Timezone: elems[1],
 		}
 		w.hosts = append(w.hosts, host)
-		log.Printf("[DEBUG] loaded basic response, %s, %s", host.name, host.timezone)
+		log.Printf("[DEBUG] loaded basic response, %s, %s", host.Name, host.Timezone)
 	}
 	return nil
 }
@@ -56,16 +57,23 @@ func (w *WhatsTheTime) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
+	return Response{
+		Text: buildResponseText(time.Now(), w.hosts), 
+		Send: true,
+	}
+}
+
+func buildResponseText(now time.Time, hosts []Host) string {
 	responseString := ""
-	for _, host := range w.hosts {
-		location, err := time.LoadLocation(host.timezone)
+	for _, host := range hosts {
+		location, err := time.LoadLocation(host.Timezone)
 		if err != nil {
-			log.Printf("[DEBUG] can't load location for %s: %s", host.timezone, err)
+			log.Printf("[DEBUG] can't load location for %s: %s", host.Timezone, err)
 			continue
 		}
-		responseString += fmt.Sprintf("У %s сейчас %s\n", host.name, time.Now().In(location).Format("15:04"))
+		responseString += fmt.Sprintf("У %s сейчас %s\n", host.Name, now.In(location).Format("15:04"))
 	}
-	return Response{Text: responseString, Send: true}
+	return responseString
 }
 
 // ReactOn returns reaction keys

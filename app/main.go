@@ -94,6 +94,12 @@ func main() {
 		log.Printf("[ERROR] failed to load sysbot, %v", err)
 	}
 
+	if wttb, err := bot.NewWhatsTheTime(opts.SysData); err == nil {
+		multiBot = append(multiBot, wttb)
+	} else {
+		log.Printf("[ERROR] failed to load whats the time bot, %v", err)
+	}
+
 	allActivityTerm := events.Terminator{
 		BanDuration:   time.Minute * 5,
 		BanPenalty:    10,

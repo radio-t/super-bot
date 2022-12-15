@@ -86,6 +86,7 @@ func main() {
 		bot.NewWTF(time.Hour*24, 7*time.Hour*24, opts.SuperUsers),
 		bot.NewBanhammer(tbAPI, opts.SuperUsers, 5000),
 		bot.NewWhen(),
+		bot.NewWhatTheTime(opts.SysData),
 	}
 
 	if sb, err := bot.NewSys(opts.SysData); err == nil {

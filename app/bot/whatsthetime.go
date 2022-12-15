@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -30,7 +31,7 @@ func NewWhatsTheTime(dataLocation string) (*WhatsTheTime, error) {
 }
 
 func (w *WhatsTheTime) loadTimeData(dataLocation string) error {
-	data, err := readLines(dataLocation + "/whatsthetime.data")
+	data, err := readLines(filepath.Join(dataLocation,"whatsthetime.data"))
 	if err != nil {
 		return fmt.Errorf("can't load whatsthetime.data: %w", err)
 	}

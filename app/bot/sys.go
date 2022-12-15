@@ -73,7 +73,7 @@ func (p Sys) OnMessage(msg Message) (response Response) {
 }
 
 func (p *Sys) loadBasicData() error {
-	bdata, err := readLines(p.dataLocation + "/basic.data")
+	bdata, err := readLines(filepath.Join(p.dataLocation, "basic.data"))
 	if err != nil {
 		return fmt.Errorf("can't load basic.data: %w", err)
 	}
@@ -96,7 +96,7 @@ func (p *Sys) loadBasicData() error {
 }
 
 func (p *Sys) loadSayData() error {
-	say, err := readLines(p.dataLocation + "/say.data")
+	say, err := readLines(filepath.Join(p.dataLocation, "say.data"))
 	if err != nil {
 		return err
 	}

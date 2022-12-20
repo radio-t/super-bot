@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/require"
+
+	"github.com/radio-t/super-bot/app/bot/mocks"
 )
 
 func TestNewsBot_ReactionOnNewsRequest(t *testing.T) {

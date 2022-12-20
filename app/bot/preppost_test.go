@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/radio-t/super-bot/app/bot/mocks"
 )
 
 func TestPrepPost_OnMessage(t *testing.T) {

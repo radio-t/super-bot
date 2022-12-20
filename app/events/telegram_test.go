@@ -6,8 +6,9 @@ import (
 	"time"
 
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/radio-t/super-bot/app/bot"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/radio-t/super-bot/app/bot"
 )
 
 func TestTelegramListener_DoNoBots(t *testing.T) {

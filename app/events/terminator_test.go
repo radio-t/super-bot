@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/radio-t/super-bot/app/bot"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/radio-t/super-bot/app/bot"
 )
 
 func TestTerminator_checkTerminate(t *testing.T) {
@@ -103,7 +104,7 @@ func TestTerminator_banPerChat(t *testing.T) {
 		AllowedPeriod: 10 * time.Millisecond,
 	}
 
-	//ban in one chat, but still active in another
+	// ban in one chat, but still active in another
 	assert.Equal(t, ban{active: false, new: false}, term.check(bot.User{Username: "user"}, bot.SenderChat{}, time.Now().Add(-9*time.Millisecond), -213)) // penalty = 0
 	assert.Equal(t, ban{active: false, new: false}, term.check(bot.User{Username: "user"}, bot.SenderChat{}, time.Now().Add(-8*time.Millisecond), -213)) // penalty = 1
 	assert.Equal(t, ban{active: false, new: false}, term.check(bot.User{Username: "user"}, bot.SenderChat{}, time.Now().Add(-7*time.Millisecond), -213)) // penalty = 2

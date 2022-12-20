@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/radio-t/super-bot/app/bot/mocks"
 )
 
 func TestBanhammer_Help(t *testing.T) {

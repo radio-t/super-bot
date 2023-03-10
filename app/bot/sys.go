@@ -35,12 +35,11 @@ func NewSys(dataLocation string) (*Sys, error) {
 	if err := res.loadSayData(); err != nil {
 		return nil, err
 	}
-	rand.Seed(0)
 	return &res, nil
 }
 
 // Help returns help message
-func (p Sys) Help() (line string) {
+func (p *Sys) Help() (line string) {
 	for _, c := range p.commands {
 		line += genHelpMsg(c.triggers, c.description)
 	}
@@ -48,7 +47,7 @@ func (p Sys) Help() (line string) {
 }
 
 // OnMessage implements bot.Interface
-func (p Sys) OnMessage(msg Message) (response Response) {
+func (p *Sys) OnMessage(msg Message) (response Response) {
 	if !contains(p.ReactOn(), msg.Text) {
 		return Response{}
 	}
@@ -56,7 +55,7 @@ func (p Sys) OnMessage(msg Message) (response Response) {
 	if strings.EqualFold(msg.Text, "say!") {
 		if p.say != nil && len(p.say) > 0 {
 			return Response{
-				Text: fmt.Sprintf("_%s_", EscapeMarkDownV1Text(p.say[rand.Intn(len(p.say))])), //nolint:gosec
+				Text: fmt.Sprintf("_%s_", EscapeMarkDownV1Text(p.say[rand.Intn(len(p.say))])), // nolint
 				Send: true,
 			}
 		}
@@ -72,6 +71,15 @@ func (p Sys) OnMessage(msg Message) (response Response) {
 	return Response{}
 }
 
+// ReactOn keys
+func (p *Sys) ReactOn() []string {
+	res := make([]string, 0)
+	for _, bot := range p.commands {
+		res = append(bot.triggers, res...)
+	}
+	return res
+}
+
 func (p *Sys) loadBasicData() error {
 	bdata, err := readLines(filepath.Join(p.dataLocation, "basic.data"))
 	if err != nil {
@@ -84,13 +92,13 @@ func (p *Sys) loadBasicData() error {
 			log.Printf("[DEBUG] bad format %s, ignored", line)
 			continue
 		}
-		sysCommand := sysCommand{
+		cmd := sysCommand{
 			description: elems[1],
 			message:     elems[2],
 			triggers:    strings.Split(elems[0], ";"),
 		}
-		p.commands = append(p.commands, sysCommand)
-		log.Printf("[DEBUG] loaded basic response, %v, %s", sysCommand.triggers, sysCommand.message)
+		p.commands = append(p.commands, cmd)
+		log.Printf("[DEBUG] loaded basic response, %v, %s", cmd.triggers, cmd.message)
 	}
 	return nil
 }
@@ -110,7 +118,7 @@ func readLines(path string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("can't open %s: %w", path, err)
 	}
-	defer f.Close() //nolint
+	defer f.Close() // nolint
 
 	result := make([]string, 0)
 	s := bufio.NewScanner(f)
@@ -119,13 +127,4 @@ func readLines(path string) ([]string, error) {
 	}
 
 	return result, nil
-}
-
-// ReactOn keys
-func (p Sys) ReactOn() []string {
-	res := make([]string, 0)
-	for _, bot := range p.commands {
-		res = append(bot.triggers, res...)
-	}
-	return res
 }

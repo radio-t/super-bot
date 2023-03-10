@@ -21,7 +21,8 @@ func TestPodcastBotReturnsOnlyTopicsWithSearchedNotes(t *testing.T) {
 			}
 			b, err := json.Marshal(sr)
 			require.NoError(t, err)
-			w.Write(b)
+			_, err = w.Write(b)
+			assert.NoError(t, err)
 			return
 		}
 		w.WriteHeader(400)
@@ -53,7 +54,8 @@ func TestPodcasts_OnMessage(t *testing.T) {
 			}
 			b, err := json.Marshal(sr)
 			require.NoError(t, err)
-			w.Write(b)
+			_, err = w.Write(b)
+			assert.NoError(t, err)
 			return
 		}
 		w.WriteHeader(400)
@@ -92,7 +94,8 @@ func TestPodcasts_OnMessageWithLinks(t *testing.T) {
 			}
 			b, err := json.Marshal(sr)
 			require.NoError(t, err)
-			w.Write(b)
+			_, err = w.Write(b)
+			assert.NoError(t, err)
 			return
 		}
 		w.WriteHeader(400)

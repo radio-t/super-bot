@@ -54,12 +54,13 @@ func TestExcerpt(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("url") == "https://radio-t.com/p/2016/11/06/bot/" && r.URL.Query().Get("token") == "123456" {
-			w.Write([]byte(`{"title": "Больше ботов, хороших и разных — Радио-Т Подкаст","excerpt": "В выпуске 520 была озвучена идея “сделай своего бота для любимого подкаста”. Я создал репо для этого дела где попытался описать как и что. Надеюсь, получилось понятно. В двух словах - каждый ваш бот это микро-рест запакованный в контейнер и получающий все сообщения из нашего чата. Если боту есть ..."}`))
+			_, err := w.Write([]byte(`{"title": "Больше ботов, хороших и разных — Радио-Т Подкаст","excerpt": "В выпуске 520 была озвучена идея “сделай своего бота для любимого подкаста”. Я создал репо для этого дела где попытался описать как и что. Надеюсь, получилось понятно. В двух словах - каждый ваш бот это микро-рест запакованный в контейнер и получающий все сообщения из нашего чата. Если боту есть ..."}`))
+			require.NoError(t, err)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error": "Get https://xxxx.radio-t.com: dial tcp: lookup xxxx.radio-t.com on 127.0.0.11:53: no such host"}`))
+		_, _ = w.Write([]byte(`{"error": "Get https://xxxx.radio-t.com: dial tcp: lookup xxxx.radio-t.com on 127.0.0.11:53: no such host"}`))
 	}))
 	defer ts.Close()
 

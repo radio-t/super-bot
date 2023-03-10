@@ -56,12 +56,12 @@ func (a Anecdote) OnMessage(msg Message) (response Response) {
 
 }
 
-// get categorise from https://jokesrv.rubedo.cloud/categories and extend with / prefix and ! suffix
+// get categorize from https://jokesrv.rubedo.cloud/categories and extend with / prefix and ! suffix
 // to mach commands
 func (a Anecdote) categories() ([]string, error) {
 	res, err := a.categCache.Get("categories", func() (interface{}, error) {
 		var categories []string
-		req, err := http.NewRequest("GET", "https://jokesrv.rubedo.cloud/categories", nil)
+		req, err := http.NewRequest("GET", "https://jokesrv.rubedo.cloud/categories", http.NoBody)
 		if err != nil {
 			return nil, fmt.Errorf("can't make categories request: %w", err)
 		}
@@ -69,7 +69,7 @@ func (a Anecdote) categories() ([]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("can't send categories request: %w", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() // nolint
 		if resp.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("bad response code %d", resp.StatusCode)
 		}
@@ -83,7 +83,7 @@ func (a Anecdote) categories() ([]string, error) {
 		return nil, err
 	}
 
-	var cc []string
+	cc := make([]string, 0, len(res.([]string)))
 	for _, c := range res.([]string) {
 		cc = append(cc, c+"!")
 	}
@@ -103,7 +103,7 @@ func (a Anecdote) jokesrv(category string) (response Response) {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
 		return Response{}
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // nolint
 	rr := struct {
 		Category string `json:"category"`
 		Content  string `json:"content"`
@@ -135,7 +135,7 @@ func (a Anecdote) chuck() (response Response) {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
 		return Response{}
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // nolint
 
 	if err = json.NewDecoder(resp.Body).Decode(&chuckResp); err != nil {
 		log.Printf("[WARN] failed to convert from json, error=%v", err)

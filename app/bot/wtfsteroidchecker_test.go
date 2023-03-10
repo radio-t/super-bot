@@ -10,6 +10,8 @@ import (
 )
 
 // TestWTFSteroidChecker_Contains check that all possible messages can be recognized correctly
+//
+// nolint
 func TestWTFSteroidChecker_Contains(t *testing.T) {
 	type fields struct {
 		message string
@@ -172,7 +174,7 @@ func TestWTFSteroidChecker_Contains(t *testing.T) {
 func TestWTFSteroidChecker_WTFUnicodeLibrary_Unique_Check(t *testing.T) {
 	w := WTFSteroidChecker{}
 	unicodeLibrary := w.WTFUnicodeLibrary()
-	if len(unicodeLibrary) <= 0 {
+	if len(unicodeLibrary) == 0 {
 		t.Errorf("Library is empty")
 	}
 	checkMap := make(map[string]struct{})
@@ -196,7 +198,7 @@ func TestWTFSteroidChecker_WTFUnicodeLibrary_Unique_Check(t *testing.T) {
 func TestWTFSteroidChecker_WTFUnicodeDiacriticLibrary_Unique_Check(t *testing.T) {
 	w := WTFSteroidChecker{}
 	unicodeLibrary := w.WTFUnicodeDiacriticLibrary()
-	if len(unicodeLibrary) <= 0 {
+	if len(unicodeLibrary) == 0 {
 		t.Errorf("Library is empty")
 	}
 	checkMap := make(map[string]struct{})

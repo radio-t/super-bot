@@ -18,7 +18,7 @@ type News struct {
 type newsArticle struct {
 	Title string    `json:"title"`
 	Link  string    `json:"link"`
-	Ts    time.Time `json:"ats"`
+	Ts    time.Time `json:"ats"` // nolint
 }
 
 // NewNews makes new News bot
@@ -52,7 +52,7 @@ func (n News) OnMessage(msg Message) (response Response) {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
 		return Response{}
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // nolint
 
 	articles := []newsArticle{}
 	if err = json.NewDecoder(resp.Body).Decode(&articles); err != nil {
@@ -60,7 +60,7 @@ func (n News) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	var lines []string
+	lines := make([]string, 0, len(articles))
 	for _, a := range articles {
 		if a.Title == "" {
 			a.Title = "безымянная новость"

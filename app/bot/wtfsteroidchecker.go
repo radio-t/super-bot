@@ -483,7 +483,7 @@ func (w *WTFSteroidChecker) removeUnicodeDiacriticAnalog() {
 // "Вот фон!" ↛ "wtf!" correct is "Вот фон!" → "wоt fон!"
 func (w *WTFSteroidChecker) removeNotASCIIAndNotRussian() {
 	w.message = strings.Map(func(r rune) rune {
-		if r > unicode.MaxASCII && (r < 0x0400 && r > 0x04ff) {
+		if r > unicode.MaxASCII && (r < 0x0400 || r > 0x04ff) {
 			return -1
 		}
 		return r

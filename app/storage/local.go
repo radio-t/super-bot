@@ -12,7 +12,7 @@ type Local struct {
 }
 
 // NewLocal creates new Local storage
-func NewLocal(filesPath string, publicPath string) (*Local, error) {
+func NewLocal(filesPath, publicPath string) (*Local, error) {
 	if _, err := os.Stat(filesPath); os.IsNotExist(err) {
 		err = os.MkdirAll(filesPath, 0755) // nolint
 		if err != nil {
@@ -39,7 +39,7 @@ func (l *Local) FileExists(fileName string) (bool, error) {
 
 // CreateFile creates file in `filesPath` directory with a given name and body
 func (l *Local) CreateFile(fileName string, body []byte) (string, error) {
-	err := os.WriteFile(l.filesPath+"/"+fileName, body, 0644) //nolint
+	err := os.WriteFile(l.filesPath+"/"+fileName, body, 0644) // nolint
 	if err != nil {
 		return "", err
 	}

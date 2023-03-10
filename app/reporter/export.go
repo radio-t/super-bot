@@ -73,7 +73,7 @@ func NewExporter(fileRecipient FileRecipient, storage Storage, params ExporterPa
 }
 
 // Export to html with showNum
-func (e *Exporter) Export(showNum int, yyyymmdd int) error {
+func (e *Exporter) Export(showNum, yyyymmdd int) error {
 	from := fmt.Sprintf("%s/%s.log", e.InputRoot, time.Now().Format("20060102")) // current day by default
 	if yyyymmdd != 0 {
 		from = fmt.Sprintf("%s/%d.log", e.InputRoot, yyyymmdd)
@@ -91,8 +91,8 @@ func (e *Exporter) Export(showNum int, yyyymmdd int) error {
 	}
 
 	defer func() {
-		if err := fh.Close(); err != nil {
-			log.Printf("[WARN] failed to close %s, %v", fh.Name(), err)
+		if e := fh.Close(); e != nil {
+			log.Printf("[WARN] failed to close %s, %v", fh.Name(), e)
 		}
 	}()
 
@@ -282,7 +282,7 @@ func filter(msg bot.Message) bool {
 	contains := func(s []string, e string) bool {
 		e = strings.TrimSpace(strings.ToLower(e))
 		for _, a := range s {
-			if strings.ToLower(a) == e {
+			if strings.EqualFold(a, e) {
 				return true
 			}
 		}
@@ -336,7 +336,7 @@ func format(text string, entities *[]bot.Entity) (out template.HTML) {
 }
 
 // getDecoration returns a pair of HTML tags (decorations) for Telegram Entity
-func getDecoration(entity bot.Entity, body []rune) (string, string) {
+func getDecoration(entity bot.Entity, body []rune) (op, cl string) {
 	switch entity.Type {
 	case "bold":
 		return "<strong>", "</strong>"
@@ -357,7 +357,7 @@ func getDecoration(entity bot.Entity, body []rune) (string, string) {
 		return "<pre>", "</pre>"
 
 	case "text_link":
-		return fmt.Sprintf("<a href=\"%s\">", entity.URL), "</a>"
+		return fmt.Sprintf("<a href=%q>", entity.URL), "</a>"
 
 	case "url":
 		urlRaw := string(body)
@@ -366,14 +366,12 @@ func getDecoration(entity bot.Entity, body []rune) (string, string) {
 		u, err := url.Parse(urlRaw)
 		if err != nil {
 			log.Printf("[ERROR] failed parse URL %s", urlRaw)
-		} else {
-			if u.Scheme == "" {
-				u.Scheme = "https"
-				urlRaw = u.String()
-			}
+		} else if u.Scheme == "" {
+			u.Scheme = "https"
+			urlRaw = u.String()
 		}
 
-		return fmt.Sprintf("<a href=\"%s\">", urlRaw), "</a>"
+		return fmt.Sprintf("<a href=%q>", urlRaw), "</a>"
 
 	case "mention":
 		return fmt.Sprintf("<a class=\"mention\" href=\"https://t.me/%s\">", string(body[1:])), "</a>"

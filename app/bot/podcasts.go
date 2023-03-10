@@ -57,7 +57,7 @@ func (p *Podcasts) OnMessage(msg Message) (response Response) {
 	}
 
 	reqURL := fmt.Sprintf("%s/search?limit=%d&q=%s", p.siteAPI, p.maxResults, reqText)
-	req, err := http.NewRequest("GET", reqURL, nil)
+	req, err := http.NewRequest("GET", reqURL, http.NoBody)
 	if err != nil {
 		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
 		return Response{}

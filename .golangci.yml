@@ -1,28 +1,75 @@
-run:
-  tests: false
-  output:
-    format: tab
-  skip-dirs:
-    - vendor
+linters-settings:
+  govet:
+    check-shadowing: true
+  golint:
+    min-confidence: 0.8
+  gocyclo:
+    min-complexity: 15
+  maligned:
+    suggest-new: true
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  misspell:
+    locale: US
+  lll:
+    line-length: 140
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - experimental
+    disabled-checks:
+      - wrapperFunc
+      - hugeParam
+      - rangeValCopy
 
 linters:
+  disable-all: true
   enable:
+    - bodyclose
+    - megacheck
+    - revive
+    - govet
     - unconvert
     - megacheck
+    - unused
     - gas
-    - gocyclo
-    - dupl
     - misspell
     - unparam
-    - unused
     - typecheck
     - ineffassign
-    - revive
-  disable-all: true
+    - stylecheck
+    - gochecknoinits
+    - exportloopref
+    - gocritic
+    - nakedret
+    - gosimple
+    - prealloc
+
+  fast: false
+
+run:
+  modules-download-mode: vendor
+  skip-dirs:
+    - vendor
+  concurrency: 4
 
 issues:
-  exclude-use-default: false
   exclude-rules:
+    - text: "weak cryptographic primitive"
+      linters:
+        - gosec
     - text: "package-comments: should have a package comment"
       linters:
         - revive
+    - text: "at least one file in a package should have a package comment"
+      linters:
+        - stylecheck
+    - text: 'Deferring unsafe method "Close" on type "io.ReadCloser"'
+      linters:
+        - gosec
+
+  exclude-use-default: false

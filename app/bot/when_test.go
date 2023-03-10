@@ -33,15 +33,15 @@ func TestWhenBot_when(t *testing.T) {
 			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачнется через 18ч 59мин",
 		},
 		{
-			in:  time.Date(2022, 1, 1, 20, 00, 0, 0, time.UTC),
+			in:  time.Date(2022, 1, 1, 20, 0, 0, 0, time.UTC),
 			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачнется через пару секунд",
 		},
 		{
-			in:  time.Date(2022, 1, 1, 20, 01, 0, 0, time.UTC),
+			in:  time.Date(2022, 1, 1, 20, 1, 0, 0, time.UTC),
 			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачался 1мин назад. \nСкорее всего еще идет. \nСледующий через 6дн 23ч 59мин",
 		},
 		{
-			in:  time.Date(2022, 1, 1, 22, 01, 0, 0, time.UTC),
+			in:  time.Date(2022, 1, 1, 22, 1, 0, 0, time.UTC),
 			exp: "[каждую субботу, 20:00 UTC](https://radio-t.com/online/)\nНачнется через 6дн 21ч 59мин",
 		},
 	}

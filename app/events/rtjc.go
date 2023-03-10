@@ -54,7 +54,7 @@ func (l Rtjc) Listen(ctx context.Context) {
 	}
 }
 
-func (l Rtjc) isPinned(msg string) (bool, string) {
+func (l Rtjc) isPinned(msg string) (ok bool, m string) {
 	cleanedMsg := strings.TrimSpace(msg)
 	cleanedMsg = strings.TrimSuffix(cleanedMsg, "\n")
 

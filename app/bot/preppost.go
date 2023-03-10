@@ -69,7 +69,7 @@ func (p *PrepPost) OnMessage(Message) (response Response) {
 func (p *PrepPost) recentPrepPost() (pi postInfo, err error) {
 
 	reqURL := fmt.Sprintf("%s/last/1?categories=prep", p.siteAPI)
-	req, err := http.NewRequest("GET", reqURL, nil)
+	req, err := http.NewRequest("GET", reqURL, http.NoBody)
 	if err != nil {
 		return pi, fmt.Errorf("failed to make request %s: %w", reqURL, err)
 	}

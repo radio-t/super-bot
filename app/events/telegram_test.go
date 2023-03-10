@@ -12,7 +12,7 @@ import (
 )
 
 func TestTelegramListener_DoNoBots(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 	tbAPI := &tbAPIMock{GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 		return tbapi.Chat{ID: 123}, nil
 	}}
@@ -63,7 +63,7 @@ func TestTelegramListener_DoNoBots(t *testing.T) {
 }
 
 func TestTelegramListener_DoWithBots(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 	tbAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
@@ -115,7 +115,7 @@ func TestTelegramListener_DoWithBots(t *testing.T) {
 }
 
 func TestTelegramListener_DoWithRtjc(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 	tbAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
@@ -160,7 +160,7 @@ func TestTelegramListener_DoWithRtjc(t *testing.T) {
 }
 
 func TestTelegramListener_DoWithAutoBan(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 	firstReq := true
 	firstSend := true
 	tbAPI := &tbAPIMock{
@@ -277,7 +277,7 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 }
 
 func TestTelegramListener_DoWithBotsActivityBan(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 	tbAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
@@ -349,7 +349,7 @@ func TestTelegramListener_DoWithBotsActivityBan(t *testing.T) {
 }
 
 func TestTelegramListener_DoWithAllActivityBan(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 	tbAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
@@ -420,7 +420,7 @@ func TestTelegramListener_DoWithAllActivityBan(t *testing.T) {
 }
 
 func TestTelegramListener_DoWithBotBan(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 	tbAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
@@ -556,7 +556,7 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 }
 
 func TestTelegramListener_DoPinMessages(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 
 	tbAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
@@ -613,7 +613,7 @@ func TestTelegramListener_DoPinMessages(t *testing.T) {
 }
 
 func TestTelegramListener_DoUnpinMessages(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 
 	tbAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
@@ -670,7 +670,7 @@ func TestTelegramListener_DoUnpinMessages(t *testing.T) {
 }
 
 func TestTelegramListener_DoNotSaveMessagesFromOtherChats(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) { return }}
+	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 	tbAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil

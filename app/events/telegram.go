@@ -179,7 +179,7 @@ func getBanUsername(resp bot.Response, update tbapi.Update) string {
 	return fmt.Sprintf("%v", botChat)
 }
 
-func (l *TelegramListener) botActivityBan(resp bot.Response, msg bot.Message, fromChat int64, fromID int64) bool {
+func (l *TelegramListener) botActivityBan(resp bot.Response, msg bot.Message, fromChat, fromID int64) bool {
 	if !resp.Send {
 		return false
 	}
@@ -242,7 +242,7 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 }
 
 // bans user or a channel
-func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, chatID int64, userID int64) error {
+func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, chatID, userID int64) error {
 	mention := "@" + msg.From.Username
 	if msg.From.Username == "" {
 		mention = msg.From.DisplayName
@@ -305,7 +305,7 @@ func (l *TelegramListener) saveBotMessage(msg *tbapi.Message, fromChat int64) {
 // The bot must be an administrator in the supergroup for this to work
 // and must have the appropriate admin rights.
 // If channel is provided, it is banned instead of provided user, permanently.
-func (l *TelegramListener) banUserOrChannel(duration time.Duration, chatID int64, userID int64, channelID int64) error {
+func (l *TelegramListener) banUserOrChannel(duration time.Duration, chatID, userID, channelID int64) error {
 	// From Telegram Bot API documentation:
 	// > If user is restricted for more than 366 days or less than 30 seconds from the current time,
 	// > they are considered to be restricted forever
@@ -424,7 +424,7 @@ func (l *TelegramListener) transformEntities(entities []tbapi.MessageEntity) *[]
 		return nil
 	}
 
-	var result []bot.Entity
+	result := make([]bot.Entity, 0, len(entities))
 	for _, entity := range entities {
 		e := bot.Entity{
 			Type:   entity.Type,

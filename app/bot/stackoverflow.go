@@ -53,7 +53,7 @@ func (s StackOverflow) OnMessage(msg Message) (response Response) {
 		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
 		return Response{}
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // nolint
 
 	soRecs := soResponse{}
 
@@ -65,7 +65,7 @@ func (s StackOverflow) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	r := soRecs.Items[rand.Intn(len(soRecs.Items))] //nolint:gosec
+	r := soRecs.Items[rand.Intn(len(soRecs.Items))] // nolint
 	return Response{
 		Text: fmt.Sprintf("[%s](%s) %s", r.Title, r.Link, strings.Join(r.Tags, ",")),
 		Send: true,

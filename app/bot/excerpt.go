@@ -23,7 +23,7 @@ var (
 )
 
 // NewExcerpt makes a bot extracting articles excerpt
-func NewExcerpt(api string, token string) *Excerpt {
+func NewExcerpt(api, token string) *Excerpt {
 	log.Printf("[INFO] Excerpt bot with %s", api)
 	return &Excerpt{api: api, token: token}
 }

@@ -105,7 +105,7 @@ func (b *BroadcastStatus) check(ctx context.Context, lastOn time.Time, params Br
 
 // ping do get request to https://stream.radio-t.com and returns true on OK status and false for all other statuses
 func ping(ctx context.Context, client http.Client, url string) (status bool) {
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 	if err != nil {
 		log.Printf("[WARN] unable to create %v request, %v", url, err)
 		return
@@ -116,7 +116,7 @@ func ping(ctx context.Context, client http.Client, url string) (status bool) {
 		log.Printf("[DEBUG] unable to execute %v request, %v", url, err)
 		return
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // nolint
 
 	if resp.StatusCode == http.StatusOK {
 		status = true

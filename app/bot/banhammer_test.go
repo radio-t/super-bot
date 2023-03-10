@@ -45,12 +45,7 @@ func TestBanhammer_parse(t *testing.T) {
 }
 
 func TestBanhammer_OnMessage(t *testing.T) {
-	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
-		if userName == "admin" {
-			return true
-		}
-		return false
-	}}
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool { return userName == "admin" }}
 	tg := &mocks.TgBanClient{RequestFunc: func(c tbapi.Chattable) (*tbapi.APIResponse, error) {
 		return &tbapi.APIResponse{Ok: true}, nil
 	}}

@@ -19,7 +19,7 @@ type Reporter struct {
 // NewLogger makes new reporter bot
 func NewLogger(logs string) (result Reporter) {
 	log.Printf("[INFO] new reporter, path=%s", logs)
-	_ = os.MkdirAll(logs, 0750)
+	_ = os.MkdirAll(logs, 0o750)
 	result = Reporter{logsPath: logs, messages: make(chan string, 1000)}
 	go result.activate()
 	return result
@@ -61,7 +61,7 @@ func (l Reporter) activate() {
 			log.Printf("[WARN] failed to log, %v", err)
 			return err
 		}
-		defer fh.Close() //nolint
+		defer fh.Close() // nolint
 		for _, rec := range buffer {
 			if _, err = fh.WriteString(rec); err != nil {
 				log.Printf("[WARN] failed to write log, %v", err)

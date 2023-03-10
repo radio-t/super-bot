@@ -176,7 +176,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		close(resps)
 	}()
 
-	var lines []string
+	lines := make([]string, 0, len(resps))
 	for r := range resps {
 		log.Printf("[DEBUG] collect %q", r)
 		lines = append(lines, r)
@@ -217,7 +217,7 @@ func contains(s []string, e string) bool {
 }
 
 func makeHTTPRequest(url string) (*http.Request, error) {
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request %s: %w", url, err)
 	}

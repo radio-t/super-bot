@@ -65,10 +65,10 @@ func when(now time.Time) string {
 }
 
 // closestPrevNextShows returns closest next `weekday` at `hour`:`minute` after `t`.
-func closestPrevNextShows(t time.Time) (time.Time, time.Time) {
+func closestPrevNextShows(t time.Time) (prev, next time.Time) {
 	const week = 7 * Day
 
-	next := t.AddDate(0, 0, int(time.Saturday-t.Weekday()))
+	next = t.AddDate(0, 0, int(time.Saturday-t.Weekday()))
 	next = time.Date(next.Year(), next.Month(), next.Day(), 20, 0, 0, 0, time.UTC)
 
 	if t.After(next) {

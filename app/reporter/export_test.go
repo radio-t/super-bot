@@ -58,7 +58,8 @@ func TestExporter_Export(t *testing.T) {
 			err := createFile(from, msgs)
 			assert.NoError(t, err)
 			defer os.Remove(from)
-			e.Export(tt.showNum, tt.yyyymmdd)
+			err = e.Export(tt.showNum, tt.yyyymmdd)
+			assert.NoError(t, err)
 			assert.FileExists(t, tt.output)
 		})
 	}
@@ -285,7 +286,8 @@ func Test_downloadFilesNeverCalledForTextMessages(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.Remove(e.InputRoot + "/20200111.log")
 
-	e.Export(684, 20200111)
+	err = e.Export(684, 20200111)
+	assert.NoError(t, err)
 
 	fileRecipient.AssertExpectations(t)
 	storage.AssertExpectations(t)
@@ -320,7 +322,8 @@ func Test_downloadFilesImage(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.Remove(e.InputRoot + "/20200111.log")
 
-	e.Export(684, 20200111)
+	err = e.Export(684, 20200111)
+	assert.NoError(t, err)
 
 	fileRecipient.AssertExpectations(t)
 	storage.AssertExpectations(t)
@@ -461,7 +464,9 @@ func setup(fileRecipient FileRecipient, storage Storage) (*Exporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	f.Close()
+	if err := f.Close(); err != nil {
+		return nil, err
+	}
 
 	e := &Exporter{
 		ExporterParams: testExportParams,
@@ -482,14 +487,14 @@ func teardown() {
 
 // setup creates file and fill it with  messages
 func createFile(filepath string, msgs []bot.Message) error {
-	f, err := os.Create(filepath)
+	f, err := os.Create(filepath) // nolint
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer f.Close() // nolint
 
 	for _, msg := range msgs {
-		bdata, err := json.Marshal(&msg)
+		bdata, err := json.Marshal(msg)
 		if err != nil {
 			return err
 		}

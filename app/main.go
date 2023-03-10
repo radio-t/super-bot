@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -61,7 +60,6 @@ func main() {
 		export()
 		return
 	}
-	rand.Seed(int64(time.Now().Nanosecond()))
 
 	tbAPI, err := tbapi.NewBotAPI(opts.Telegram.Token)
 	if err != nil {

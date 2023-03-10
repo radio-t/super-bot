@@ -228,7 +228,7 @@ func TestBroadcast_PingReturnsFalseOnUnableToDoRequest(t *testing.T) {
 }
 
 func TestBroadcast_PingReturnsFalseOnUnableToCreateReq(t *testing.T) {
-	require.False(t, ping(nil, http.Client{}, "http://localhost:9873"))
+	require.False(t, ping(context.Background(), http.Client{}, "http://localhost:9873"))
 }
 
 func TestBroadcast_ReactOnAnyMessage(t *testing.T) {

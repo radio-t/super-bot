@@ -20,7 +20,6 @@ type WTF struct {
 // NewWTF makes a random ban bot
 func NewWTF(minDuration, maxDuration time.Duration, superUser SuperUser) *WTF {
 	log.Printf("[INFO] WTF bot with %v-%v interval", minDuration, maxDuration)
-	rand.Seed(time.Now().UnixNano())
 	return &WTF{minDuration: minDuration, maxDuration: maxDuration, rand: rand.Int63n, superUser: superUser, tooSoon: time.Minute}
 }
 

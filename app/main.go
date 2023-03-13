@@ -38,6 +38,8 @@ var opts struct {
 	ExportDay            int              `long:"export-day" description:"day in yyyymmdd"`
 	TemplateFile         string           `long:"export-template" default:"logs.html" description:"path to template file"`
 	ExportBroadcastUsers events.SuperUser `long:"broadcast" description:"broadcast-users"`
+	OpenAIAuthToken      string           `long:"openai" env:"OPENAI_AUTH_TOKEN" description:"OpenAI auth token"`
+	OpenAIMaxTokens      int              `long:"openai-max-tokens" default:"1000" description:"OpenAI max_tokens in response"`
 
 	Dbg bool `long:"dbg" env:"DEBUG" description:"debug mode"`
 }
@@ -68,6 +70,8 @@ func main() {
 	tbAPI.Debug = opts.Dbg
 
 	httpClient := &http.Client{Timeout: 5 * time.Second}
+	// 5 seconds is not enough for OpenAI requests
+	httpClientOpenAI := &http.Client{Timeout: 60 * time.Second}
 	multiBot := bot.MultiBot{
 		bot.NewBroadcastStatus(
 			ctx,
@@ -85,6 +89,7 @@ func main() {
 		bot.NewWTF(time.Hour*24, 7*time.Hour*24, opts.SuperUsers),
 		bot.NewBanhammer(tbAPI, opts.SuperUsers, 5000),
 		bot.NewWhen(),
+		bot.NewOpenAI(opts.OpenAIAuthToken, opts.OpenAIMaxTokens, httpClientOpenAI),
 	}
 
 	if sb, err := bot.NewSys(opts.SysData); err == nil {

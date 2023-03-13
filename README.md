@@ -17,14 +17,15 @@
 
 ## Команды бота
 
-| Команда        | Описание                                                                                                       |
-|----------------|----------------------------------------------------------------------------------------------------------------|
-| `ping`, `пинг` | ответит `pong`, `понг`, см. [basic.data](https://github.com/radio-t/gitter-rt-bot/blob/master/data/basic.data) |
-| `анекдот!`, `анкедот!`, `joke!`, `chuck!` | расскажет анекдот с rzhunemogu.ru или icndb.com (нужен `MASHAPE_TOKEN`)             |
-| `news!`, `новости!`                       | 5 последних [новостей для Радио-Т](https://news.radio-t.com)                        |
-| `so!`                                     | 1 вопрос со [Stackoverflow](https://stackoverflow.com/questions?tab=Active)         |
-| `?? <запрос>`, `/ddg <запрос>`                             | поискать "<запрос>" на [DuckDuckGo](https://duckduckgo.com)                         |
-| `search! <слово>`, `/search <слово>` | поискать по шоунотам подкастов|
+| Команда                                   | Описание                                                                                                       |
+|-------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| `ping`, `пинг`                            | ответит `pong`, `понг`, см. [basic.data](https://github.com/radio-t/gitter-rt-bot/blob/master/data/basic.data) |
+| `анекдот!`, `анкедот!`, `joke!`, `chuck!` | расскажет анекдот с rzhunemogu.ru или icndb.com (нужен `MASHAPE_TOKEN`)                                        |
+| `news!`, `новости!`                       | 5 последних [новостей для Радио-Т](https://news.radio-t.com)                                                   |
+| `so!`                                     | 1 вопрос со [Stackoverflow](https://stackoverflow.com/questions?tab=Active)                                    |
+| `?? <запрос>`, `/ddg <запрос>`            | поискать "<запрос>" на [DuckDuckGo](https://duckduckgo.com)                                                    |
+| `search! <слово>`, `/search <слово>`      | поискать по шоунотам подкастов                                                                                 |
+| `chat! <запрос>`                          | задать вопрос для ChatGPT                                                                                      |
 
 ## Инструкции по локальной разработке
 
@@ -37,6 +38,7 @@
 * `TELEGRAM_TOKEN` – токен полученный от BotFather
 * `TELEGRAM_GROUP` - основная группа в Телеграмме (туда приходят уведомления о новостях, все сообщения сохраняются в лог)
 * `MASHAPE_TOKEN` – токен от сервиса [Kong](https://konghq.com/), используется только для DuckDuckGo бота
+* `OPENAI_AUTH_TOKEN` – токен от сервиса [OpenAI Platform](https://platform.openai.com/), используется только для получения ChatGPT ответов в OpenAI боте
 
 Дополнительные переменные окружения со значениями по-умолчанию:
 

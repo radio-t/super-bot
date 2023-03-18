@@ -184,6 +184,10 @@ func (l *TelegramListener) botActivityBan(resp bot.Response, msg bot.Message, fr
 		return false
 	}
 
+	if l.SuperUsers.IsSuper(resp.User.Username) {
+		return false
+	}
+
 	// check for bot-activity ban for given users
 	if b := l.BotsActivityTerm.check(msg.From, msg.SenderChat, msg.Sent, fromChat); b.active {
 		if b.new {

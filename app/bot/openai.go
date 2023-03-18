@@ -55,6 +55,10 @@ func (o *OpenAI) chatGPTRequest(request string) (response string, err error) {
 			MaxTokens: o.maxTokens,
 			Messages: []openai.ChatCompletionMessage{
 				{
+					Role:    openai.ChatMessageRoleSystem,
+					Content: "You answer with no more than 50 words",
+				},
+				{
 					Role:    openai.ChatMessageRoleUser,
 					Content: r,
 				},

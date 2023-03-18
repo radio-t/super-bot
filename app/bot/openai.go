@@ -22,18 +22,19 @@ type OpenAI struct {
 	authToken string
 	client    OpenAIClient
 	maxTokens int
+	prompt    string
 }
 
 // NewOpenAI makes a bot for ChatGPT
 // maxTokens is hard limit for the number of tokens in the response
 // https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
-func NewOpenAI(authToken string, maxTokens int, httpClient *http.Client) *OpenAI {
-	log.Printf("[INFO] OpenAI bot with github.com/sashabaranov/go-openai")
+func NewOpenAI(authToken string, maxTokens int, prompt string, httpClient *http.Client) *OpenAI {
+	log.Printf("[INFO] OpenAI bot with github.com/sashabaranov/go-openai, prompt=%s, max=%d", prompt, maxTokens)
 	config := openai.DefaultConfig(authToken)
 	config.HTTPClient = httpClient
 
 	client := openai.NewClientWithConfig(config)
-	return &OpenAI{authToken, client, maxTokens}
+	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens}
 }
 
 // Help returns help message
@@ -42,6 +43,11 @@ func (o *OpenAI) Help() string {
 }
 
 func (o *OpenAI) chatGPTRequest(request string) (response string, err error) {
+
+	r := request
+	if o.prompt != "" {
+		r = o.prompt + ".\n" + request
+	}
 	resp, err := o.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
@@ -50,7 +56,7 @@ func (o *OpenAI) chatGPTRequest(request string) (response string, err error) {
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleUser,
-					Content: request,
+					Content: r,
 				},
 			},
 		},

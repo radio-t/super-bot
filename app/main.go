@@ -38,10 +38,11 @@ var opts struct {
 	ExportDay            int              `long:"export-day" description:"day in yyyymmdd"`
 	TemplateFile         string           `long:"export-template" default:"logs.html" description:"path to template file"`
 	ExportBroadcastUsers events.SuperUser `long:"broadcast" description:"broadcast-users"`
-	OpenAIAuthToken      string           `long:"openai" env:"OPENAI_AUTH_TOKEN" description:"OpenAI auth token"`
-	OpenAIMaxTokens      int              `long:"openai-max-tokens" env:"OPENAI_MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
 
-	Dbg bool `long:"dbg" env:"DEBUG" description:"debug mode"`
+	OpenAIAuthToken string `long:"openai" env:"OPENAI_AUTH_TOKEN" description:"OpenAI auth token"`
+	OpenAIMaxTokens int    `long:"openai-max-tokens" env:"OPENAI_MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
+	OpenAIPrompt    string `long:"openai-prompt" env:"OPENAI_PROMPT" default:"" description:"OpenAI prompt"`
+	Dbg             bool   `long:"dbg" env:"DEBUG" description:"debug mode"`
 }
 
 var revision = "local"
@@ -89,7 +90,7 @@ func main() {
 		bot.NewWTF(time.Hour*24, 7*time.Hour*24, opts.SuperUsers),
 		bot.NewBanhammer(tbAPI, opts.SuperUsers, 5000),
 		bot.NewWhen(),
-		bot.NewOpenAI(opts.OpenAIAuthToken, opts.OpenAIMaxTokens, httpClientOpenAI),
+		bot.NewOpenAI(opts.OpenAIAuthToken, opts.OpenAIMaxTokens, opts.OpenAIPrompt, httpClientOpenAI),
 	}
 
 	if sb, err := bot.NewSys(opts.SysData); err == nil {

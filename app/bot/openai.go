@@ -111,5 +111,5 @@ func (o *OpenAI) request(text string) (react bool, reqText string) {
 
 // ReactOn keys
 func (o *OpenAI) ReactOn() []string {
-	return []string{"chat!", "gpt!", "ai!"}
+	return []string{"chat!", "gpt!", "ai!", "чат!"}
 }

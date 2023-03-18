@@ -40,6 +40,7 @@ type Response struct {
 	BanInterval time.Duration // bots banning user set the interval
 	User        User          // user to ban
 	ChannelID   int64         // channel to ban, if set then User and BanInterval are ignored
+	ReplyTo     int           // message to reply to, if 0 then no reply but common message
 }
 
 // HTTPClient wrap http.Client to allow mocking

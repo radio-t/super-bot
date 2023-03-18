@@ -94,8 +94,9 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 	}
 
 	return Response{
-		Text: responseAI,
-		Send: true,
+		Text:    responseAI,
+		Send:    true,
+		ReplyTo: msg.ID, // reply to the message
 	}
 }
 

@@ -217,6 +217,7 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	tbMsg := tbapi.NewMessage(chatID, resp.Text)
 	tbMsg.ParseMode = tbapi.ModeMarkdown
 	tbMsg.DisableWebPagePreview = !resp.Preview
+	tbMsg.ReplyToMessageID = resp.ReplyTo
 	res, err := l.TbAPI.Send(tbMsg)
 	if err != nil {
 		return fmt.Errorf("can't send message to telegram %q: %w", resp.Text, err)

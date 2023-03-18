@@ -8,10 +8,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/radio-t/super-bot/app/bot/mocks"
 	"github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/radio-t/super-bot/app/bot/mocks"
 )
 
 func TestOpenAI_Help(t *testing.T) {
@@ -80,6 +81,7 @@ func TestOpenAI_request(t *testing.T) {
 		{"not valid request", false, ""},
 		{"chat not valid request", false, ""},
 		{"blah chat! test", false, ""},
+		{"gpt! chat test", true, "chat test"},
 	}
 
 	o := &OpenAI{}

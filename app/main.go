@@ -39,7 +39,7 @@ var opts struct {
 	TemplateFile         string           `long:"export-template" default:"logs.html" description:"path to template file"`
 	ExportBroadcastUsers events.SuperUser `long:"broadcast" description:"broadcast-users"`
 	OpenAIAuthToken      string           `long:"openai" env:"OPENAI_AUTH_TOKEN" description:"OpenAI auth token"`
-	OpenAIMaxTokens      int              `long:"openai-max-tokens" default:"1000" description:"OpenAI max_tokens in response"`
+	OpenAIMaxTokens      int              `long:"openai-max-tokens" env:"OPENAI_MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
 
 	Dbg bool `long:"dbg" env:"DEBUG" description:"debug mode"`
 }

@@ -213,7 +213,7 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 		return nil
 	}
 
-	log.Printf("[DEBUG] bot response - %+v, pin: %t", resp.Text, resp.Pin)
+	log.Printf("[DEBUG] bot response - %+v, pin: %t, reply-to:%d", resp.Text, resp.Pin, resp.ReplyTo)
 	tbMsg := tbapi.NewMessage(chatID, resp.Text)
 	tbMsg.ParseMode = tbapi.ModeMarkdown
 	tbMsg.DisableWebPagePreview = !resp.Preview

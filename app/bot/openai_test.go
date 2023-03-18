@@ -64,7 +64,8 @@ func TestOpenAI_OnMessage(t *testing.T) {
 			)
 			calls := mockOpenAIClient.CreateChatCompletionCalls()
 			assert.Equal(t, 1, len(calls))
-			assert.Equal(t, tt.request, calls[0].ChatCompletionRequest.Messages[0].Content)
+			// First message is system role setup
+			assert.Equal(t, tt.request, calls[0].ChatCompletionRequest.Messages[1].Content)
 		})
 	}
 

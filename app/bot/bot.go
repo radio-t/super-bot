@@ -146,6 +146,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 	var banInterval time.Duration
 	var user User
 	var mutex = &sync.Mutex{}
+	var replyTo int
 
 	wg := syncs.NewSizedGroup(4)
 	for _, bot := range b {
@@ -158,6 +159,9 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 				}
 				if resp.Unpin {
 					atomic.AddInt32(&unpin, 1)
+				}
+				if resp.ReplyTo > 0 {
+					replyTo = resp.ReplyTo
 				}
 				if resp.BanInterval > 0 {
 					mutex.Lock()
@@ -196,6 +200,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		BanInterval: banInterval,
 		User:        user,
 		ChannelID:   channelID,
+		ReplyTo:     replyTo,
 	}
 }
 

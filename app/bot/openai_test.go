@@ -31,7 +31,7 @@ func TestOpenAI_OnMessage(t *testing.T) {
 		mockResult bool
 		response   Response
 	}{
-		{"Good result", jsonResponse, true, Response{Text: "Mock response", Send: true}},
+		{"Good result", jsonResponse, true, Response{Text: "Mock response", Send: true, ReplyTo: 756}},
 		{"Error result", jsonResponse, false, Response{}},
 		{"Empty result", []byte(`{}`), true, Response{}},
 	}
@@ -60,7 +60,7 @@ func TestOpenAI_OnMessage(t *testing.T) {
 
 			assert.Equal(t,
 				tt.response,
-				o.OnMessage(Message{Text: fmt.Sprintf("chat! %s", tt.request)}),
+				o.OnMessage(Message{Text: fmt.Sprintf("chat! %s", tt.request), ID: 756}),
 			)
 			calls := mockOpenAIClient.CreateChatCompletionCalls()
 			assert.Equal(t, 1, len(calls))

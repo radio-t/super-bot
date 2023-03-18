@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,7 +47,7 @@ func TestMultiBotCombinesAllBotResponses(t *testing.T) {
 
 	b1 := &InterfaceMock{
 		ReactOnFunc:   func() []string { return []string{"cmd"} },
-		OnMessageFunc: func(m Message) Response { return Response{Send: true, Text: "b1 resp"} },
+		OnMessageFunc: func(m Message) Response { return Response{Send: true, Text: "b1 resp", ReplyTo: 789} },
 	}
 	b2 := &InterfaceMock{
 		ReactOnFunc:   func() []string { return []string{"cmd"} },
@@ -55,10 +56,12 @@ func TestMultiBotCombinesAllBotResponses(t *testing.T) {
 
 	mb := MultiBot{b1, b2}
 	resp := mb.OnMessage(msg)
+	t.Logf("resp: %+v", resp)
 
 	require.True(t, resp.Send)
 	parts := strings.Split(resp.Text, "\n")
 	require.Len(t, parts, 2)
 	require.Contains(t, parts, "b1 resp")
 	require.Contains(t, parts, "b2 resp")
+	assert.Equal(t, 789, resp.ReplyTo)
 }

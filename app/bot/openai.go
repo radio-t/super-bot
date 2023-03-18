@@ -34,7 +34,7 @@ func NewOpenAI(authToken string, maxTokens int, prompt string, httpClient *http.
 	config.HTTPClient = httpClient
 
 	client := openai.NewClientWithConfig(config)
-	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens}
+	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt}
 }
 
 // Help returns help message

@@ -24,6 +24,7 @@ type OpenAI struct {
 	client    OpenAIClient
 	maxTokens int
 	prompt    string
+	superUser SuperUser
 
 	nowFn  func() time.Time // for testing
 	lastDT time.Time
@@ -32,13 +33,14 @@ type OpenAI struct {
 // NewOpenAI makes a bot for ChatGPT
 // maxTokens is hard limit for the number of tokens in the response
 // https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
-func NewOpenAI(authToken string, maxTokens int, prompt string, httpClient *http.Client) *OpenAI {
+func NewOpenAI(authToken string, maxTokens int, prompt string, httpClient *http.Client, superUser SuperUser) *OpenAI {
 	log.Printf("[INFO] OpenAI bot with github.com/sashabaranov/go-openai, prompt=%s, max=%d", prompt, maxTokens)
 	config := openai.DefaultConfig(authToken)
 	config.HTTPClient = httpClient
 
 	client := openai.NewClientWithConfig(config)
-	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt, nowFn: time.Now}
+	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt,
+		nowFn: time.Now, superUser: superUser}
 }
 
 // OnMessage pass msg to all bots and collects responses
@@ -48,7 +50,7 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	if o.nowFn().Sub(o.lastDT) < 30*time.Minute {
+	if o.nowFn().Sub(o.lastDT) < 30*time.Minute && !o.superUser.IsSuper(msg.From.Username) {
 		log.Printf("[WARN] OpenAI bot is too busy, last request was %s ago, %s banned", time.Since(o.lastDT), msg.From.Username)
 		return Response{
 			Text: fmt.Sprintf("Слишком много запросов, следующий запрос можно будет сделать через %d минут."+

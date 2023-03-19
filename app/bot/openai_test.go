@@ -40,6 +40,13 @@ func TestOpenAI_OnMessage(t *testing.T) {
 		{"Empty result", "", []byte(`{}`), true, Response{}},
 	}
 
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "super" || userName == "admin" {
+			return true
+		}
+		return false
+	}}
+
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			mockOpenAIClient := &mocks.OpenAIClient{
@@ -57,7 +64,7 @@ func TestOpenAI_OnMessage(t *testing.T) {
 				},
 			}
 
-			o := NewOpenAI("ss-mockToken", 100, tt.prompt, &http.Client{Timeout: 10 * time.Second})
+			o := NewOpenAI("ss-mockToken", 100, tt.prompt, &http.Client{Timeout: 10 * time.Second}, su)
 			o.client = mockOpenAIClient
 
 			assert.Equal(t,
@@ -87,10 +94,17 @@ func TestOpenAI_OnMessage_TooManyRequests(t *testing.T) {
 		},
 	}
 
-	o := NewOpenAI("ss-mockToken", 100, "", &http.Client{Timeout: 10 * time.Second})
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "super" || userName == "admin" {
+			return true
+		}
+		return false
+	}}
+
+	o := NewOpenAI("ss-mockToken", 100, "", &http.Client{Timeout: 10 * time.Second}, su)
 	o.client = mockOpenAIClient
 
-	{
+	{ // first request, allowed
 		resp := o.OnMessage(Message{Text: "chat! something", ID: 756})
 		require.True(t, resp.Send)
 		assert.Equal(t, "Mock response", resp.Text)
@@ -98,14 +112,25 @@ func TestOpenAI_OnMessage_TooManyRequests(t *testing.T) {
 		assert.Equal(t, time.Duration(0), resp.BanInterval)
 	}
 
-	{
+	{ // second request, not allowed, too soon
 		resp := o.OnMessage(Message{Text: "chat! something", ID: 756})
 		require.True(t, resp.Send)
 		assert.Contains(t, resp.Text, "Слишком много запросов,")
 		assert.Equal(t, 756, resp.ReplyTo)
 		assert.Equal(t, time.Hour, resp.BanInterval)
 	}
-	{
+
+	{ // third request, allowed from super user
+		req := Message{Text: "chat! something", ID: 756}
+		req.From.Username = "super"
+		resp := o.OnMessage(req)
+		require.True(t, resp.Send)
+		assert.Equal(t, "Mock response", resp.Text)
+		assert.Equal(t, 756, resp.ReplyTo)
+		assert.Equal(t, time.Duration(0), resp.BanInterval)
+	}
+
+	{ // fourth request, allowed, 31 min after first request
 		o.nowFn = func() time.Time {
 			return time.Now().Add(time.Minute * 31) // 31 min after first request
 		}

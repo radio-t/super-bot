@@ -90,7 +90,7 @@ func main() {
 		bot.NewWTF(time.Hour*24, 7*time.Hour*24, opts.SuperUsers),
 		bot.NewBanhammer(tbAPI, opts.SuperUsers, 5000),
 		bot.NewWhen(),
-		bot.NewOpenAI(opts.OpenAIAuthToken, opts.OpenAIMaxTokens, opts.OpenAIPrompt, httpClientOpenAI),
+		bot.NewOpenAI(opts.OpenAIAuthToken, opts.OpenAIMaxTokens, opts.OpenAIPrompt, httpClientOpenAI, opts.SuperUsers),
 	}
 
 	if sb, err := bot.NewSys(opts.SysData); err == nil {

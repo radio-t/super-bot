@@ -68,7 +68,10 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	o.lastDT = o.nowFn()
+	if !o.superUser.IsSuper(msg.From.Username) {
+		o.lastDT = o.nowFn() // don't update lastDT for super users
+	}
+
 	log.Printf("[DEBUG] next request to ChatGPT can be made after %s, in %d minutes",
 		o.lastDT.Add(30*time.Minute), int(30-time.Since(o.lastDT).Minutes()))
 	return Response{

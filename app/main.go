@@ -42,7 +42,11 @@ var opts struct {
 	OpenAIAuthToken string `long:"openai" env:"OPENAI_AUTH_TOKEN" description:"OpenAI auth token"`
 	OpenAIMaxTokens int    `long:"openai-max-tokens" env:"OPENAI_MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
 	OpenAIPrompt    string `long:"openai-prompt" env:"OPENAI_PROMPT" default:"" description:"OpenAI prompt"`
-	Dbg             bool   `long:"dbg" env:"DEBUG" description:"debug mode"`
+
+	UreadabilityAPI   string `long:"ur-api" env:"UREADABILITY_API" default:"https://ureadability.radio-t.com/api/content/v1/parser" description:"uReadability API"`
+	UreadabilityToken string `long:"ur-token" env:"UREADABILITY_TOKEN" default:"undefined" description:"uReadability token"`
+
+	Dbg bool `long:"dbg" env:"DEBUG" description:"debug mode"`
 }
 
 var revision = "local"
@@ -73,6 +77,8 @@ func main() {
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	// 5 seconds is not enough for OpenAI requests
 	httpClientOpenAI := &http.Client{Timeout: 60 * time.Second}
+	openAIBot := bot.NewOpenAI(opts.OpenAIAuthToken, opts.OpenAIMaxTokens, opts.OpenAIPrompt, httpClientOpenAI, opts.SuperUsers)
+
 	multiBot := bot.MultiBot{
 		bot.NewBroadcastStatus(
 			ctx,
@@ -90,7 +96,7 @@ func main() {
 		bot.NewWTF(time.Hour*24, 7*time.Hour*24, opts.SuperUsers),
 		bot.NewBanhammer(tbAPI, opts.SuperUsers, 5000),
 		bot.NewWhen(),
-		bot.NewOpenAI(opts.OpenAIAuthToken, opts.OpenAIMaxTokens, opts.OpenAIPrompt, httpClientOpenAI, opts.SuperUsers),
+		openAIBot,
 	}
 
 	if sb, err := bot.NewSys(opts.SysData); err == nil {
@@ -139,7 +145,16 @@ func main() {
 		SuperUsers:             opts.SuperUsers,
 	}
 
-	go events.Rtjc{Port: opts.RtjcPort, Submitter: &tgListener}.Listen(ctx)
+	rtjc := events.Rtjc{
+		Port:          opts.RtjcPort,
+		Submitter:     &tgListener,
+		UrAPI:         opts.UreadabilityAPI,
+		UrToken:       opts.UreadabilityToken,
+		URClient:      httpClient,
+		OpenAISummary: openAIBot,
+	}
+	go rtjc.Listen(ctx)
+
 	if err := tgListener.Do(ctx); err != nil {
 		log.Fatalf("[ERROR] telegram listener failed, %v", err)
 	}

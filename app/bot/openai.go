@@ -62,7 +62,7 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 		}
 	}
 
-	responseAI, err := o.chatGPTRequest(reqText)
+	responseAI, err := o.chatGPTRequest(reqText, o.prompt, "You answer with no more than 50 words")
 	if err != nil {
 		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
 		return Response{}
@@ -95,11 +95,11 @@ func (o *OpenAI) Help() string {
 	return genHelpMsg(o.ReactOn(), "Спросите что-нибудь у ChatGPT")
 }
 
-func (o *OpenAI) chatGPTRequest(request string) (response string, err error) {
+func (o *OpenAI) chatGPTRequest(request, userPrompt, sysPrompt string) (response string, err error) {
 
 	r := request
-	if o.prompt != "" {
-		r = o.prompt + ".\n" + request
+	if userPrompt != "" {
+		r = userPrompt + ".\n" + request
 	}
 	resp, err := o.client.CreateChatCompletion(
 		context.Background(),
@@ -109,7 +109,7 @@ func (o *OpenAI) chatGPTRequest(request string) (response string, err error) {
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleSystem,
-					Content: "You answer with no more than 50 words",
+					Content: sysPrompt,
 				},
 				{
 					Role:    openai.ChatMessageRoleUser,
@@ -131,6 +131,11 @@ func (o *OpenAI) chatGPTRequest(request string) (response string, err error) {
 	}
 
 	return resp.Choices[0].Message.Content, nil
+}
+
+// Summary returns summary of the text
+func (o *OpenAI) Summary(text string) (response string, err error) {
+	return o.chatGPTRequest(text, "", "Summarize the text, you answer with no more than 150 words")
 }
 
 // ReactOn keys

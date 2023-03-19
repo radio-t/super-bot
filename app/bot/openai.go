@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/sashabaranov/go-openai"
 )
@@ -23,6 +24,9 @@ type OpenAI struct {
 	client    OpenAIClient
 	maxTokens int
 	prompt    string
+
+	nowFn  func() time.Time // for testing
+	lastDT time.Time
 }
 
 // NewOpenAI makes a bot for ChatGPT
@@ -34,7 +38,51 @@ func NewOpenAI(authToken string, maxTokens int, prompt string, httpClient *http.
 	config.HTTPClient = httpClient
 
 	client := openai.NewClientWithConfig(config)
-	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt}
+	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt, nowFn: time.Now}
+}
+
+// OnMessage pass msg to all bots and collects responses
+func (o *OpenAI) OnMessage(msg Message) (response Response) {
+	ok, reqText := o.request(msg.Text)
+	if !ok {
+		return Response{}
+	}
+
+	if o.nowFn().Sub(o.lastDT) < 30*time.Minute {
+		log.Printf("[WARN] OpenAI bot is too busy, last request was %s ago, %s banned", time.Since(o.lastDT), msg.From.Username)
+		return Response{
+			Text: fmt.Sprintf("Слишком много запросов, следующий запрос можно будет сделать через %d минут."+
+				"\n%s получает бан на 1 час.", int(30-time.Since(o.lastDT).Minutes()), msg.From.Username),
+			Send:        true,
+			BanInterval: time.Hour,
+			User:        msg.From,
+			ReplyTo:     msg.ID, // reply to the message
+		}
+	}
+
+	responseAI, err := o.chatGPTRequest(reqText)
+	if err != nil {
+		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
+		return Response{}
+	}
+
+	o.lastDT = o.nowFn()
+	log.Printf("[DEBUG] next request to ChatGPT can be made after %s, in %d minutes",
+		o.lastDT.Add(30*time.Minute), int(30-time.Since(o.lastDT).Minutes()))
+	return Response{
+		Text:    responseAI,
+		Send:    true,
+		ReplyTo: msg.ID, // reply to the message
+	}
+}
+
+func (o *OpenAI) request(text string) (react bool, reqText string) {
+	for _, prefix := range o.ReactOn() {
+		if strings.HasPrefix(text, prefix) {
+			return true, strings.TrimSpace(strings.TrimPrefix(text, prefix))
+		}
+	}
+	return false, ""
 }
 
 // Help returns help message
@@ -78,35 +126,6 @@ func (o *OpenAI) chatGPTRequest(request string) (response string, err error) {
 	}
 
 	return resp.Choices[0].Message.Content, nil
-}
-
-// OnMessage pass msg to all bots and collects responses
-func (o *OpenAI) OnMessage(msg Message) (response Response) {
-	ok, reqText := o.request(msg.Text)
-	if !ok {
-		return Response{}
-	}
-
-	responseAI, err := o.chatGPTRequest(reqText)
-	if err != nil {
-		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
-		return Response{}
-	}
-
-	return Response{
-		Text:    responseAI,
-		Send:    true,
-		ReplyTo: msg.ID, // reply to the message
-	}
-}
-
-func (o *OpenAI) request(text string) (react bool, reqText string) {
-	for _, prefix := range o.ReactOn() {
-		if strings.HasPrefix(text, prefix) {
-			return true, strings.TrimSpace(strings.TrimPrefix(text, prefix))
-		}
-	}
-	return false, ""
 }
 
 // ReactOn keys

@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
-	"github.com/sashabaranov/go-openai"
+	ai "github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -27,36 +29,36 @@ func TestOpenAI_OnMessage(t *testing.T) {
 
 	tbl := []struct {
 		request    string
+		prompt     string
 		json       []byte
 		mockResult bool
 		response   Response
 	}{
-		{"Good result", jsonResponse, true, Response{Text: "Mock response", Send: true, ReplyTo: 756}},
-		{"Error result", jsonResponse, false, Response{}},
-		{"Empty result", []byte(`{}`), true, Response{}},
+		{"Good result", "prompt", jsonResponse, true, Response{Text: "Mock response", Send: true, ReplyTo: 756}},
+		{"Good result", "", jsonResponse, true, Response{Text: "Mock response", Send: true, ReplyTo: 756}},
+		{"Error result", "", jsonResponse, false, Response{}},
+		{"Empty result", "", []byte(`{}`), true, Response{}},
 	}
 
 	for i, tt := range tbl {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			mockOpenAIClient := &mocks.OpenAIClient{
-				CreateChatCompletionFunc: func(ctx context.Context, request openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
-					var response openai.ChatCompletionResponse
+				CreateChatCompletionFunc: func(ctx context.Context, request ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+					var response ai.ChatCompletionResponse
 
 					err = json.Unmarshal(tt.json, &response)
 					require.NoError(t, err)
 
 					if !tt.mockResult {
-						return openai.ChatCompletionResponse{}, fmt.Errorf("mock error")
+						return ai.ChatCompletionResponse{}, fmt.Errorf("mock error")
 					}
 
 					return response, nil
 				},
 			}
 
-			o := &OpenAI{
-				authToken: "ss-mockToken",
-				client:    mockOpenAIClient,
-			}
+			o := NewOpenAI("ss-mockToken", 100, tt.prompt, &http.Client{Timeout: 10 * time.Second})
+			o.client = mockOpenAIClient
 
 			assert.Equal(t,
 				tt.response,
@@ -65,10 +67,54 @@ func TestOpenAI_OnMessage(t *testing.T) {
 			calls := mockOpenAIClient.CreateChatCompletionCalls()
 			assert.Equal(t, 1, len(calls))
 			// First message is system role setup
-			assert.Equal(t, tt.request, calls[0].ChatCompletionRequest.Messages[1].Content)
+			expRequest := tt.request
+			if tt.prompt != "" {
+				expRequest = tt.prompt + ".\n" + tt.request
+			}
+			assert.Equal(t, expRequest, calls[0].ChatCompletionRequest.Messages[1].Content)
 		})
 	}
+}
 
+func TestOpenAI_OnMessage_TooManyRequests(t *testing.T) {
+	mockOpenAIClient := &mocks.OpenAIClient{
+		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+			jsonResponse, err := os.ReadFile("testdata/chat_completion_response.json")
+			require.NoError(t, err)
+			var response ai.ChatCompletionResponse
+			err = json.Unmarshal(jsonResponse, &response)
+			return response, err
+		},
+	}
+
+	o := NewOpenAI("ss-mockToken", 100, "", &http.Client{Timeout: 10 * time.Second})
+	o.client = mockOpenAIClient
+
+	{
+		resp := o.OnMessage(Message{Text: "chat! something", ID: 756})
+		require.True(t, resp.Send)
+		assert.Equal(t, "Mock response", resp.Text)
+		assert.Equal(t, 756, resp.ReplyTo)
+		assert.Equal(t, time.Duration(0), resp.BanInterval)
+	}
+
+	{
+		resp := o.OnMessage(Message{Text: "chat! something", ID: 756})
+		require.True(t, resp.Send)
+		assert.Contains(t, resp.Text, "Слишком много запросов,")
+		assert.Equal(t, 756, resp.ReplyTo)
+		assert.Equal(t, time.Hour, resp.BanInterval)
+	}
+	{
+		o.nowFn = func() time.Time {
+			return time.Now().Add(time.Minute * 31) // 31 min after first request
+		}
+		resp := o.OnMessage(Message{Text: "chat! something", ID: 756})
+		require.True(t, resp.Send)
+		assert.Equal(t, "Mock response", resp.Text)
+		assert.Equal(t, 756, resp.ReplyTo)
+		assert.Equal(t, time.Duration(0), resp.BanInterval)
+	}
 }
 
 func TestOpenAI_request(t *testing.T) {

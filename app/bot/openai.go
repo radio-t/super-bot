@@ -141,7 +141,7 @@ func (o *OpenAI) chatGPTRequest(request, userPrompt, sysPrompt string) (response
 
 // Summary returns summary of the text
 func (o *OpenAI) Summary(text string) (response string, err error) {
-	return o.chatGPTRequest(text, "", "Summarize the text, you answer with no more than 150 words")
+	return o.chatGPTRequest(text, "", "Make a short summary, up to 50 words, followed by a list of bullet points. Each bullet point is limited to 50 words, up to 7 in total. All in markdown format:\n")
 }
 
 // ReactOn keys

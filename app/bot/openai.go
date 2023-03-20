@@ -30,6 +30,8 @@ type OpenAI struct {
 	lastDT time.Time
 }
 
+var maxMsgLen = 14000
+
 // NewOpenAI makes a bot for ChatGPT
 // maxTokens is hard limit for the number of tokens in the response
 // https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
@@ -60,6 +62,10 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 			User:        msg.From,
 			ReplyTo:     msg.ID, // reply to the message
 		}
+	}
+
+	if len(reqText) > maxMsgLen {
+		reqText = reqText[:maxMsgLen]
 	}
 
 	responseAI, err := o.chatGPTRequest(reqText, o.prompt, "You answer with no more than 50 words")

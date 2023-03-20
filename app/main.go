@@ -10,6 +10,10 @@ import (
 	"time"
 
 	"github.com/go-pkgz/lgr"
+	"github.com/go-pkgz/repeater"
+	"github.com/go-pkgz/requester"
+	"github.com/go-pkgz/requester/middleware"
+	"github.com/go-pkgz/requester/middleware/logger"
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jessevdk/go-flags"
 
@@ -39,9 +43,10 @@ var opts struct {
 	TemplateFile         string           `long:"export-template" default:"logs.html" description:"path to template file"`
 	ExportBroadcastUsers events.SuperUser `long:"broadcast" description:"broadcast-users"`
 
-	OpenAIAuthToken string `long:"openai" env:"OPENAI_AUTH_TOKEN" description:"OpenAI auth token"`
-	OpenAIMaxTokens int    `long:"openai-max-tokens" env:"OPENAI_MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
-	OpenAIPrompt    string `long:"openai-prompt" env:"OPENAI_PROMPT" default:"" description:"OpenAI prompt"`
+	OpenAIAuthToken string        `long:"openai" env:"OPENAI_AUTH_TOKEN" description:"OpenAI auth token"`
+	OpenAIMaxTokens int           `long:"openai-max-tokens" env:"OPENAI_MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
+	OpenAIPrompt    string        `long:"openai-prompt" env:"OPENAI_PROMPT" default:"" description:"OpenAI prompt"`
+	OpenAITimeout   time.Duration `long:"openai-timeout" env:"OPENAI_TIMEOUT" default:"120s" description:"OpenAI timeout in seconds"`
 
 	UreadabilityAPI   string `long:"ur-api" env:"UREADABILITY_API" default:"https://ureadability.radio-t.com/api/content/v1/parser" description:"uReadability API"`
 	UreadabilityToken string `long:"ur-token" env:"UREADABILITY_TOKEN" default:"undefined" description:"uReadability token"`
@@ -76,7 +81,7 @@ func main() {
 
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	// 5 seconds is not enough for OpenAI requests
-	httpClientOpenAI := &http.Client{Timeout: 60 * time.Second}
+	httpClientOpenAI := makeOpenAIHttpClient()
 	openAIBot := bot.NewOpenAI(opts.OpenAIAuthToken, opts.OpenAIMaxTokens, opts.OpenAIPrompt, httpClientOpenAI, opts.SuperUsers)
 
 	multiBot := bot.MultiBot{
@@ -199,6 +204,13 @@ func export() {
 	if err != nil {
 		log.Fatalf("[ERROR] export failed: %v", err)
 	}
+}
+
+// makeOpenAIHttpClient creates http client with retry middleware
+func makeOpenAIHttpClient() *http.Client {
+	rpt := repeater.NewDefault(10, time.Second*5)
+	lg := logger.New(lgr.Default())
+	return requester.New(http.Client{Timeout: opts.OpenAITimeout}).With(middleware.Repeater(rpt), lg.Middleware).Client()
 }
 
 func setupLog(dbg bool) {

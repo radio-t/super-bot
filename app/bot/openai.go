@@ -64,10 +64,6 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 		}
 	}
 
-	if len(reqText) > maxMsgLen {
-		reqText = reqText[:maxMsgLen]
-	}
-
 	responseAI, err := o.chatGPTRequest(reqText, o.prompt, "You answer with no more than 50 words")
 	if err != nil {
 		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
@@ -107,6 +103,11 @@ func (o *OpenAI) chatGPTRequest(request, userPrompt, sysPrompt string) (response
 	if userPrompt != "" {
 		r = userPrompt + ".\n" + request
 	}
+
+	if len(r) > maxMsgLen {
+		r = r[:maxMsgLen]
+	}
+
 	resp, err := o.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{

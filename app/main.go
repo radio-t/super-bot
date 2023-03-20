@@ -209,7 +209,7 @@ func export() {
 // makeOpenAIHttpClient creates http client with retry middleware
 func makeOpenAIHttpClient() *http.Client {
 	rpt := repeater.NewDefault(10, time.Second*5)
-	lg := logger.New(lgr.Default())
+	lg := logger.New(lgr.Std)
 	return requester.New(http.Client{Timeout: opts.OpenAITimeout}).With(middleware.Repeater(rpt), lg.Middleware).Client()
 }
 

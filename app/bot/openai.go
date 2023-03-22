@@ -60,7 +60,7 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 			Send:        true,
 			BanInterval: time.Hour,
 			User:        msg.From,
-			ReplyTo:     msg.ID, // reply to the message
+			IsReply:     true, // reply to the message
 		}
 	}
 
@@ -79,7 +79,7 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 	return Response{
 		Text:    responseAI,
 		Send:    true,
-		ReplyTo: msg.ID, // reply to the message
+		IsReply: true, // reply to the message
 	}
 }
 

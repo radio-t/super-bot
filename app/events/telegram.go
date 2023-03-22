@@ -230,15 +230,13 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, ctx MessageContext
 		return nil
 	}
 
-	log.Printf("[DEBUG] bot response - %+v, pin: %t, reply-to:%d", resp.Text, resp.Pin, resp.ReplyTo)
+	log.Printf("[DEBUG] bot response - %+v, pin: %t, is-reply: %t (%d)", resp.Text, resp.Pin, resp.IsReply, ctx.MsgID)
 	tbMsg := tbapi.NewMessage(ctx.ChatID, resp.Text)
 	tbMsg.ParseMode = tbapi.ModeMarkdown
 	tbMsg.DisableWebPagePreview = !resp.Preview
 	// Get the message ID to reply to directly from the update context
 	if resp.IsReply {
 		tbMsg.ReplyToMessageID = ctx.MsgID
-	} else {
-		tbMsg.ReplyToMessageID = resp.ReplyTo
 	}
 	res, err := l.TbAPI.Send(tbMsg)
 	if err != nil {

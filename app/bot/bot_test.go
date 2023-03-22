@@ -47,7 +47,7 @@ func TestMultiBotCombinesAllBotResponses(t *testing.T) {
 
 	b1 := &InterfaceMock{
 		ReactOnFunc:   func() []string { return []string{"cmd"} },
-		OnMessageFunc: func(m Message) Response { return Response{Send: true, Text: "b1 resp", ReplyTo: 789} },
+		OnMessageFunc: func(m Message) Response { return Response{Send: true, Text: "b1 resp", IsReply: true} },
 	}
 	b2 := &InterfaceMock{
 		ReactOnFunc:   func() []string { return []string{"cmd"} },
@@ -63,5 +63,5 @@ func TestMultiBotCombinesAllBotResponses(t *testing.T) {
 	require.Len(t, parts, 2)
 	require.Contains(t, parts, "b1 resp")
 	require.Contains(t, parts, "b2 resp")
-	assert.Equal(t, 789, resp.ReplyTo)
+	assert.Equal(t, true, resp.IsReply)
 }

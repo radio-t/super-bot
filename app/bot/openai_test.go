@@ -34,8 +34,8 @@ func TestOpenAI_OnMessage(t *testing.T) {
 		mockResult bool
 		response   Response
 	}{
-		{"Good result", "prompt", jsonResponse, true, Response{Text: "Mock response", Send: true, ReplyTo: 0, IsReply: true}},
-		{"Good result", "", jsonResponse, true, Response{Text: "Mock response", Send: true, ReplyTo: 0, IsReply: true}},
+		{"Good result", "prompt", jsonResponse, true, Response{Text: "Mock response", Send: true, IsReply: true}},
+		{"Good result", "", jsonResponse, true, Response{Text: "Mock response", Send: true, IsReply: true}},
 		{"Error result", "", jsonResponse, false, Response{}},
 		{"Empty result", "", []byte(`{}`), true, Response{}},
 	}
@@ -109,7 +109,6 @@ func TestOpenAI_OnMessage_TooManyRequests(t *testing.T) {
 		require.True(t, resp.Send)
 		assert.Equal(t, "Mock response", resp.Text)
 		assert.Equal(t, true, resp.IsReply)
-		assert.Equal(t, 0, resp.ReplyTo)
 		assert.Equal(t, time.Duration(0), resp.BanInterval)
 	}
 
@@ -118,7 +117,6 @@ func TestOpenAI_OnMessage_TooManyRequests(t *testing.T) {
 		require.True(t, resp.Send)
 		assert.Contains(t, resp.Text, "Слишком много запросов,")
 		assert.Equal(t, true, resp.IsReply)
-		assert.Equal(t, 0, resp.ReplyTo)
 		assert.Equal(t, time.Hour, resp.BanInterval)
 	}
 
@@ -129,7 +127,6 @@ func TestOpenAI_OnMessage_TooManyRequests(t *testing.T) {
 		require.True(t, resp.Send)
 		assert.Equal(t, "Mock response", resp.Text)
 		assert.Equal(t, true, resp.IsReply)
-		assert.Equal(t, 0, resp.ReplyTo)
 		assert.Equal(t, time.Duration(0), resp.BanInterval)
 	}
 
@@ -141,7 +138,6 @@ func TestOpenAI_OnMessage_TooManyRequests(t *testing.T) {
 		require.True(t, resp.Send)
 		assert.Equal(t, "Mock response", resp.Text)
 		assert.Equal(t, true, resp.IsReply)
-		assert.Equal(t, 0, resp.ReplyTo)
 		assert.Equal(t, time.Duration(0), resp.BanInterval)
 	}
 }

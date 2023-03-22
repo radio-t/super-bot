@@ -40,7 +40,6 @@ type Response struct {
 	BanInterval time.Duration // bots banning user set the interval
 	User        User          // user to ban
 	ChannelID   int64         // channel to ban, if set then User and BanInterval are ignored
-	ReplyTo     int           // message to reply to, if 0 then no reply but common message
 	IsReply     bool          // is this a reply to the message. Used to avoid using wrong message id in the user's bots
 }
 
@@ -147,7 +146,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 	var banInterval time.Duration
 	var user User
 	var mutex = &sync.Mutex{}
-	var replyTo int
+	var isReply bool
 
 	wg := syncs.NewSizedGroup(4)
 	for _, bot := range b {
@@ -161,11 +160,8 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 				if resp.Unpin {
 					atomic.AddInt32(&unpin, 1)
 				}
-				if resp.ReplyTo > 0 {
-					replyTo = resp.ReplyTo
-				}
 				if resp.IsReply {
-					replyTo = msg.ID
+					isReply = true
 				}
 				if resp.BanInterval > 0 {
 					mutex.Lock()
@@ -204,8 +200,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		BanInterval: banInterval,
 		User:        user,
 		ChannelID:   channelID,
-		ReplyTo:     replyTo,
-		IsReply:     replyTo > 0, // This message is reply to another message with non-zero ID
+		IsReply:     isReply,
 	}
 }
 

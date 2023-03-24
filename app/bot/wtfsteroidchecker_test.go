@@ -174,6 +174,165 @@ func TestWTFSteroidChecker_Contains(t *testing.T) {
 	}
 }
 
+func TestWTFSteroidChecker_ContainsWTF(t *testing.T) {
+	type fields struct {
+		message string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{name: "WTF",
+			fields: fields{
+				message: "WTF",
+			},
+			want: true},
+		{name: "втф",
+			fields: fields{
+				message: "втф",
+			},
+			want: true},
+		{name: "WT\ufff0F",
+			fields: fields{
+				message: "WT￰F",
+			},
+			want: true},
+		{name: "WtF",
+			fields: fields{
+				message: "WtF",
+			},
+			want: true},
+		{name: "𝀥tf",
+			fields: fields{
+				message: "𝀥tf",
+			},
+			want: true},
+		{name: "ẂTF",
+			fields: fields{
+				message: "ẂTF",
+			},
+			want: true},
+		{name: "W TF",
+			fields: fields{
+				message: "W TF",
+			},
+			want: true},
+		{name: "wtf",
+			fields: fields{
+				message: "wtf",
+			},
+			want: true},
+		{name: "wtf",
+			fields: fields{
+				message: "wtf",
+			},
+			want: true},
+		{name: "🅦🅣ⓕ",
+			fields: fields{
+				message: "🅦🅣ⓕ",
+			},
+			want: true},
+		{name: "w-t-f",
+			fields: fields{
+				message: "w-t-f",
+			},
+			want: true},
+		{name: "w;t;f",
+			fields: fields{
+				message: "w;t;f",
+			},
+			want: true},
+		{name: "W T F",
+			fields: fields{
+				message: "W T F",
+			},
+			want: true},
+		{name: "W῝🇹🶪Ꝼ",
+			fields: fields{
+				message: "W῝🇹🶪Ꝼ",
+			},
+			want: true},
+		{name: "WTḞ",
+			fields: fields{
+				message: "WTḞ",
+			},
+			want: true},
+		{name: "W\x05TF",
+			fields: fields{
+				message: "W\x05TF",
+			},
+			want: true},
+		{name: "Вот фон! - false",
+			fields: fields{
+				message: "Вот фон!",
+			},
+			want: false},
+		{name: "W؈T؈F؈",
+			fields: fields{
+				message: "W؈T؈F؈",
+			},
+			want: true},
+		{name: "Что за втф - true",
+			fields: fields{
+				message: "Что за втф",
+			},
+			want: true},
+		{name: "Что за wtf - true",
+			fields: fields{
+				message: "Что за wtf",
+			},
+			want: true},
+		{name: "VVtf",
+			fields: fields{
+				message: "VVtf",
+			},
+			want: true},
+		{name: "¡ɟʇʍ",
+			fields: fields{
+				message: "¡ɟʇʍ",
+			},
+			want: false},
+		{name: "¿ɟʇʍ",
+			fields: fields{
+				message: "¿ɟʇʍ",
+			},
+			want: false},
+		{name: "wtᷫ",
+			fields: fields{
+				message: "wtᷫ",
+			},
+			want: true},
+		{name: "wtᷥ",
+			fields: fields{
+				message: "wtᷥ",
+			},
+			want: true},
+		{name: "¡ȸɯʚ",
+			fields: fields{
+				message: "¡ȸɯʚ",
+			},
+			want: false},
+		{name: "¿ȸɯʚ",
+			fields: fields{
+				message: "¿ȸɯʚ",
+			},
+			want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &WTFSteroidChecker{
+				message: tt.fields.message,
+			}
+			if got := w.ContainsWTF(); got != tt.want {
+				t.Errorf("WTFSteroidChecker.ContainsWTF() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+}
+
 // TestWTFSteroidChecker_WTFUnicodeLibrary_Unique_Check check that all symbols in the library are unique
 // and key ASCII symbol is not in library
 func TestWTFSteroidChecker_WTFUnicodeLibrary_Unique_Check(t *testing.T) {

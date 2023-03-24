@@ -52,11 +52,9 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	if o.nowFn().Sub(o.lastDT) < 30*time.Minute && !o.superUser.IsSuper(msg.From.Username) {
-		log.Printf("[WARN] OpenAI bot is too busy, last request was %s ago, %s banned", time.Since(o.lastDT), msg.From.Username)
+	if ok, banMessage := o.checkRequest(msg.From.Username, reqText); !ok {
 		return Response{
-			Text: fmt.Sprintf("Слишком много запросов, следующий запрос можно будет сделать через %d минут."+
-				"\n%s получает бан на 1 час.", int(30-time.Since(o.lastDT).Minutes()), msg.From.Username),
+			Text:        banMessage,
 			Send:        true,
 			BanInterval: time.Hour,
 			User:        msg.From,
@@ -68,6 +66,16 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 	if err != nil {
 		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
 		return Response{}
+	}
+
+	if ok, banMessage := o.checkResponseAI(msg.From.Username, responseAI); !ok {
+		return Response{
+			Text:        banMessage,
+			Send:        true,
+			BanInterval: time.Hour,
+			User:        msg.From,
+			ReplyTo:     msg.ID, // reply to the message
+		}
 	}
 
 	if !o.superUser.IsSuper(msg.From.Username) {
@@ -90,6 +98,45 @@ func (o *OpenAI) request(text string) (react bool, reqText string) {
 		}
 	}
 	return false, ""
+}
+
+func (o *OpenAI) checkRequest(username, text string) (ok bool, banMessage string) {
+	if o.superUser.IsSuper(username) {
+		return true, ""
+	}
+
+	wtfContains := WTFSteroidChecker{message: text}
+
+	if wtfContains.ContainsWTF() {
+		log.Printf("[WARN] OpenAI bot has wtf request, %s banned", username)
+		reason := "Вы знаете правила"
+		return false, fmt.Sprintf("%s\n@%s получает бан на 1 час.", reason, username)
+	}
+
+	if o.nowFn().Sub(o.lastDT) < 30*time.Minute {
+		log.Printf("[WARN] OpenAI bot is too busy, last request was %s ago, %s banned", time.Since(o.lastDT), username)
+		reason := fmt.Sprintf("Слишком много запросов, следующий запрос можно будет сделать через %d минут.",
+			int(30-time.Since(o.lastDT).Minutes()))
+
+		return false, fmt.Sprintf("%s\n@%s получает бан на 1 час.", reason, username)
+	}
+
+	return true, ""
+}
+
+func (o *OpenAI) checkResponseAI(username, responseAI string) (ok bool, banMessage string) {
+	if o.superUser.IsSuper(username) {
+		return true, ""
+	}
+
+	wtfContains := WTFSteroidChecker{message: responseAI}
+
+	if wtfContains.ContainsWTF() {
+		log.Printf("[WARN] OpenAI bot response contains wtf, User %s banned", username)
+		return false, fmt.Sprintf("@%s выиграл в лотерею и получает бан на 1 час.", username)
+	}
+
+	return true, ""
 }
 
 // Help returns help message

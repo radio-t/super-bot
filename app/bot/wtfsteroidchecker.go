@@ -501,17 +501,30 @@ func (w *WTFSteroidChecker) removeNotLetters() {
 	}, w.message)
 }
 
-// Contains remove all bad symbols from message and check if the message contained the commands
-func (w *WTFSteroidChecker) Contains() bool {
-
+// CleanUp remove all bad symbols from message
+func (w *WTFSteroidChecker) CleanUp() {
 	w.message = strings.ToLower(w.message)
 	w.removeUnicodeDiacriticAnalog()
 	w.removeDiacritic()
 	w.removeUnicodeAnalog()
 	w.removeNotASCIIAndNotRussian()
 	w.removeNotLetters()
+}
+
+// Contains remove all bad symbols from message and check if the message contained the commands
+func (w *WTFSteroidChecker) Contains() bool {
+
+	w.CleanUp()
 
 	// Straight and reverse order
 	return contains([]string{"wtf!", "wtf?"}, w.message) || contains([]string{"!ftw", "?ftw"}, w.message)
 
+}
+
+// ContainsWTF remove all bad symbols from message and check if the message contained substring with "wtf"
+func (w *WTFSteroidChecker) ContainsWTF() bool {
+
+	w.CleanUp()
+
+	return strings.Contains(w.message, "wtf")
 }

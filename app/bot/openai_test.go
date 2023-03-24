@@ -140,6 +140,70 @@ func TestOpenAI_OnMessage_TooManyRequests(t *testing.T) {
 		assert.Equal(t, 756, resp.ReplyTo)
 		assert.Equal(t, time.Duration(0), resp.BanInterval)
 	}
+
+	{ // fifth request with wft, not allowed, 62 min after first request
+		o.nowFn = func() time.Time {
+			return time.Now().Add(time.Minute * 162) // 62 min after first request
+		}
+		resp := o.OnMessage(Message{Text: "chat! что такое wtf", ID: 756})
+		require.True(t, resp.Send)
+		assert.Contains(t, resp.Text, "Вы знаете правила")
+		assert.Equal(t, 756, resp.ReplyTo)
+		assert.Equal(t, time.Hour, resp.BanInterval)
+	}
+
+	{ // sixth request, allowed from user, 63 min after first request
+		o.nowFn = func() time.Time {
+			return time.Now().Add(time.Minute * 63) // 63 min after first request
+		}
+		req := Message{Text: "chat! something", ID: 756}
+		resp := o.OnMessage(req)
+		require.True(t, resp.Send)
+		assert.Equal(t, "Mock response", resp.Text)
+		assert.Equal(t, 756, resp.ReplyTo)
+		assert.Equal(t, time.Duration(0), resp.BanInterval)
+	}
+
+}
+
+func TestOpenAI_OnMessage_ResponseWithWTF(t *testing.T) {
+	mockOpenAIClient := &mocks.OpenAIClient{
+		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+			jsonResponse, err := os.ReadFile("testdata/chat_completion_wtf_response.json")
+			require.NoError(t, err)
+			var response ai.ChatCompletionResponse
+			err = json.Unmarshal(jsonResponse, &response)
+			return response, err
+		},
+	}
+
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "super" || userName == "admin" {
+			return true
+		}
+		return false
+	}}
+
+	o := NewOpenAI("ss-mockToken", 100, "", &http.Client{Timeout: 10 * time.Second}, su)
+	o.client = mockOpenAIClient
+
+	{ // first request by regular User, banned
+		resp := o.OnMessage(Message{Text: "chat! something", ID: 756})
+		require.True(t, resp.Send)
+		assert.Contains(t, resp.Text, "выиграл в лотерею")
+		assert.Equal(t, 756, resp.ReplyTo)
+		assert.Equal(t, time.Hour, resp.BanInterval)
+	}
+
+	{ // second request, allowed from super user
+		req := Message{Text: "chat! something", ID: 756}
+		req.From.Username = "super"
+		resp := o.OnMessage(req)
+		require.True(t, resp.Send)
+		assert.Equal(t, "Mock response with wtf", resp.Text)
+		assert.Equal(t, 756, resp.ReplyTo)
+		assert.Equal(t, time.Duration(0), resp.BanInterval)
+	}
 }
 
 func TestOpenAI_request(t *testing.T) {

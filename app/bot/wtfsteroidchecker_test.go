@@ -126,6 +126,11 @@ func TestWTFSteroidChecker_Contains(t *testing.T) {
 				message: "VVtf!",
 			},
 			want: true},
+		{name: "wtf！",
+			fields: fields{
+				message: "wtf！",
+			},
+			want: true},
 		{name: "¡ɟʇʍ",
 			fields: fields{
 				message: "¡ɟʇʍ",

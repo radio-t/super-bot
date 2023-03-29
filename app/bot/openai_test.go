@@ -21,6 +21,14 @@ func TestOpenAI_Help(t *testing.T) {
 	require.Contains(t, (&OpenAI{}).Help(), "chat!")
 }
 
+func getDefaultConfig() OpenAIConfig {
+	return OpenAIConfig{
+		AuthToken: "ss-mockToken",
+		MaxTokens: 100,
+		Prompt:    "",
+	}
+}
+
 func TestOpenAI_OnMessage(t *testing.T) {
 	// Example of response from OpenAI API
 	// https://platform.openai.com/docs/api-reference/chat
@@ -34,7 +42,7 @@ func TestOpenAI_OnMessage(t *testing.T) {
 		mockResult bool
 		response   Response
 	}{
-		{"Good result", "prompt", jsonResponse, true, Response{Text: "Mock response", Send: true, ReplyTo: 756}},
+		{"Good result", "Prompt", jsonResponse, true, Response{Text: "Mock response", Send: true, ReplyTo: 756}},
 		{"Good result", "", jsonResponse, true, Response{Text: "Mock response", Send: true, ReplyTo: 756}},
 		{"Error result", "", jsonResponse, false, Response{}},
 		{"Empty result", "", []byte(`{}`), true, Response{}},
@@ -63,8 +71,10 @@ func TestOpenAI_OnMessage(t *testing.T) {
 					return response, nil
 				},
 			}
+			config := getDefaultConfig()
+			config.Prompt = tt.prompt
 
-			o := NewOpenAI("ss-mockToken", 100, tt.prompt, &http.Client{Timeout: 10 * time.Second}, su)
+			o := NewOpenAI(config, &http.Client{Timeout: 10 * time.Second}, su)
 			o.client = mockOpenAIClient
 
 			assert.Equal(t,
@@ -101,7 +111,7 @@ func TestOpenAI_OnMessage_TooManyRequests(t *testing.T) {
 		return false
 	}}
 
-	o := NewOpenAI("ss-mockToken", 100, "", &http.Client{Timeout: 10 * time.Second}, su)
+	o := NewOpenAI(getDefaultConfig(), &http.Client{Timeout: 10 * time.Second}, su)
 	o.client = mockOpenAIClient
 
 	{ // first request, allowed
@@ -184,7 +194,7 @@ func TestOpenAI_OnMessage_ResponseWithWTF(t *testing.T) {
 		return false
 	}}
 
-	o := NewOpenAI("ss-mockToken", 100, "", &http.Client{Timeout: 10 * time.Second}, su)
+	o := NewOpenAI(getDefaultConfig(), &http.Client{Timeout: 10 * time.Second}, su)
 	o.client = mockOpenAIClient
 
 	{ // first request by regular User, banned
@@ -203,6 +213,197 @@ func TestOpenAI_OnMessage_ResponseWithWTF(t *testing.T) {
 		assert.Equal(t, "Mock response with wtf", resp.Text)
 		assert.Equal(t, 756, resp.ReplyTo)
 		assert.Equal(t, time.Duration(0), resp.BanInterval)
+	}
+}
+
+func TestOpenAI_OnMessage_RequestWithHistory(t *testing.T) {
+	mockOpenAIClient := &mocks.OpenAIClient{
+		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+			jsonResponse, err := os.ReadFile("testdata/chat_completion_response.json")
+			require.NoError(t, err)
+			var response ai.ChatCompletionResponse
+			err = json.Unmarshal(jsonResponse, &response)
+			return response, err
+		},
+	}
+
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "super" || userName == "admin" {
+			return true
+		}
+		return false
+	}}
+
+	o := NewOpenAI(getDefaultConfig(), &http.Client{Timeout: 10 * time.Second}, su)
+	o.client = mockOpenAIClient
+	o.rand = func(n int64) int64 { return 1 }
+	// Limit history to 2 messages for easier testing
+	o.history = NewLimitedMessageHistory(2)
+	assert.Equal(t, 0, len(o.history.messages))
+
+	{ // first request, empty answer
+		resp := o.OnMessage(Message{Text: "message 1?", ID: 756})
+		require.False(t, resp.Send)
+		assert.Equal(t, "", resp.Text)
+		assert.Equal(t, 1, len(o.history.messages))
+	}
+
+	{ // second request, empty answer because not question
+		resp := o.OnMessage(Message{Text: "message 2", ID: 756})
+		require.False(t, resp.Send)
+		assert.Equal(t, "", resp.Text)
+		assert.Equal(t, 2, len(o.history.messages))
+	}
+
+	{ // third request, answered because question
+		resp := o.OnMessage(Message{Text: "message 3?", ID: 756})
+		require.True(t, resp.Send)
+		assert.Equal(t, "Mock response", resp.Text)
+		// History request isn't reply to any message
+		assert.Equal(t, 0, resp.ReplyTo)
+		assert.Equal(t, 2, len(o.history.messages))
+
+		calls := mockOpenAIClient.CreateChatCompletionCalls()
+		assert.Equal(t, 1, len(calls))
+		// First message is system role setup
+		assert.Equal(t, 3, len(calls[0].ChatCompletionRequest.Messages))
+		assert.Equal(t, "message 2", calls[0].ChatCompletionRequest.Messages[1].Content)
+		assert.Equal(t, "message 3?", calls[0].ChatCompletionRequest.Messages[2].Content)
+	}
+
+}
+
+func TestOpenAI_OnMessage_shouldAnswerWithHistory(t *testing.T) {
+	mockOpenAIClient := &mocks.OpenAIClient{
+		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+			jsonResponse, err := os.ReadFile("testdata/chat_completion_response.json")
+			require.NoError(t, err)
+			var response ai.ChatCompletionResponse
+			err = json.Unmarshal(jsonResponse, &response)
+			return response, err
+		},
+	}
+
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "super" || userName == "admin" {
+			return true
+		}
+		return false
+	}}
+
+	o := NewOpenAI(getDefaultConfig(), &http.Client{Timeout: 10 * time.Second}, su)
+	o.client = mockOpenAIClient
+	o.rand = func(n int64) int64 { return 1 }
+	// Limit history to 2 messages for easier testing
+	o.history = NewLimitedMessageHistory(2)
+
+	o.history.Add(Message{Text: "message 1", ID: 756})
+	o.history.Add(Message{Text: "message 2", ID: 756})
+
+	tbl := []struct {
+		name     string
+		message  string
+		expected bool
+	}{
+		{"Regular message", "message 3", false},
+		{"Question", "question 1?", true},
+	}
+
+	for _, tt := range tbl {
+		t.Run(tt.name, func(t *testing.T) {
+			result := o.shouldAnswerWithHistory(Message{ID: 2, Text: tt.message})
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestOpenAI_OnMessage_shouldAnswerWithHistory_NotEnoughMessages(t *testing.T) {
+	mockOpenAIClient := &mocks.OpenAIClient{
+		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+			jsonResponse, err := os.ReadFile("testdata/chat_completion_response.json")
+			require.NoError(t, err)
+			var response ai.ChatCompletionResponse
+			err = json.Unmarshal(jsonResponse, &response)
+			return response, err
+		},
+	}
+
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "super" || userName == "admin" {
+			return true
+		}
+		return false
+	}}
+
+	o := NewOpenAI(getDefaultConfig(), &http.Client{Timeout: 10 * time.Second}, su)
+	o.client = mockOpenAIClient
+	o.rand = func(n int64) int64 { return 1 }
+	// Limit history to 2 messages for easier testing
+	o.history = NewLimitedMessageHistory(2)
+	o.history.Add(Message{Text: "message 1", ID: 756})
+
+	tbl := []struct {
+		name     string
+		message  string
+		expected bool
+	}{
+		{"Regular message", "message 2", false},
+		{"Question", "question 1?", false},
+	}
+
+	for _, tt := range tbl {
+		t.Run(tt.name, func(t *testing.T) {
+			result := o.shouldAnswerWithHistory(Message{ID: 2, Text: tt.message})
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestOpenAI_OnMessage_shouldAnswerWithHistory_Random(t *testing.T) {
+	mockOpenAIClient := &mocks.OpenAIClient{
+		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+			jsonResponse, err := os.ReadFile("testdata/chat_completion_response.json")
+			require.NoError(t, err)
+			var response ai.ChatCompletionResponse
+			err = json.Unmarshal(jsonResponse, &response)
+			return response, err
+		},
+	}
+
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "super" || userName == "admin" {
+			return true
+		}
+		return false
+	}}
+
+	o := NewOpenAI(getDefaultConfig(), &http.Client{Timeout: 10 * time.Second}, su)
+	o.client = mockOpenAIClient
+	// Limit history to 2 messages for easier testing
+	o.history = NewLimitedMessageHistory(2)
+
+	o.history.Add(Message{Text: "message 1", ID: 756})
+	o.history.Add(Message{Text: "message 2", ID: 756})
+
+	tbl := []struct {
+		name       string
+		message    string
+		randResult int64
+		expected   bool
+	}{
+		{"Question, random positive", "Question 1?", 1, true},
+		{"Question, random negative", "Question 2?", 2, false},
+		{"Regular, random positive", "Message 1", 1, false},
+		{"Regular, random negative", "Message 2", 2, false},
+	}
+
+	for _, tt := range tbl {
+		t.Run(tt.name, func(t *testing.T) {
+			o.rand = func(n int64) int64 { return tt.randResult }
+
+			result := o.shouldAnswerWithHistory(Message{ID: 2, Text: tt.message})
+			assert.Equal(t, tt.expected, result)
+		})
 	}
 }
 

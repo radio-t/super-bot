@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -18,13 +19,24 @@ type OpenAIClient interface {
 	CreateChatCompletion(context.Context, openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
 }
 
+// OpenAIConfig contains parameters for OpenAI bot
+type OpenAIConfig struct {
+	AuthToken       string
+	MaxTokens       int
+	Prompt          string
+	HistorySize     int
+	HistoryRandBase int64
+}
+
 // OpenAI bot, returns responses from ChatGPT via OpenAI API
 type OpenAI struct {
-	authToken string
-	client    OpenAIClient
-	maxTokens int
-	prompt    string
+	client OpenAIClient
+
+	config    OpenAIConfig
 	superUser SuperUser
+
+	history LimitedMessageHistory
+	rand    func(n int64) int64 // tests may change it
 
 	nowFn  func() time.Time // for testing
 	lastDT time.Time
@@ -32,24 +44,48 @@ type OpenAI struct {
 
 var maxMsgLen = 14000
 
-// NewOpenAI makes a bot for ChatGPT
-// maxTokens is hard limit for the number of tokens in the response
-// https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
-func NewOpenAI(authToken string, maxTokens int, prompt string, httpClient *http.Client, superUser SuperUser) *OpenAI {
-	log.Printf("[INFO] OpenAI bot with github.com/sashabaranov/go-openai, prompt=%s, max=%d", prompt, maxTokens)
+func initOpenAIClient(authToken string, httpClient *http.Client) OpenAIClient {
 	config := openai.DefaultConfig(authToken)
 	config.HTTPClient = httpClient
 
-	client := openai.NewClientWithConfig(config)
-	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt,
-		nowFn: time.Now, superUser: superUser}
+	return openai.NewClientWithConfig(config)
+}
+
+// NewOpenAI makes a bot for ChatGPT
+// MaxTokens is hard limit for the number of tokens in the response
+// https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
+func NewOpenAI(config OpenAIConfig, httpClient *http.Client, superUser SuperUser) *OpenAI {
+	log.Printf("[INFO] OpenAI bot with github.com/sashabaranov/go-openai, Prompt=%s, max=%d",
+		config.Prompt, config.MaxTokens)
+	client := initOpenAIClient(config.AuthToken, httpClient)
+	history := NewLimitedMessageHistory(config.HistorySize)
+
+	return &OpenAI{client: client, config: config, superUser: superUser,
+		history: history, rand: rand.Int63n, nowFn: time.Now}
 }
 
 // OnMessage pass msg to all bots and collects responses
 func (o *OpenAI) OnMessage(msg Message) (response Response) {
 	ok, reqText := o.request(msg.Text)
 	if !ok {
-		return Response{}
+		// All the non-matching requests processed for the reactions based on the history.
+		// save message to history and answer with ChatGPT if needed
+		o.history.Add(msg)
+
+		if !o.shouldAnswerWithHistory(msg) {
+			return Response{}
+		}
+
+		responseAI, err := o.chatGPTRequestWithHistory("You answer with no more than 50 words")
+		if err != nil {
+			log.Printf("[WARN] failed to make context request to ChatGPT error=%v", err)
+			return Response{}
+		}
+
+		return Response{
+			Text: responseAI,
+			Send: true,
+		}
 	}
 
 	if ok, banMessage := o.checkRequest(msg.From.Username, reqText); !ok {
@@ -62,7 +98,7 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 		}
 	}
 
-	responseAI, err := o.chatGPTRequest(reqText, o.prompt, "You answer with no more than 50 words")
+	responseAI, err := o.chatGPTRequest(reqText, o.config.Prompt, "You answer with no more than 50 words")
 	if err != nil {
 		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
 		return Response{}
@@ -145,7 +181,6 @@ func (o *OpenAI) Help() string {
 }
 
 func (o *OpenAI) chatGPTRequest(request, userPrompt, sysPrompt string) (response string, err error) {
-
 	r := request
 	if userPrompt != "" {
 		r = userPrompt + ".\n" + request
@@ -155,21 +190,57 @@ func (o *OpenAI) chatGPTRequest(request, userPrompt, sysPrompt string) (response
 		r = r[:maxMsgLen]
 	}
 
+	return o.chatGPTRequestInternal([]openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: sysPrompt,
+		},
+		{
+			Role:    openai.ChatMessageRoleUser,
+			Content: r,
+		},
+	})
+}
+
+func (o *OpenAI) shouldAnswerWithHistory(msg Message) bool {
+	if o.history.count < o.history.limit {
+		return false
+	}
+
+	if msg.Text[len(msg.Text)-1:] != "?" {
+		return false
+	}
+
+	// by default 10% chance to answer with ChatGPT for question
+	return o.rand(o.config.HistoryRandBase) == 1
+}
+
+func (o *OpenAI) chatGPTRequestWithHistory(sysPrompt string) (response string, err error) {
+	messages := make([]openai.ChatCompletionMessage, 0, len(o.history.messages)+1)
+
+	messages = append(messages, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: sysPrompt,
+	})
+
+	for _, message := range o.history.messages {
+		messages = append(messages, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleUser,
+			Content: message.Text,
+		})
+	}
+
+	return o.chatGPTRequestInternal(messages)
+}
+
+func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage) (response string, err error) {
+
 	resp, err := o.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:     openai.GPT3Dot5Turbo,
-			MaxTokens: o.maxTokens,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleSystem,
-					Content: sysPrompt,
-				},
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: r,
-				},
-			},
+			MaxTokens: o.config.MaxTokens,
+			Messages:  messages,
 		},
 	)
 

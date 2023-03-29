@@ -43,10 +43,16 @@ var opts struct {
 	TemplateFile         string           `long:"export-template" default:"logs.html" description:"path to template file"`
 	ExportBroadcastUsers events.SuperUser `long:"broadcast" description:"broadcast-users"`
 
-	OpenAIAuthToken string        `long:"openai" env:"OPENAI_AUTH_TOKEN" description:"OpenAI auth token"`
-	OpenAIMaxTokens int           `long:"openai-max-tokens" env:"OPENAI_MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
-	OpenAIPrompt    string        `long:"openai-prompt" env:"OPENAI_PROMPT" default:"" description:"OpenAI prompt"`
-	OpenAITimeout   time.Duration `long:"openai-timeout" env:"OPENAI_TIMEOUT" default:"120s" description:"OpenAI timeout in seconds"`
+	OpenAI struct {
+		AuthToken string `long:"token" env:"AUTH_TOKEN" description:"OpenAI auth token"`
+		MaxTokens int    `long:"max-tokens" env:"MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
+		Prompt    string `long:"prompt" env:"PROMPT" default:"" description:"OpenAI prompt"`
+
+		HistorySize     int   `long:"history-size" env:"HISTORY_SIZE" default:"5" description:"OpenAI history size for context answers"`
+		HistoryRandBase int64 `long:"history-rand-base" env:"HISTORY_RAND_BASE" default:"10" description:"OpenAI random base for context answers. By default 10 means 1/10 = 10% of answer probability"`
+
+		Timeout time.Duration `long:"timeout" env:"TIMEOUT" default:"120s" description:"OpenAI timeout in seconds"`
+	} `group:"openai" namespace:"openai" env-namespace:"OPENAI"`
 
 	UreadabilityAPI   string `long:"ur-api" env:"UREADABILITY_API" default:"https://ureadability.radio-t.com/api/content/v1/parser" description:"uReadability API"`
 	UreadabilityToken string `long:"ur-token" env:"UREADABILITY_TOKEN" default:"undefined" description:"uReadability token"`
@@ -82,7 +88,13 @@ func main() {
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	// 5 seconds is not enough for OpenAI requests
 	httpClientOpenAI := makeOpenAIHttpClient()
-	openAIBot := bot.NewOpenAI(opts.OpenAIAuthToken, opts.OpenAIMaxTokens, opts.OpenAIPrompt, httpClientOpenAI, opts.SuperUsers)
+	openAIBot := bot.NewOpenAI(bot.OpenAIConfig{
+		AuthToken:       opts.OpenAI.AuthToken,
+		MaxTokens:       opts.OpenAI.MaxTokens,
+		Prompt:          opts.OpenAI.Prompt,
+		HistorySize:     opts.OpenAI.HistorySize,
+		HistoryRandBase: opts.OpenAI.HistoryRandBase,
+	}, httpClientOpenAI, opts.SuperUsers)
 
 	multiBot := bot.MultiBot{
 		bot.NewBroadcastStatus(
@@ -210,7 +222,7 @@ func export() {
 func makeOpenAIHttpClient() *http.Client {
 	rpt := repeater.NewDefault(10, time.Second*5)
 	lg := logger.New(lgr.Std)
-	return requester.New(http.Client{Timeout: opts.OpenAITimeout}).With(middleware.Repeater(rpt), lg.Middleware).Client()
+	return requester.New(http.Client{Timeout: opts.OpenAI.Timeout}).With(middleware.Repeater(rpt), lg.Middleware).Client()
 }
 
 func setupLog(dbg bool) {

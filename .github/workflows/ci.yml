@@ -56,7 +56,7 @@ jobs:
         docker tag radiot/super-bot:${GIT_TAG} radiot/super-bot:latest
         docker push radiot/super-bot:latest
 
-    - name: remote site deployment from master
+    - name: remote deployment from master
       if: ${{ github.ref == 'refs/heads/master' }}
       env:
         UPDATER_KEY: ${{ secrets.UPDATER_KEY }}

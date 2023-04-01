@@ -48,8 +48,8 @@ var opts struct {
 		MaxTokens int    `long:"max-tokens" env:"MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
 		Prompt    string `long:"prompt" env:"PROMPT" default:"" description:"OpenAI prompt"`
 
-		HistorySize     int   `long:"history-size" env:"HISTORY_SIZE" default:"5" description:"OpenAI history size for context answers"`
-		HistoryRandBase int64 `long:"history-rand-base" env:"HISTORY_RAND_BASE" default:"10" description:"OpenAI random base for context answers. By default 10 means 1/10 = 10% of answer probability"`
+		HistorySize             int `long:"history-size" env:"HISTORY_SIZE" default:"5" description:"OpenAI history size for context answers"`
+		HistoryReplyProbability int `long:"history-reply-probability" env:"HISTORY_REPLY_PROBABILITY" default:"10" description:"Percentage of the probability to reply with history (0%-100%)"`
 
 		Timeout time.Duration `long:"timeout" env:"TIMEOUT" default:"120s" description:"OpenAI timeout in seconds"`
 	} `group:"openai" namespace:"openai" env-namespace:"OPENAI"`
@@ -88,12 +88,12 @@ func main() {
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	// 5 seconds is not enough for OpenAI requests
 	httpClientOpenAI := makeOpenAIHttpClient()
-	openAIBot := bot.NewOpenAI(bot.OpenAIConfig{
-		AuthToken:       opts.OpenAI.AuthToken,
-		MaxTokens:       opts.OpenAI.MaxTokens,
-		Prompt:          opts.OpenAI.Prompt,
-		HistorySize:     opts.OpenAI.HistorySize,
-		HistoryRandBase: opts.OpenAI.HistoryRandBase,
+	openAIBot := bot.NewOpenAI(bot.OpenAIParams{
+		AuthToken:               opts.OpenAI.AuthToken,
+		MaxTokens:               opts.OpenAI.MaxTokens,
+		Prompt:                  opts.OpenAI.Prompt,
+		HistorySize:             opts.OpenAI.HistorySize,
+		HistoryReplyProbability: opts.OpenAI.HistoryReplyProbability,
 	}, httpClientOpenAI, opts.SuperUsers)
 
 	multiBot := bot.MultiBot{

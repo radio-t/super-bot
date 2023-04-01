@@ -21,11 +21,13 @@ func TestOpenAI_Help(t *testing.T) {
 	require.Contains(t, (&OpenAI{}).Help(), "chat!")
 }
 
-func getDefaultConfig() OpenAIConfig {
-	return OpenAIConfig{
-		AuthToken: "ss-mockToken",
-		MaxTokens: 100,
-		Prompt:    "",
+func getDefaultConfig() OpenAIParams {
+	return OpenAIParams{
+		AuthToken:               "ss-mockToken",
+		MaxTokens:               100,
+		Prompt:                  "",
+		HistorySize:             2,
+		HistoryReplyProbability: 10,
 	}
 }
 
@@ -236,9 +238,9 @@ func TestOpenAI_OnMessage_RequestWithHistory(t *testing.T) {
 
 	o := NewOpenAI(getDefaultConfig(), &http.Client{Timeout: 10 * time.Second}, su)
 	o.client = mockOpenAIClient
+	// Always pass the probability check
 	o.rand = func(n int64) int64 { return 1 }
-	// Limit history to 2 messages for easier testing
-	o.history = NewLimitedMessageHistory(2)
+	// History is limited  to 2 messages for easier testing
 	assert.Equal(t, 0, len(o.history.messages))
 
 	{ // first request, empty answer
@@ -293,10 +295,10 @@ func TestOpenAI_OnMessage_shouldAnswerWithHistory(t *testing.T) {
 
 	o := NewOpenAI(getDefaultConfig(), &http.Client{Timeout: 10 * time.Second}, su)
 	o.client = mockOpenAIClient
+	// Always pass the probability check
 	o.rand = func(n int64) int64 { return 1 }
-	// Limit history to 2 messages for easier testing
-	o.history = NewLimitedMessageHistory(2)
 
+	// History is limited  to 2 messages for easier testing
 	o.history.Add(Message{Text: "message 1", ID: 756})
 	o.history.Add(Message{Text: "message 2", ID: 756})
 
@@ -337,9 +339,10 @@ func TestOpenAI_OnMessage_shouldAnswerWithHistory_NotEnoughMessages(t *testing.T
 
 	o := NewOpenAI(getDefaultConfig(), &http.Client{Timeout: 10 * time.Second}, su)
 	o.client = mockOpenAIClient
+	// Always pass the probability check
 	o.rand = func(n int64) int64 { return 1 }
-	// Limit history to 2 messages for easier testing
-	o.history = NewLimitedMessageHistory(2)
+
+	// History is limited  to 2 messages for easier testing
 	o.history.Add(Message{Text: "message 1", ID: 756})
 
 	tbl := []struct {
@@ -379,9 +382,8 @@ func TestOpenAI_OnMessage_shouldAnswerWithHistory_Random(t *testing.T) {
 
 	o := NewOpenAI(getDefaultConfig(), &http.Client{Timeout: 10 * time.Second}, su)
 	o.client = mockOpenAIClient
-	// Limit history to 2 messages for easier testing
-	o.history = NewLimitedMessageHistory(2)
 
+	// History is limited  to 2 messages for easier testing
 	o.history.Add(Message{Text: "message 1", ID: 756})
 	o.history.Add(Message{Text: "message 2", ID: 756})
 
@@ -392,13 +394,15 @@ func TestOpenAI_OnMessage_shouldAnswerWithHistory_Random(t *testing.T) {
 		expected   bool
 	}{
 		{"Question, random positive", "Question 1?", 1, true},
-		{"Question, random negative", "Question 2?", 2, false},
+		{"Question, random negative", "Question 2?", 99, false},
 		{"Regular, random positive", "Message 1", 1, false},
-		{"Regular, random negative", "Message 2", 2, false},
+		{"Regular, random negative", "Message 2", 99, false},
 	}
 
 	for _, tt := range tbl {
 		t.Run(tt.name, func(t *testing.T) {
+			// 1 is always pass the probability check
+			// 99 is always fail the probability check
 			o.rand = func(n int64) int64 { return tt.randResult }
 
 			result := o.shouldAnswerWithHistory(Message{ID: 2, Text: tt.message})

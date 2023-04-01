@@ -19,20 +19,20 @@ type OpenAIClient interface {
 	CreateChatCompletion(context.Context, openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
 }
 
-// OpenAIConfig contains parameters for OpenAI bot
-type OpenAIConfig struct {
-	AuthToken       string
-	MaxTokens       int
-	Prompt          string
-	HistorySize     int
-	HistoryRandBase int64
+// OpenAIParams contains parameters for OpenAI bot
+type OpenAIParams struct {
+	AuthToken               string
+	MaxTokens               int
+	Prompt                  string
+	HistorySize             int
+	HistoryReplyProbability int // Percentage of the probability to reply with history
 }
 
 // OpenAI bot, returns responses from ChatGPT via OpenAI API
 type OpenAI struct {
 	client OpenAIClient
 
-	config    OpenAIConfig
+	params    OpenAIParams
 	superUser SuperUser
 
 	history LimitedMessageHistory
@@ -44,23 +44,19 @@ type OpenAI struct {
 
 var maxMsgLen = 14000
 
-func initOpenAIClient(authToken string, httpClient *http.Client) OpenAIClient {
-	config := openai.DefaultConfig(authToken)
-	config.HTTPClient = httpClient
-
-	return openai.NewClientWithConfig(config)
-}
-
 // NewOpenAI makes a bot for ChatGPT
 // MaxTokens is hard limit for the number of tokens in the response
 // https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
-func NewOpenAI(config OpenAIConfig, httpClient *http.Client, superUser SuperUser) *OpenAI {
+func NewOpenAI(params OpenAIParams, httpClient *http.Client, superUser SuperUser) *OpenAI {
 	log.Printf("[INFO] OpenAI bot with github.com/sashabaranov/go-openai, Prompt=%s, max=%d",
-		config.Prompt, config.MaxTokens)
-	client := initOpenAIClient(config.AuthToken, httpClient)
-	history := NewLimitedMessageHistory(config.HistorySize)
+		params.Prompt, params.MaxTokens)
 
-	return &OpenAI{client: client, config: config, superUser: superUser,
+	openAIConfig := openai.DefaultConfig(params.AuthToken)
+	openAIConfig.HTTPClient = httpClient
+	client := openai.NewClientWithConfig(openAIConfig)
+	history := NewLimitedMessageHistory(params.HistorySize)
+
+	return &OpenAI{client: client, params: params, superUser: superUser,
 		history: history, rand: rand.Int63n, nowFn: time.Now}
 }
 
@@ -98,7 +94,7 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 		}
 	}
 
-	responseAI, err := o.chatGPTRequest(reqText, o.config.Prompt, "You answer with no more than 50 words")
+	responseAI, err := o.chatGPTRequest(reqText, o.params.Prompt, "You answer with no more than 50 words")
 	if err != nil {
 		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
 		return Response{}
@@ -212,7 +208,7 @@ func (o *OpenAI) shouldAnswerWithHistory(msg Message) bool {
 	}
 
 	// by default 10% chance to answer with ChatGPT for question
-	return o.rand(o.config.HistoryRandBase) == 1
+	return o.rand(100) < int64(o.params.HistoryReplyProbability)
 }
 
 func (o *OpenAI) chatGPTRequestWithHistory(sysPrompt string) (response string, err error) {
@@ -239,7 +235,7 @@ func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage)
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:     openai.GPT3Dot5Turbo,
-			MaxTokens: o.config.MaxTokens,
+			MaxTokens: o.params.MaxTokens,
 			Messages:  messages,
 		},
 	)

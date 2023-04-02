@@ -24,6 +24,7 @@ type OpenAIParams struct {
 	AuthToken               string
 	MaxTokens               int
 	Prompt                  string
+	EnableAutoResponse      bool
 	HistorySize             int
 	HistoryReplyProbability int // Percentage of the probability to reply with history
 }
@@ -63,7 +64,7 @@ func NewOpenAI(params OpenAIParams, httpClient *http.Client, superUser SuperUser
 // OnMessage pass msg to all bots and collects responses
 func (o *OpenAI) OnMessage(msg Message) (response Response) {
 	ok, reqText := o.request(msg.Text)
-	if !ok {
+	if !ok && o.params.EnableAutoResponse {
 		// All the non-matching requests processed for the reactions based on the history.
 		// save message to history and answer with ChatGPT if needed
 		o.history.Add(msg)

@@ -203,7 +203,7 @@ func (o *OpenAI) shouldAnswerWithHistory(msg Message) bool {
 		return false
 	}
 
-	if len(msg.Text) > 0 && msg.Text[len(msg.Text)-1:] != "?" {
+	if len(msg.Text) > 8 && msg.Text[len(msg.Text)-1:] != "?" { // don't try to answer to short messages, like wtf?
 		return false
 	}
 

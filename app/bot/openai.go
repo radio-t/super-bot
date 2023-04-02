@@ -49,8 +49,8 @@ var maxMsgLen = 14000
 // MaxTokens is hard limit for the number of tokens in the response
 // https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
 func NewOpenAI(params OpenAIParams, httpClient *http.Client, superUser SuperUser) *OpenAI {
-	log.Printf("[INFO] OpenAI bot with github.com/sashabaranov/go-openai, Prompt=%s, max=%d",
-		params.Prompt, params.MaxTokens)
+	log.Printf("[INFO] OpenAI bot with github.com/sashabaranov/go-openai, Prompt=%s, max=%d. Auto response is %v",
+		params.Prompt, params.MaxTokens, params.EnableAutoResponse)
 
 	openAIConfig := openai.DefaultConfig(params.AuthToken)
 	openAIConfig.HTTPClient = httpClient
@@ -64,7 +64,12 @@ func NewOpenAI(params OpenAIParams, httpClient *http.Client, superUser SuperUser
 // OnMessage pass msg to all bots and collects responses
 func (o *OpenAI) OnMessage(msg Message) (response Response) {
 	ok, reqText := o.request(msg.Text)
-	if !ok && o.params.EnableAutoResponse && msg.Text != "idle" {
+	if !ok {
+		if !o.params.EnableAutoResponse || msg.Text == "idle" || len(msg.Text) < 8 {
+			// don't answer on short messages or "idle" command or if auto response is disabled
+			return Response{}
+		}
+
 		// All the non-matching requests processed for the reactions based on the history.
 		// save message to history and answer with ChatGPT if needed
 		o.history.Add(msg)
@@ -83,10 +88,6 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 			Text: responseAI,
 			Send: true,
 		}
-	}
-
-	if !ok {
-		return Response{}
 	}
 
 	if ok, banMessage := o.checkRequest(msg.From.Username, reqText); !ok {
@@ -208,7 +209,7 @@ func (o *OpenAI) shouldAnswerWithHistory(msg Message) bool {
 		return false
 	}
 
-	if len(msg.Text) > 8 && msg.Text[len(msg.Text)-1:] != "?" { // don't try to answer to short messages, like wtf?
+	if len(msg.Text) > 0 && msg.Text[len(msg.Text)-1:] != "?" { // don't try to answer to short messages, like wtf?
 		return false
 	}
 

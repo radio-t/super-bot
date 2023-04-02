@@ -85,6 +85,10 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 		}
 	}
 
+	if !ok {
+		return Response{}
+	}
+
 	if ok, banMessage := o.checkRequest(msg.From.Username, reqText); !ok {
 		return Response{
 			Text:        banMessage,

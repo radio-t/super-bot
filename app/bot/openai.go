@@ -73,7 +73,7 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 			return Response{}
 		}
 
-		responseAI, err := o.chatGPTRequestWithHistory("You answer with no more than 50 words")
+		responseAI, err := o.chatGPTRequestWithHistory("You answer with no more than 50 words, should be in Russian language")
 		if err != nil {
 			log.Printf("[WARN] failed to make context request to ChatGPT error=%v", err)
 			return Response{}

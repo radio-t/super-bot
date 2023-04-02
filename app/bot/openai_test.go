@@ -28,6 +28,7 @@ func getDefaultConfig() OpenAIParams {
 		Prompt:                  "",
 		HistorySize:             2,
 		HistoryReplyProbability: 10,
+		EnableAutoResponse:      true,
 	}
 }
 

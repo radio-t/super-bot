@@ -95,6 +95,7 @@ func main() {
 		Prompt:                  opts.OpenAI.Prompt,
 		HistorySize:             opts.OpenAI.HistorySize,
 		HistoryReplyProbability: opts.OpenAI.HistoryReplyProbability,
+		EnableAutoResponse:      opts.OpenAI.EnableAutoResponse,
 	}, httpClientOpenAI, opts.SuperUsers)
 
 	multiBot := bot.MultiBot{

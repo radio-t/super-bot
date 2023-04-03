@@ -83,7 +83,7 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 			log.Printf("[WARN] failed to make context request to ChatGPT error=%v", err)
 			return Response{}
 		}
-
+		log.Printf("[DEBUG] OpenAI bot answer with history: %q", responseAI)
 		return Response{
 			Text: responseAI,
 			Send: true,

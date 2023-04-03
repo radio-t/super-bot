@@ -1,9 +1,7 @@
 package openai
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 )
@@ -16,7 +14,8 @@ const (
 )
 
 var (
-	ErrChatCompletionInvalidModel = errors.New("currently, only gpt-3.5-turbo and gpt-3.5-turbo-0301 are supported")
+	ErrChatCompletionInvalidModel       = errors.New("this model is not supported with this method, please use CreateCompletion client method instead") //nolint:lll
+	ErrChatCompletionStreamNotSupported = errors.New("streaming is not supported with this method, please use CreateChatCompletionStream")              //nolint:lll
 )
 
 type ChatCompletionMessage struct {
@@ -67,20 +66,18 @@ func (c *Client) CreateChatCompletion(
 	ctx context.Context,
 	request ChatCompletionRequest,
 ) (response ChatCompletionResponse, err error) {
-	model := request.Model
-	if model != GPT3Dot5Turbo0301 && model != GPT3Dot5Turbo {
-		err = ErrChatCompletionInvalidModel
-		return
-	}
-
-	var reqBytes []byte
-	reqBytes, err = json.Marshal(request)
-	if err != nil {
+	if request.Stream {
+		err = ErrChatCompletionStreamNotSupported
 		return
 	}
 
 	urlSuffix := "/chat/completions"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.fullURL(urlSuffix), bytes.NewBuffer(reqBytes))
+	if !checkEndpointSupportsModel(urlSuffix, request.Model) {
+		err = ErrChatCompletionInvalidModel
+		return
+	}
+
+	req, err := c.requestBuilder.build(ctx, http.MethodPost, c.fullURL(urlSuffix), request)
 	if err != nil {
 		return
 	}

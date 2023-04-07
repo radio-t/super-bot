@@ -7,18 +7,18 @@ import (
 	"sync"
 )
 
-// OpenAISummary is a mock implementation of events.openAISummary.
+// OpenAISummary is a mock implementation of openai.openAISummary.
 //
 //	func TestSomethingThatUsesopenAISummary(t *testing.T) {
 //
-//		// make and configure a mocked events.openAISummary
+//		// make and configure a mocked openai.openAISummary
 //		mockedopenAISummary := &OpenAISummary{
 //			SummaryFunc: func(text string) (string, error) {
 //				panic("mock out the Summary method")
 //			},
 //		}
 //
-//		// use mockedopenAISummary in code that requires events.openAISummary
+//		// use mockedopenAISummary in code that requires openai.openAISummary
 //		// and then make assertions.
 //
 //	}

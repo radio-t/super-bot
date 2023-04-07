@@ -3,18 +3,19 @@ package events
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
-	"net/http"
-	"regexp"
 	"strings"
 	"time"
+
+	"github.com/go-pkgz/syncs"
+	"golang.org/x/time/rate"
 )
 
 //go:generate moq --out mocks/submitter.go --pkg mocks --skip-ensure . submitter:Submitter
-//go:generate moq --out mocks/openai_summary.go --pkg mocks --skip-ensure . openAISummary:OpenAISummary
+//go:generate moq --out mocks/summarizer.go --pkg mocks --skip-ensure . summarizer:Summarizer
 
 // pinned defines translation map for messages pinned by bot
 var pinned = map[string]string{
@@ -24,22 +25,23 @@ var pinned = map[string]string{
 // Rtjc is a listener for incoming rtjc commands. Publishes whatever it got from the socket
 // compatible with the legacy rtjc bot. Primarily use case is to push news events from news.radio-t.com
 type Rtjc struct {
-	Port          int
-	Submitter     submitter
-	OpenAISummary openAISummary
+	Port       int
+	Submitter  submitter
+	Summarizer summarizer
 
-	UrAPI    string
-	UrToken  string
-	URClient *http.Client
+	Swg             *syncs.SizedGroup
+	SubmitRateLimit rate.Limit
+	SubmitRateBurst int
 }
 
 // submitter defines interface to submit (usually asynchronously) to the chat
 type submitter interface {
 	Submit(ctx context.Context, text string, pin bool) error
+	SubmitHTML(ctx context.Context, text string, pin bool) error
 }
 
-type openAISummary interface {
-	Summary(text string) (response string, err error)
+type summarizer interface {
+	GetSummariesByMessage(remarkLink string) (messages []string, err error)
 }
 
 // Listen on Port accept and forward to telegram
@@ -50,24 +52,6 @@ func (l Rtjc) Listen(ctx context.Context) {
 		log.Fatalf("[ERROR] can't listen on %d, %v", l.Port, err)
 	}
 
-	sendSummary := func(msg string) {
-		if !strings.HasPrefix(msg, "⚠") {
-			return
-		}
-		title, txt, err := l.summary(msg)
-		if err != nil {
-			log.Printf("[WARN] can't get summary, %v", err)
-			return
-		}
-		if txt == "" {
-			log.Printf("[WARN] empty summary for %q", msg)
-			return
-		}
-		if serr := l.Submitter.Submit(ctx, title+"\n\n"+txt, false); serr != nil {
-			log.Printf("[WARN] can't send summary, %v", serr)
-		}
-	}
-
 	for {
 		conn, e := ln.Accept()
 		if e != nil {
@@ -75,16 +59,51 @@ func (l Rtjc) Listen(ctx context.Context) {
 			time.Sleep(time.Second * 1)
 			continue
 		}
-		if message, rerr := bufio.NewReader(conn).ReadString('\n'); rerr == nil {
-			pin, msg := l.isPinned(message)
-			if serr := l.Submitter.Submit(ctx, msg, pin); serr != nil {
-				log.Printf("[WARN] can't send message, %v", serr)
-			}
-			sendSummary(msg)
-		} else {
-			log.Printf("[WARN] can't read message, %v", rerr)
-		}
+		l.processMessage(ctx, conn)
 		_ = conn.Close()
+	}
+}
+
+func (l Rtjc) processMessage(ctx context.Context, conn io.Reader) {
+	if message, rerr := bufio.NewReader(conn).ReadString('\n'); rerr == nil {
+		pin, msg := l.isPinned(message)
+		if serr := l.Submitter.Submit(ctx, msg, pin); serr != nil {
+			log.Printf("[WARN] can't send message, %v", serr)
+		}
+
+		l.Swg.Go(func(ctx context.Context) {
+			l.sendSummary(ctx, msg)
+		})
+	} else {
+		log.Printf("[WARN] can't read message, %v", rerr)
+	}
+}
+
+func (l Rtjc) sendSummary(ctx context.Context, msg string) {
+	if !strings.HasPrefix(msg, "⚠") {
+		return
+	}
+
+	summaryMsgs, err := l.Summarizer.GetSummariesByMessage(msg)
+	if err != nil {
+		log.Printf("[WARN] can't get summary, %v", err)
+		return
+	}
+
+	// By default, rate limit to 15 messages per 2 minutes (1 per 8 sec)
+	// Telegram asks 30 sec of waiting after sending 20 messages
+	rl := rate.NewLimiter(l.SubmitRateLimit, l.SubmitRateBurst)
+	for i, sumMsg := range summaryMsgs {
+		if sumMsg == "" {
+			log.Printf("[WARN] empty summary item #%d for %q", i, msg)
+			continue
+		}
+		if err := rl.Wait(ctx); err != nil {
+			log.Printf("[WARN] can't wait for rate limit, %v", err)
+		}
+		if err := l.Submitter.SubmitHTML(ctx, sumMsg, false); err != nil {
+			log.Printf("[WARN] can't send summary, %v", err)
+		}
 	}
 }
 
@@ -102,39 +121,4 @@ func (l Rtjc) isPinned(msg string) (ok bool, m string) {
 		}
 	}
 	return false, msg
-}
-
-// summary returns short summary of the selected news article
-func (l Rtjc) summary(msg string) (title, content string, err error) {
-	re := regexp.MustCompile(`https?://[^\s"'<>]+`)
-	link := re.FindString(msg)
-	if strings.Contains(link, "radio-t.com") {
-		return "", "", nil // ignore radio-t.com links
-	}
-	log.Printf("[DEBUG] summary for link:%s", link)
-
-	rl := fmt.Sprintf("%s?token=%s&url=%s", l.UrAPI, l.UrToken, link)
-	resp, err := l.URClient.Get(rl)
-	if err != nil {
-		return "", "", fmt.Errorf("can't get summary for %s: %w", link, err)
-	}
-	defer resp.Body.Close() // nolint
-	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("can't get summary for %s: %d", link, resp.StatusCode)
-	}
-
-	urResp := struct {
-		Title   string `json:"title"`
-		Content string `json:"content"`
-	}{}
-	if decErr := json.NewDecoder(resp.Body).Decode(&urResp); decErr != nil {
-		return "", "", fmt.Errorf("can't decode summary for %s: %w", link, decErr)
-	}
-
-	res, err := l.OpenAISummary.Summary(urResp.Title + " - " + urResp.Content)
-	if err != nil {
-		return "", "", fmt.Errorf("can't get summary for %s: %w", link, err)
-	}
-
-	return urResp.Title, res, nil
 }

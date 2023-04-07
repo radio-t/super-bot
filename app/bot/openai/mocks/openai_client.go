@@ -9,18 +9,18 @@ import (
 	"sync"
 )
 
-// OpenAIClient is a mock implementation of bot.OpenAIClient.
+// OpenAIClient is a mock implementation of openai.openAIClient.
 //
-//	func TestSomethingThatUsesOpenAIClient(t *testing.T) {
+//	func TestSomethingThatUsesopenAIClient(t *testing.T) {
 //
-//		// make and configure a mocked bot.OpenAIClient
-//		mockedOpenAIClient := &OpenAIClient{
+//		// make and configure a mocked openai.openAIClient
+//		mockedopenAIClient := &OpenAIClient{
 //			CreateChatCompletionFunc: func(contextMoqParam context.Context, chatCompletionRequest openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
 //				panic("mock out the CreateChatCompletion method")
 //			},
 //		}
 //
-//		// use mockedOpenAIClient in code that requires bot.OpenAIClient
+//		// use mockedopenAIClient in code that requires openai.openAIClient
 //		// and then make assertions.
 //
 //	}
@@ -44,7 +44,7 @@ type OpenAIClient struct {
 // CreateChatCompletion calls CreateChatCompletionFunc.
 func (mock *OpenAIClient) CreateChatCompletion(contextMoqParam context.Context, chatCompletionRequest openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
 	if mock.CreateChatCompletionFunc == nil {
-		panic("OpenAIClient.CreateChatCompletionFunc: method is nil but OpenAIClient.CreateChatCompletion was just called")
+		panic("OpenAIClient.CreateChatCompletionFunc: method is nil but openAIClient.CreateChatCompletion was just called")
 	}
 	callInfo := struct {
 		ContextMoqParam       context.Context
@@ -62,7 +62,7 @@ func (mock *OpenAIClient) CreateChatCompletion(contextMoqParam context.Context, 
 // CreateChatCompletionCalls gets all the calls that were made to CreateChatCompletion.
 // Check the length with:
 //
-//	len(mockedOpenAIClient.CreateChatCompletionCalls())
+//	len(mockedopenAIClient.CreateChatCompletionCalls())
 func (mock *OpenAIClient) CreateChatCompletionCalls() []struct {
 	ContextMoqParam       context.Context
 	ChatCompletionRequest openai.ChatCompletionRequest

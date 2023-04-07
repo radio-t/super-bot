@@ -165,7 +165,7 @@ func TestWTFSteroidChecker_Contains(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &WTFSteroidChecker{
-				message: tt.fields.message,
+				Message: tt.fields.message,
 			}
 			if got := w.Contains(); got != tt.want {
 				t.Errorf("WTFSteroidChecker.Contains() = %v, want %v", got, tt.want)
@@ -323,7 +323,7 @@ func TestWTFSteroidChecker_ContainsWTF(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &WTFSteroidChecker{
-				message: tt.fields.message,
+				Message: tt.fields.message,
 			}
 			if got := w.ContainsWTF(); got != tt.want {
 				t.Errorf("WTFSteroidChecker.ContainsWTF() = %v, want %v", got, tt.want)

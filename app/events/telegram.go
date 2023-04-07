@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-pkgz/notify"
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 	"github.com/radio-t/super-bot/app/bot"
@@ -217,9 +218,12 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 		return nil
 	}
 
-	log.Printf("[DEBUG] bot response - %+v, pin: %t, reply-to:%d", resp.Text, resp.Pin, resp.ReplyTo)
+	log.Printf("[DEBUG] bot response - %+v, pin: %t, reply-to:%d, parse-mode:%s", resp.Text, resp.Pin, resp.ReplyTo, resp.ParseMode)
 	tbMsg := tbapi.NewMessage(chatID, resp.Text)
 	tbMsg.ParseMode = tbapi.ModeMarkdown
+	if resp.ParseMode != "" {
+		tbMsg.ParseMode = resp.ParseMode
+	}
 	tbMsg.DisableWebPagePreview = !resp.Preview
 	tbMsg.ReplyToMessageID = resp.ReplyTo
 	res, err := l.TbAPI.Send(tbMsg)
@@ -282,6 +286,20 @@ func (l *TelegramListener) Submit(ctx context.Context, text string, pin bool) er
 	case <-ctx.Done():
 		return ctx.Err()
 	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, Preview: true}:
+	}
+	return nil
+}
+
+// SubmitHTML message to telegram's group with HTML mode
+func (l *TelegramListener) SubmitHTML(ctx context.Context, text string, pin bool) error {
+	// Remove unsupported HTML tags
+	text = notify.TelegramSupportedHTML(text)
+	l.msgs.once.Do(func() { l.msgs.ch = make(chan bot.Response, 100) })
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, ParseMode: tbapi.ModeHTML, Preview: false}:
 	}
 	return nil
 }

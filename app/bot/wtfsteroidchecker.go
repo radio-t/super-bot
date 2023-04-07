@@ -12,7 +12,7 @@ import (
 // WTFSteroidChecker check if command wtf{!,?} is written with additional characters
 // "𝀥tf!" should be recognized as "wtf?" and so on
 type WTFSteroidChecker struct {
-	message string
+	Message string
 }
 
 // WTFUnicodeDiacriticLibrary contains diacritic unicode symbols that looks like "w","t","f","!","?"
@@ -456,7 +456,7 @@ func (w *WTFSteroidChecker) WTFUnicodeLibrary() map[string][]string {
 // https://pkg.go.dev/golang.org/x/text/runes#Remove
 func (w *WTFSteroidChecker) removeDiacritic() {
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	w.message, _, _ = transform.String(t, w.message)
+	w.Message, _, _ = transform.String(t, w.Message)
 }
 
 // removeUnicodeAnalog replace characters that looks like "w","t","f","!", "?" with their ASCII representation
@@ -464,7 +464,7 @@ func (w *WTFSteroidChecker) removeUnicodeAnalog() {
 	replaceMap := w.WTFUnicodeLibrary()
 	for mainLetter, listOfUnicodes := range replaceMap {
 		for _, unicodeSymbol := range listOfUnicodes {
-			w.message = strings.ReplaceAll(w.message, unicodeSymbol, mainLetter)
+			w.Message = strings.ReplaceAll(w.Message, unicodeSymbol, mainLetter)
 		}
 	}
 }
@@ -475,7 +475,7 @@ func (w *WTFSteroidChecker) removeUnicodeDiacriticAnalog() {
 	replaceMap := w.WTFUnicodeDiacriticLibrary()
 	for mainLetter, listOfUnicodes := range replaceMap {
 		for _, unicodeSymbol := range listOfUnicodes {
-			w.message = strings.ReplaceAll(w.message, unicodeSymbol, mainLetter)
+			w.Message = strings.ReplaceAll(w.Message, unicodeSymbol, mainLetter)
 		}
 	}
 }
@@ -484,28 +484,28 @@ func (w *WTFSteroidChecker) removeUnicodeDiacriticAnalog() {
 // Example: W؈T؈F؈! → WTF!
 // "Вот фон!" ↛ "wtf!" correct is "Вот фон!" → "wоt fон!"
 func (w *WTFSteroidChecker) removeNotASCIIAndNotRussian() {
-	w.message = strings.Map(func(r rune) rune {
+	w.Message = strings.Map(func(r rune) rune {
 		if r > unicode.MaxASCII && (r < 0x0400 || r > 0x04ff) {
 			return -1
 		}
 		return r
-	}, w.message)
+	}, w.Message)
 }
 
 // removeNotLetters delete all non-letter characters
 // Example w_t_f_!, w-t-f-! → wtf!
 func (w *WTFSteroidChecker) removeNotLetters() {
-	w.message = strings.Map(func(r rune) rune {
+	w.Message = strings.Map(func(r rune) rune {
 		if unicode.IsLetter(r) || r == '!' || r == '?' {
 			return r
 		}
 		return -1
-	}, w.message)
+	}, w.Message)
 }
 
 // CleanUp remove all bad symbols from message
 func (w *WTFSteroidChecker) CleanUp() {
-	w.message = strings.ToLower(w.message)
+	w.Message = strings.ToLower(w.Message)
 	w.removeUnicodeDiacriticAnalog()
 	w.removeDiacritic()
 	w.removeUnicodeAnalog()
@@ -519,7 +519,7 @@ func (w *WTFSteroidChecker) Contains() bool {
 	w.CleanUp()
 
 	// Straight and reverse order
-	return contains([]string{"wtf!", "wtf?"}, w.message) || contains([]string{"!ftw", "?ftw"}, w.message)
+	return contains([]string{"wtf!", "wtf?"}, w.Message) || contains([]string{"!ftw", "?ftw"}, w.Message)
 
 }
 
@@ -528,5 +528,5 @@ func (w *WTFSteroidChecker) ContainsWTF() bool {
 
 	w.CleanUp()
 
-	return strings.Contains(w.message, "wtf")
+	return strings.Contains(w.Message, "wtf")
 }

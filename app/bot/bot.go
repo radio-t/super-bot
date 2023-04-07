@@ -18,8 +18,8 @@ import (
 //go:generate moq --out mock_interface.go . Interface
 //go:generate moq --out mocks/super_user.go --pkg mocks --skip-ensure . SuperUser:SuperUser
 
-// genHelpMsg construct help message from bot's ReactOn
-func genHelpMsg(com []string, msg string) string {
+// GenHelpMsg construct help message from bot's ReactOn
+func GenHelpMsg(com []string, msg string) string {
 	return EscapeMarkDownV1Text(strings.Join(com, ", ")) + " _– " + msg + "_\n"
 }
 
@@ -41,6 +41,7 @@ type Response struct {
 	User        User          // user to ban
 	ChannelID   int64         // channel to ban, if set then User and BanInterval are ignored
 	ReplyTo     int           // message to reply to, if 0 then no reply but common message
+	ParseMode   string        // parse mode for message in Telegram (we use Markdown by default)
 }
 
 // HTTPClient wrap http.Client to allow mocking

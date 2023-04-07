@@ -16,7 +16,7 @@ type WhatsTheTime struct {
 
 // Host is structure with name and timezone
 type Host struct {
-	Name string
+	Name     string
 	Timezone string
 }
 
@@ -43,7 +43,7 @@ func (w *WhatsTheTime) loadTimeData(dataLocation string) error {
 			continue
 		}
 		host := Host{
-			Name: elems[0],
+			Name:     elems[0],
 			Timezone: elems[1],
 		}
 		w.hosts = append(w.hosts, host)
@@ -59,7 +59,7 @@ func (w *WhatsTheTime) OnMessage(msg Message) (response Response) {
 	}
 
 	return Response{
-		Text: buildResponseText(time.Now(), w.hosts), 
+		Text: buildResponseText(time.Now(), w.hosts),
 		Send: true,
 	}
 }
@@ -84,5 +84,5 @@ func (w *WhatsTheTime) ReactOn() []string {
 
 // Help returns help message
 func (w *WhatsTheTime) Help() (line string) {
-	return genHelpMsg(w.ReactOn(), "подcкажет время у ведущих")
+	return GenHelpMsg(w.ReactOn(), "подcкажет время у ведущих")
 }

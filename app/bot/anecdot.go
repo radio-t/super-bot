@@ -26,7 +26,7 @@ func NewAnecdote(client HTTPClient) *Anecdote {
 
 // Help returns help message
 func (a Anecdote) Help() string {
-	return genHelpMsg(a.ReactOn(), "расскажет анекдот или шутку")
+	return GenHelpMsg(a.ReactOn(), "расскажет анекдот или шутку")
 }
 
 // OnMessage returns one entry

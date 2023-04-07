@@ -14,13 +14,15 @@ import (
 	"github.com/go-pkgz/requester"
 	"github.com/go-pkgz/requester/middleware"
 	"github.com/go-pkgz/requester/middleware/logger"
+	"github.com/go-pkgz/syncs"
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jessevdk/go-flags"
-
 	"github.com/radio-t/super-bot/app/bot"
+	"github.com/radio-t/super-bot/app/bot/openai"
 	"github.com/radio-t/super-bot/app/events"
 	"github.com/radio-t/super-bot/app/reporter"
 	"github.com/radio-t/super-bot/app/storage"
+	"golang.org/x/time/rate"
 )
 
 var opts struct {
@@ -44,9 +46,11 @@ var opts struct {
 	ExportBroadcastUsers events.SuperUser `long:"broadcast" description:"broadcast-users"`
 
 	OpenAI struct {
-		AuthToken string `long:"token" env:"AUTH_TOKEN" description:"OpenAI auth token"`
-		MaxTokens int    `long:"max-tokens" env:"MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
-		Prompt    string `long:"prompt" env:"PROMPT" default:"" description:"OpenAI prompt"`
+		AuthToken         string `long:"token" env:"AUTH_TOKEN" description:"OpenAI auth token"`
+		MaxTokensResponse int    `long:"max-tokens" env:"MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
+		MaxTokensRequest  int    `long:"max-tokens-request" env:"MAX_TOKENS_REQUEST" default:"3000" description:"OpenAI max tokens in request"`
+		MaxSymbolsRequest int    `long:"max-symbols-request" env:"MAX_SYMBOLS_REQUEST" default:"12000" description:"OpenAI max symbols in request for fallback logic"`
+		Prompt            string `long:"prompt" env:"PROMPT" default:"" description:"OpenAI prompt"`
 
 		EnableAutoResponse      bool `long:"auto-response" env:"AUTO_RESPONSE" description:"enable auto response from OpenAI"`
 		HistorySize             int  `long:"history-size" env:"HISTORY_SIZE" default:"5" description:"OpenAI history size for context answers"`
@@ -55,8 +59,16 @@ var opts struct {
 		Timeout time.Duration `long:"timeout" env:"TIMEOUT" default:"120s" description:"OpenAI timeout in seconds"`
 	} `group:"openai" namespace:"openai" env-namespace:"OPENAI"`
 
-	UreadabilityAPI   string `long:"ur-api" env:"UREADABILITY_API" default:"https://ureadability.radio-t.com/api/content/v1/parser" description:"uReadability API"`
-	UreadabilityToken string `long:"ur-token" env:"UREADABILITY_TOKEN" default:"undefined" description:"uReadability token"`
+	RemarkAPI            string `long:"remark-api" env:"REMARK_API" default:"https://remark42.radio-t.com/api/v1/find" description:"Remark API"`
+	UreadabilityAPI      string `long:"ur-api" env:"UREADABILITY_API" default:"https://ureadability.radio-t.com/api/content/v1/parser" description:"uReadability API"`
+	UreadabilityToken    string `long:"ur-token" env:"UREADABILITY_TOKEN" default:"undefined" description:"uReadability token"`
+	SummarizerThreadsNum int    `long:"summarizer-threads" env:"SUMMARIZER_THREADS" default:"5" description:"Number of threads in summarizer"`
+
+	RtjcParams struct {
+		SwgSize   int   `long:"swg-size" env:"SWG_SIZE" default:"10" description:"Rtjc sized waiting group size"`
+		RateSec   int64 `long:"rate-sec" env:"RATE_SEC" default:"8" description:"Rtjc submit rate limit seconds between submits"`
+		RateBurst int   `long:"rate-burst" env:"RATE_BURST" default:"5" description:"Rtjc submit rate limit burst"`
+	} `group:"rtjc" namespace:"rtjc" env-namespace:"RTJC"`
 
 	Dbg bool `long:"dbg" env:"DEBUG" description:"debug mode"`
 }
@@ -89,9 +101,11 @@ func main() {
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	// 5 seconds is not enough for OpenAI requests
 	httpClientOpenAI := makeOpenAIHttpClient()
-	openAIBot := bot.NewOpenAI(bot.OpenAIParams{
+	openAIBot := openai.NewOpenAI(openai.Params{
 		AuthToken:               opts.OpenAI.AuthToken,
-		MaxTokens:               opts.OpenAI.MaxTokens,
+		MaxTokensResponse:       opts.OpenAI.MaxTokensResponse,
+		MaxTokensRequest:        opts.OpenAI.MaxTokensRequest,
+		MaxSymbolsRequest:       opts.OpenAI.MaxSymbolsRequest,
 		Prompt:                  opts.OpenAI.Prompt,
 		HistorySize:             opts.OpenAI.HistorySize,
 		HistoryReplyProbability: opts.OpenAI.HistoryReplyProbability,
@@ -164,13 +178,32 @@ func main() {
 		SuperUsers:             opts.SuperUsers,
 	}
 
+	remarkClient := openai.RemarkClient{
+		Client: httpClient,
+		API:    opts.RemarkAPI,
+	}
+
+	uKeeperClient := openai.UKeeperClient{
+		Client: httpClient,
+		API:    opts.UreadabilityAPI,
+		Token:  opts.UreadabilityToken,
+	}
+
+	summarizer := openai.NewSummarizer(
+		openAIBot,
+		remarkClient,
+		uKeeperClient,
+		opts.SummarizerThreadsNum,
+		opts.Dbg,
+	)
+
 	rtjc := events.Rtjc{
-		Port:          opts.RtjcPort,
-		Submitter:     &tgListener,
-		UrAPI:         opts.UreadabilityAPI,
-		UrToken:       opts.UreadabilityToken,
-		URClient:      httpClient,
-		OpenAISummary: openAIBot,
+		Port:            opts.RtjcPort,
+		Submitter:       &tgListener,
+		Summarizer:      summarizer,
+		Swg:             syncs.NewSizedGroup(opts.RtjcParams.SwgSize),
+		SubmitRateBurst: opts.RtjcParams.RateBurst,
+		SubmitRateLimit: rate.Limit(1 / float64(opts.RtjcParams.RateSec)),
 	}
 	go rtjc.Listen(ctx)
 

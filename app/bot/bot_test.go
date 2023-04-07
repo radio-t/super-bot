@@ -9,7 +9,7 @@ import (
 )
 
 func TestGenHelpMsg(t *testing.T) {
-	require.Equal(t, "cmd _– description_\n", genHelpMsg([]string{"cmd"}, "description"))
+	require.Equal(t, "cmd _– description_\n", GenHelpMsg([]string{"cmd"}, "description"))
 }
 
 func TestMultiBotHelp(t *testing.T) {
@@ -21,7 +21,7 @@ func TestMultiBotHelp(t *testing.T) {
 	}}
 
 	// Must return concatenated b1 and b2 without space
-	// Line formatting only in genHelpMsg()
+	// Line formatting only in GenHelpMsg()
 	require.Equal(t, "b1 help\nb2 help\n", MultiBot{b1, b2}.Help())
 }
 

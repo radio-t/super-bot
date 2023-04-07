@@ -18,7 +18,7 @@ func NewWhen() *When {
 
 // Help returns help message
 func (w *When) Help() string {
-	return genHelpMsg(w.ReactOn(), "расписание эфиров Радио-Т")
+	return GenHelpMsg(w.ReactOn(), "расписание эфиров Радио-Т")
 }
 
 // OnMessage returns one entry

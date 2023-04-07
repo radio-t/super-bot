@@ -1,4 +1,4 @@
-package bot
+package openai
 
 import (
 	"context"
@@ -9,20 +9,27 @@ import (
 	"strings"
 	"time"
 
+	"github.com/radio-t/super-bot/app/bot"
+	tokenizer "github.com/sandwich-go/gpt3-encoder"
+
 	"github.com/sashabaranov/go-openai"
 )
 
-//go:generate moq --out mocks/openai_client.go --pkg mocks --skip-ensure . OpenAIClient:OpenAIClient
+//go:generate moq --out mocks/openai_client.go --pkg mocks --skip-ensure . openAIClient:OpenAIClient
 
-// OpenAIClient is interface for OpenAI client with the possibility to mock it
-type OpenAIClient interface {
+// openAIClient is interface for OpenAI client with the possibility to mock it
+type openAIClient interface {
 	CreateChatCompletion(context.Context, openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
 }
 
-// OpenAIParams contains parameters for OpenAI bot
-type OpenAIParams struct {
-	AuthToken               string
-	MaxTokens               int
+// Params contains parameters for OpenAI bot
+type Params struct {
+	AuthToken string
+	// https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
+	MaxTokensResponse int // Hard limit for the number of tokens in the response
+	// The OpenAI has a limit for the number of tokens in the request + response (4097)
+	MaxTokensRequest        int // Max request length in tokens
+	MaxSymbolsRequest       int // Fallback: Max request length in symbols, if tokenizer was failed
 	Prompt                  string
 	EnableAutoResponse      bool
 	HistorySize             int
@@ -31,10 +38,10 @@ type OpenAIParams struct {
 
 // OpenAI bot, returns responses from ChatGPT via OpenAI API
 type OpenAI struct {
-	client OpenAIClient
+	client openAIClient
 
-	params    OpenAIParams
-	superUser SuperUser
+	params    Params
+	superUser bot.SuperUser
 
 	history LimitedMessageHistory
 	rand    func(n int64) int64 // tests may change it
@@ -43,14 +50,10 @@ type OpenAI struct {
 	lastDT time.Time
 }
 
-var maxMsgLen = 14000
-
 // NewOpenAI makes a bot for ChatGPT
-// MaxTokens is hard limit for the number of tokens in the response
-// https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
-func NewOpenAI(params OpenAIParams, httpClient *http.Client, superUser SuperUser) *OpenAI {
+func NewOpenAI(params Params, httpClient *http.Client, superUser bot.SuperUser) *OpenAI {
 	log.Printf("[INFO] OpenAI bot with github.com/sashabaranov/go-openai, Prompt=%s, max=%d. Auto response is %v",
-		params.Prompt, params.MaxTokens, params.EnableAutoResponse)
+		params.Prompt, params.MaxTokensResponse, params.EnableAutoResponse)
 
 	openAIConfig := openai.DefaultConfig(params.AuthToken)
 	openAIConfig.HTTPClient = httpClient
@@ -62,12 +65,12 @@ func NewOpenAI(params OpenAIParams, httpClient *http.Client, superUser SuperUser
 }
 
 // OnMessage pass msg to all bots and collects responses
-func (o *OpenAI) OnMessage(msg Message) (response Response) {
+func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 	ok, reqText := o.request(msg.Text)
 	if !ok {
 		if !o.params.EnableAutoResponse || msg.Text == "idle" || len(msg.Text) < 8 {
 			// don't answer on short messages or "idle" command or if auto response is disabled
-			return Response{}
+			return bot.Response{}
 		}
 
 		// All the non-matching requests processed for the reactions based on the history.
@@ -75,23 +78,23 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 		o.history.Add(msg)
 
 		if !o.shouldAnswerWithHistory(msg) {
-			return Response{}
+			return bot.Response{}
 		}
 
 		responseAI, err := o.chatGPTRequestWithHistory("You answer with no more than 50 words, should be in Russian language")
 		if err != nil {
 			log.Printf("[WARN] failed to make context request to ChatGPT error=%v", err)
-			return Response{}
+			return bot.Response{}
 		}
 		log.Printf("[DEBUG] OpenAI bot answer with history: %q", responseAI)
-		return Response{
+		return bot.Response{
 			Text: responseAI,
 			Send: true,
 		}
 	}
 
 	if ok, banMessage := o.checkRequest(msg.From.Username, reqText); !ok {
-		return Response{
+		return bot.Response{
 			Text:        banMessage,
 			Send:        true,
 			BanInterval: time.Hour,
@@ -103,11 +106,11 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 	responseAI, err := o.chatGPTRequest(reqText, o.params.Prompt, "You answer with no more than 50 words")
 	if err != nil {
 		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
-		return Response{}
+		return bot.Response{}
 	}
 
 	if ok, banMessage := o.checkResponseAI(msg.From.Username, responseAI); !ok {
-		return Response{
+		return bot.Response{
 			Text:        banMessage,
 			Send:        true,
 			BanInterval: time.Hour,
@@ -122,7 +125,7 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 
 	log.Printf("[DEBUG] next request to ChatGPT can be made after %s, in %d minutes",
 		o.lastDT.Add(30*time.Minute), int(30-time.Since(o.lastDT).Minutes()))
-	return Response{
+	return bot.Response{
 		Text:    responseAI,
 		Send:    true,
 		ReplyTo: msg.ID, // reply to the message
@@ -144,7 +147,7 @@ func (o *OpenAI) checkRequest(username, text string) (ok bool, banMessage string
 		return true, ""
 	}
 
-	wtfContains := WTFSteroidChecker{message: text}
+	wtfContains := bot.WTFSteroidChecker{Message: text}
 
 	if wtfContains.ContainsWTF() {
 		log.Printf("[WARN] OpenAI bot has wtf request, %s banned", username)
@@ -168,7 +171,7 @@ func (o *OpenAI) checkResponseAI(username, responseAI string) (ok bool, banMessa
 		return true, ""
 	}
 
-	wtfContains := WTFSteroidChecker{message: responseAI}
+	wtfContains := bot.WTFSteroidChecker{Message: responseAI}
 
 	if wtfContains.ContainsWTF() {
 		log.Printf("[WARN] OpenAI bot response contains wtf, User %s banned", username)
@@ -180,18 +183,49 @@ func (o *OpenAI) checkResponseAI(username, responseAI string) (ok bool, banMessa
 
 // Help returns help message
 func (o *OpenAI) Help() string {
-	return genHelpMsg(o.ReactOn(), "Спросите что-нибудь у ChatGPT")
+	return bot.GenHelpMsg(o.ReactOn(), "Спросите что-нибудь у ChatGPT")
 }
 
 func (o *OpenAI) chatGPTRequest(request, userPrompt, sysPrompt string) (response string, err error) {
+	// Reduce the request size with tokenizer and fallback to default reducer if it fails
+	// The API supports 4097 tokens ~16000 characters (<=4 per token) for request + result together
+	// The response is limited to 1000 tokens and OpenAI always reserved it for the result
+	// So the max length of the request should be 3000 tokens or ~12000 characters
+	reduceRequest := func(text string) (result string) {
+		// defaultReducer is a fallback if tokenizer fails
+		defaultReducer := func(text string) (result string) {
+			if len(text) <= o.params.MaxSymbolsRequest {
+				return text
+			}
+
+			return text[:o.params.MaxSymbolsRequest]
+		}
+
+		encoder, err := tokenizer.NewEncoder()
+		if err != nil {
+			log.Printf("[WARN] Can't init tokenizer: %v", err)
+			return defaultReducer(text)
+		}
+
+		tokens, err := encoder.Encode(text)
+		if err != nil {
+			log.Printf("[WARN] Can't encode request: %v", err)
+			return defaultReducer(text)
+		}
+
+		if len(tokens) <= o.params.MaxTokensRequest {
+			return text
+		}
+
+		return encoder.Decode(tokens[:o.params.MaxTokensRequest])
+	}
+
 	r := request
 	if userPrompt != "" {
 		r = userPrompt + ".\n" + request
 	}
 
-	if len(r) > maxMsgLen {
-		r = r[:maxMsgLen]
-	}
+	r = reduceRequest(r)
 
 	return o.chatGPTRequestInternal([]openai.ChatCompletionMessage{
 		{
@@ -205,7 +239,7 @@ func (o *OpenAI) chatGPTRequest(request, userPrompt, sysPrompt string) (response
 	})
 }
 
-func (o *OpenAI) shouldAnswerWithHistory(msg Message) bool {
+func (o *OpenAI) shouldAnswerWithHistory(msg bot.Message) bool {
 	if o.history.count < o.history.limit {
 		return false
 	}
@@ -242,7 +276,7 @@ func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage)
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:     openai.GPT3Dot5Turbo,
-			MaxTokens: o.params.MaxTokens,
+			MaxTokens: o.params.MaxTokensResponse,
 			Messages:  messages,
 		},
 	)

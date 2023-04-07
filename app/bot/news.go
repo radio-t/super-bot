@@ -29,7 +29,7 @@ func NewNews(client HTTPClient, api string, max int) *News {
 
 // Help returns help message
 func (n News) Help() string {
-	return genHelpMsg(n.ReactOn(), "5 последних новостей для Радио-Т")
+	return GenHelpMsg(n.ReactOn(), "5 последних новостей для Радио-Т")
 }
 
 // OnMessage returns N last news articles

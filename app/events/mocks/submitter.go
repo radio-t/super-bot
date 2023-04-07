@@ -17,6 +17,9 @@ import (
 //			SubmitFunc: func(ctx context.Context, text string, pin bool) error {
 //				panic("mock out the Submit method")
 //			},
+//			SubmitHTMLFunc: func(ctx context.Context, text string, pin bool) error {
+//				panic("mock out the SubmitHTML method")
+//			},
 //		}
 //
 //		// use mockedsubmitter in code that requires events.submitter
@@ -26,6 +29,9 @@ import (
 type Submitter struct {
 	// SubmitFunc mocks the Submit method.
 	SubmitFunc func(ctx context.Context, text string, pin bool) error
+
+	// SubmitHTMLFunc mocks the SubmitHTML method.
+	SubmitHTMLFunc func(ctx context.Context, text string, pin bool) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -38,8 +44,18 @@ type Submitter struct {
 			// Pin is the pin argument value.
 			Pin bool
 		}
+		// SubmitHTML holds details about calls to the SubmitHTML method.
+		SubmitHTML []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Text is the text argument value.
+			Text string
+			// Pin is the pin argument value.
+			Pin bool
+		}
 	}
-	lockSubmit sync.RWMutex
+	lockSubmit     sync.RWMutex
+	lockSubmitHTML sync.RWMutex
 }
 
 // Submit calls SubmitFunc.
@@ -79,5 +95,45 @@ func (mock *Submitter) SubmitCalls() []struct {
 	mock.lockSubmit.RLock()
 	calls = mock.calls.Submit
 	mock.lockSubmit.RUnlock()
+	return calls
+}
+
+// SubmitHTML calls SubmitHTMLFunc.
+func (mock *Submitter) SubmitHTML(ctx context.Context, text string, pin bool) error {
+	if mock.SubmitHTMLFunc == nil {
+		panic("Submitter.SubmitHTMLFunc: method is nil but submitter.SubmitHTML was just called")
+	}
+	callInfo := struct {
+		Ctx  context.Context
+		Text string
+		Pin  bool
+	}{
+		Ctx:  ctx,
+		Text: text,
+		Pin:  pin,
+	}
+	mock.lockSubmitHTML.Lock()
+	mock.calls.SubmitHTML = append(mock.calls.SubmitHTML, callInfo)
+	mock.lockSubmitHTML.Unlock()
+	return mock.SubmitHTMLFunc(ctx, text, pin)
+}
+
+// SubmitHTMLCalls gets all the calls that were made to SubmitHTML.
+// Check the length with:
+//
+//	len(mockedsubmitter.SubmitHTMLCalls())
+func (mock *Submitter) SubmitHTMLCalls() []struct {
+	Ctx  context.Context
+	Text string
+	Pin  bool
+} {
+	var calls []struct {
+		Ctx  context.Context
+		Text string
+		Pin  bool
+	}
+	mock.lockSubmitHTML.RLock()
+	calls = mock.calls.SubmitHTML
+	mock.lockSubmitHTML.RUnlock()
 	return calls
 }

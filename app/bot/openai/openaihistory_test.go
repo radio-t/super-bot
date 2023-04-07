@@ -1,7 +1,8 @@
-package bot
+package openai
 
 import (
 	"fmt"
+	"github.com/radio-t/super-bot/app/bot"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ func Test_LimitedMessageHistory(t *testing.T) {
 
 			// Add `limit` messages to the storage
 			for i := 0; i < tt.limit; i++ {
-				history.Add(Message{
+				history.Add(bot.Message{
 					ID:   i,
 					Text: fmt.Sprintf("test %d", i),
 				})
@@ -40,7 +41,7 @@ func Test_LimitedMessageHistory(t *testing.T) {
 			// Add messages to the storage. This should remove the oldest messages
 			for j := 0; j < 3; j++ {
 				newID := tt.limit + j
-				history.Add(Message{
+				history.Add(bot.Message{
 					ID:   newID,
 					Text: fmt.Sprintf("test %d", newID),
 				})

@@ -27,7 +27,7 @@ func NewWTF(minDuration, maxDuration time.Duration, superUser SuperUser) *WTF {
 func (w *WTF) OnMessage(msg Message) (response Response) {
 
 	wtfContains := WTFSteroidChecker{
-		message: msg.Text}
+		Message: msg.Text}
 
 	if !wtfContains.Contains() {
 		return Response{}
@@ -104,5 +104,5 @@ func (w *WTF) ReactOn() []string {
 
 // Help returns help message
 func (w *WTF) Help() string {
-	return genHelpMsg(w.ReactOn(), "если не повезет, блокирует пользователя на какое-то время")
+	return GenHelpMsg(w.ReactOn(), "если не повезет, блокирует пользователя на какое-то время")
 }

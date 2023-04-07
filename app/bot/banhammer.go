@@ -39,7 +39,7 @@ func NewBanhammer(tgClient TgBanClient, superUser SuperUser, maxRecentUsers int)
 
 // Help returns help message
 func (b *Banhammer) Help() string {
-	return genHelpMsg(b.ReactOn(), "забанить/разбанить (только для админов)")
+	return GenHelpMsg(b.ReactOn(), "забанить/разбанить (только для админов)")
 }
 
 // ReactOn keys

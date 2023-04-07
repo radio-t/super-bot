@@ -41,7 +41,7 @@ func NewSys(dataLocation string) (*Sys, error) {
 // Help returns help message
 func (p *Sys) Help() (line string) {
 	for _, c := range p.commands {
-		line += genHelpMsg(c.triggers, c.description)
+		line += GenHelpMsg(c.triggers, c.description)
 	}
 	return line
 }

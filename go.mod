@@ -7,11 +7,11 @@ require (
 	github.com/go-pkgz/lgr v0.11.0
 	github.com/go-pkgz/repeater v1.1.3
 	github.com/go-pkgz/requester v0.1.0
-	github.com/go-pkgz/syncs v1.2.0
+	github.com/go-pkgz/syncs v1.3.0
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/sashabaranov/go-openai v1.5.8
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	golang.org/x/text v0.8.0
 )
 

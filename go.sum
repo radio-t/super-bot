@@ -26,6 +26,8 @@ github.com/go-pkgz/requester v0.1.0 h1:+b/+JYL/dWwzaCIii2wV77Y0YteQWNZAP2YxQz3VY
 github.com/go-pkgz/requester v0.1.0/go.mod h1:0eI1FnyGdfNljnW7ksVDTcdogvYM+r+CnO/Qr4UdaT8=
 github.com/go-pkgz/syncs v1.2.0 h1:aiizQFILlMZ4KtRNaYLcDffRbUQZH9fclsgr5KybWyY=
 github.com/go-pkgz/syncs v1.2.0/go.mod h1:fjThZdM2FkC/oSeiqBTOZOtHpbrCh4HuHbipB5qZJJM=
+github.com/go-pkgz/syncs v1.3.0 h1:SS5hJRQFKOdYBzxcVvW/CDQ07VJncOlRqrAiQ6sXulQ=
+github.com/go-pkgz/syncs v1.3.0/go.mod h1:qjgzpp7OpuhDf7BWsW/FHCu9DLjE32NPy6/vXAXT/Cw=
 github.com/go-redis/redis/v8 v8.11.5 h1:AcZZR7igkdvfVmQTPnu9WE37LRrO/YrBH5zWyjDC0oI=
 github.com/go-redis/redis/v8 v8.11.5/go.mod h1:gREzHqY1hg6oD9ngVRbLStwAWKhA0FEgq8Jd4h5lpwo=
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0/go.mod h1:fyg7847qk6SyHyPtNmDHnmrv/HOrqktSC+C9fM+CJOE=
@@ -92,6 +94,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
+github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/gopher-lua v0.0.0-20210529063254-f4c35e4016d9 h1:k/gmLsJDWwWqbLCur2yWnJzwQEKRcAHXo6seXGuSwWw=
 github.com/yuin/gopher-lua v0.0.0-20210529063254-f4c35e4016d9/go.mod h1:E1AXubJBdNmFERAOucpDIxNzeGfLzg0mYh+UfMWdChA=

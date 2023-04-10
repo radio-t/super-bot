@@ -419,11 +419,13 @@ func TestOpenAI_request(t *testing.T) {
 		req  string
 	}{
 		{"chat! valid request", true, "valid request"},
+		{"Chat! valid request", true, "valid request"},
 		{"", false, ""},
 		{"not valid request", false, ""},
 		{"chat not valid request", false, ""},
 		{"blah chat! test", false, ""},
 		{"gpt! chat test", true, "chat test"},
+		{"gPt! 😮‍💨 unicode case", true, "😮‍💨 unicode case"},
 	}
 
 	o := &OpenAI{}

@@ -130,9 +130,10 @@ func (o *OpenAI) OnMessage(msg Message) (response Response) {
 }
 
 func (o *OpenAI) request(text string) (react bool, reqText string) {
+	textLowerCase := strings.ToLower(text)
 	for _, prefix := range o.ReactOn() {
-		if strings.HasPrefix(text, prefix) {
-			return true, strings.TrimSpace(strings.TrimPrefix(text, prefix))
+		if strings.HasPrefix(textLowerCase, prefix) {
+			return true, strings.TrimSpace(text[len(prefix):])
 		}
 	}
 	return false, ""

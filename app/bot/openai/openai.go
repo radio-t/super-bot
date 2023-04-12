@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/radio-t/super-bot/app/bot"
 	tokenizer "github.com/sandwich-go/gpt3-encoder"
-
 	"github.com/sashabaranov/go-openai"
+
+	"github.com/radio-t/super-bot/app/bot"
 )
 
 //go:generate moq --out mocks/openai_client.go --pkg mocks --skip-ensure . openAIClient:OpenAIClient

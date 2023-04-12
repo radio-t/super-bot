@@ -17,12 +17,13 @@ import (
 	"github.com/go-pkgz/syncs"
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jessevdk/go-flags"
+	"golang.org/x/time/rate"
+
 	"github.com/radio-t/super-bot/app/bot"
 	"github.com/radio-t/super-bot/app/bot/openai"
 	"github.com/radio-t/super-bot/app/events"
 	"github.com/radio-t/super-bot/app/reporter"
 	"github.com/radio-t/super-bot/app/storage"
-	"golang.org/x/time/rate"
 )
 
 var opts struct {

@@ -2,10 +2,11 @@ package openai
 
 import (
 	"fmt"
-	"github.com/radio-t/super-bot/app/bot"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/radio-t/super-bot/app/bot"
 )
 
 func Test_LimitedMessageHistory(t *testing.T) {

@@ -220,9 +220,9 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 
 	log.Printf("[DEBUG] bot response - %+v, pin: %t, reply-to:%d, parse-mode:%s", resp.Text, resp.Pin, resp.ReplyTo, resp.ParseMode)
 	tbMsg := tbapi.NewMessage(chatID, resp.Text)
-	tbMsg.ParseMode = tbapi.ModeMarkdown
+	tbMsg.ParseMode = string(bot.ParseModeMarkdown)
 	if resp.ParseMode != "" {
-		tbMsg.ParseMode = resp.ParseMode
+		tbMsg.ParseMode = string(resp.ParseMode)
 	}
 	tbMsg.DisableWebPagePreview = !resp.Preview
 	tbMsg.ReplyToMessageID = resp.ReplyTo
@@ -299,7 +299,7 @@ func (l *TelegramListener) SubmitHTML(ctx context.Context, text string, pin bool
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, ParseMode: tbapi.ModeHTML, Preview: false}:
+	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, ParseMode: bot.ParseModeHTML, Preview: false}:
 	}
 	return nil
 }

@@ -44,6 +44,7 @@ const (
 // Response describes bot's answer on particular message
 type Response struct {
 	Text        string
+	AltText     []string      // Additional texts which will be available though inline keyboard
 	Send        bool          // status
 	Pin         bool          // enable pin
 	Unpin       bool          // enable unpin

@@ -166,6 +166,8 @@ func main() {
 		Exclude:       opts.SuperUsers,
 	}
 
+	flipbook := events.NewFlipbook()
+
 	tgListener := events.TelegramListener{
 		TbAPI:                  tbAPI,
 		AllActivityTerm:        allActivityTerm,
@@ -177,6 +179,7 @@ func main() {
 		Debug:                  opts.Dbg,
 		IdleDuration:           opts.IdleDuration,
 		SuperUsers:             opts.SuperUsers,
+		Flipbook:               flipbook,
 	}
 
 	remarkClient := openai.RemarkClient{

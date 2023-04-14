@@ -32,6 +32,7 @@ type TelegramListener struct {
 	OverallBotActivityTerm Terminator // bot-only activity for all users
 	SuperUsers             SuperUser
 	chatID                 int64
+	Flipbook               Flipbook // Storage for multi-text messages
 
 	msgs struct {
 		once sync.Once
@@ -226,6 +227,21 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	}
 	tbMsg.DisableWebPagePreview = !resp.Preview
 	tbMsg.ReplyToMessageID = resp.ReplyTo
+
+	if len(resp.AltText) > 0 {
+		key, err := l.Flipbook.Save(resp)
+		if err != nil {
+			log.Printf("[WARN] can't save flipbook: %v", err)
+		} else {
+			tbMsg.ReplyMarkup = tbapi.NewInlineKeyboardMarkup(
+				tbapi.NewInlineKeyboardRow(
+					//tbapi.NewInlineKeyboardButtonData("⬅️ Сюда", "prev|-1"),
+					tbapi.NewInlineKeyboardButtonData("Туда ➡️", fmt.Sprintf("%s|%d", key, 1)),
+				),
+			)
+		}
+	}
+
 	res, err := l.TbAPI.Send(tbMsg)
 	if err != nil {
 		return fmt.Errorf("can't send message to telegram %q: %w", resp.Text, err)
@@ -278,30 +294,45 @@ func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, cha
 	return nil
 }
 
-// Submit message text to telegram's group
-func (l *TelegramListener) Submit(ctx context.Context, text string, pin bool) error {
+func (l *TelegramListener) submitResponse(ctx context.Context, resp bot.Response) error {
 	l.msgs.once.Do(func() { l.msgs.ch = make(chan bot.Response, 100) })
 
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, Preview: true}:
+	case l.msgs.ch <- resp:
 	}
 	return nil
+}
+
+// Submit message text to telegram's group
+func (l *TelegramListener) Submit(ctx context.Context, text string, pin bool) error {
+	return l.submitResponse(ctx, bot.Response{Text: text, Pin: pin, Send: true, Preview: true})
 }
 
 // SubmitHTML message to telegram's group with HTML mode
 func (l *TelegramListener) SubmitHTML(ctx context.Context, text string, pin bool) error {
 	// Remove unsupported HTML tags
 	text = notify.TelegramSupportedHTML(text)
-	l.msgs.once.Do(func() { l.msgs.ch = make(chan bot.Response, 100) })
+	return l.submitResponse(ctx, bot.Response{Text: text, Pin: pin, Send: true, ParseMode: bot.ParseModeHTML, Preview: false})
+}
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, ParseMode: bot.ParseModeHTML, Preview: false}:
+// SubmitHTML message to telegram's group with HTML mode
+func (l *TelegramListener) SubmitMultiHTML(ctx context.Context, texts []string, pin bool) error {
+	if len(texts) == 0 {
+		return fmt.Errorf("SubmitMultiHTML: texts is empty")
 	}
-	return nil
+
+	// Remove unsupported HTML tags
+	filteredTexts := make([]string, 0, len(texts))
+	for _, text := range texts {
+		filteredTexts = append(filteredTexts, notify.TelegramSupportedHTML(text))
+	}
+
+	text := filteredTexts[0]
+	filteredTexts = filteredTexts[1:]
+
+	return l.submitResponse(ctx, bot.Response{Text: text, AltText: filteredTexts, Pin: pin, Send: true, ParseMode: bot.ParseModeHTML, Preview: false})
 }
 
 func (l *TelegramListener) getChatID(group string) (int64, error) {

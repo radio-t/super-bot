@@ -40,7 +40,7 @@ func (f Flipbook) Save(message bot.Response) (key string, err error) {
 	return key, nil
 }
 
-func (f Flipbook) Get(key string, page int) (message string, nextPage, prevPage int, err error) {
+func (f Flipbook) Get(key string, page int) (message string, prevPage, nextPage int, err error) {
 	val, err := f.cache.Get(key, func() (interface{}, error) {
 		return nil, fmt.Errorf("not found")
 	})
@@ -58,7 +58,7 @@ func (f Flipbook) Get(key string, page int) (message string, nextPage, prevPage 
 			nextPage = -1
 		}
 
-		return msg.Text, nextPage, prevPage, nil
+		return msg.Text, prevPage, nextPage, nil
 	}
 
 	if page > len(msg.AltText) {

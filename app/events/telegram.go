@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -81,6 +82,11 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 		case update, ok := <-updates:
 			if !ok {
 				return fmt.Errorf("telegram update chan closed")
+			}
+
+			if update.CallbackQuery != nil {
+				l.processCallbackQuery(update.CallbackQuery)
+				continue
 			}
 
 			if update.Message == nil {
@@ -164,6 +170,70 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 	}
 }
 
+func (l *TelegramListener) processCallbackQuery(cbq *tbapi.CallbackQuery) {
+	if cbq.Message == nil {
+		log.Printf("[WARN] callback query without message")
+		return
+	}
+
+	if cbq.Message.Chat == nil {
+		log.Printf("[WARN] callback query without message chat")
+		return
+	}
+
+	if cbq.Message.Chat.ID != l.chatID {
+		log.Printf("[WARN] callback query from different chat")
+		return
+	}
+
+	msg := l.transform(cbq.Message)
+
+	if !l.SuperUsers.IsSuper(cbq.From.UserName) {
+		callback := tbapi.NewCallbackWithAlert(cbq.ID, fmt.Sprintf("You are banned!"))
+		_, _ = l.TbAPI.Request(callback)
+		return
+	}
+
+	callback := tbapi.NewCallback(cbq.ID, fmt.Sprintf("Updating"))
+	_, _ = l.TbAPI.Request(callback)
+
+	parts := strings.SplitN(cbq.Data, "|", 2)
+	if len(parts) < 2 {
+		log.Printf("[WARN] callback query data is invalid")
+		return
+	}
+
+	key := parts[0]
+	page, err := strconv.Atoi(parts[1])
+	if err != nil {
+		log.Printf("[WARN] callback query data is invalid")
+		return
+	}
+
+	text, prev, next, err := l.Flipbook.Get(key, page)
+	if err != nil {
+		log.Printf("[WARN] Can't get flipbook page: %v", err)
+		return
+	}
+
+	row := make([]tbapi.InlineKeyboardButton, 0)
+	if prev != -1 {
+		row = append(row, tbapi.NewInlineKeyboardButtonData("⬅️ Сюда", fmt.Sprintf("%s|%d", key, prev)))
+	}
+
+	if next != -1 {
+		row = append(row, tbapi.NewInlineKeyboardButtonData("Туда ➡️", fmt.Sprintf("%s|%d", key, next)))
+	}
+
+	markup := tbapi.NewInlineKeyboardMarkup(row)
+	update := tbapi.NewEditMessageTextAndMarkup(msg.ChatID, msg.ID, text, markup)
+	update.ParseMode = string(bot.ParseModeHTML)
+	update.DisableWebPagePreview = true
+	_, _ = l.TbAPI.Request(update)
+
+	log.Printf("[DEBUG] incoming callback query message: %+v", msg)
+}
+
 func getBanUsername(resp bot.Response, update tbapi.Update) string {
 	if resp.ChannelID == 0 {
 		return fmt.Sprintf("%v", resp.User)
@@ -178,6 +248,7 @@ func getBanUsername(resp bot.Response, update tbapi.Update) string {
 	if botChat.UserName == "" && update.Message.ReplyToMessage.SenderChat != nil {
 		botChat.UserName = update.Message.ReplyToMessage.SenderChat.UserName
 	}
+
 	return fmt.Sprintf("%v", botChat)
 }
 

@@ -403,7 +403,9 @@ func (w *WTFSteroidChecker) WTFUnicodeLibrary() map[string][]string {
 		"𝞥",
 		"𝟇",
 		"𝟊",
-		"𝟋"}
+		"𝟋",
+		"ẝ",
+	}
 	repl["!"] = []string{
 		"i",
 		"1",

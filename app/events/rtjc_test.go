@@ -8,9 +8,10 @@ import (
 	"testing"
 
 	"github.com/go-pkgz/syncs"
-	"github.com/radio-t/super-bot/app/events/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/radio-t/super-bot/app/events/mocks"
 )
 
 func TestRtjc_isPinned(t *testing.T) {
@@ -43,6 +44,7 @@ func makeTestingRtjc(submitter *mocks.Submitter, summarizer *mocks.Summarizer) R
 		Swg:             syncs.NewSizedGroup(1),
 		SubmitRateLimit: 1,
 		SubmitRateBurst: 100,
+		EnableSummary:   true,
 	}
 }
 

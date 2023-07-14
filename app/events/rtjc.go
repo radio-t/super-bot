@@ -32,6 +32,7 @@ type Rtjc struct {
 	Swg             *syncs.SizedGroup
 	SubmitRateLimit rate.Limit
 	SubmitRateBurst int
+	EnableSummary   bool
 }
 
 // submitter defines interface to submit (usually asynchronously) to the chat
@@ -80,7 +81,7 @@ func (l Rtjc) processMessage(ctx context.Context, conn io.Reader) {
 }
 
 func (l Rtjc) sendSummary(ctx context.Context, msg string) {
-	if !strings.HasPrefix(msg, "⚠") {
+	if !strings.HasPrefix(msg, "⚠") || !l.EnableSummary {
 		return
 	}
 

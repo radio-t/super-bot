@@ -64,6 +64,7 @@ var opts struct {
 	UreadabilityAPI      string `long:"ur-api" env:"UREADABILITY_API" default:"https://ureadability.radio-t.com/api/content/v1/parser" description:"uReadability API"`
 	UreadabilityToken    string `long:"ur-token" env:"UREADABILITY_TOKEN" default:"undefined" description:"uReadability token"`
 	SummarizerThreadsNum int    `long:"summarizer-threads" env:"SUMMARIZER_THREADS" default:"5" description:"Number of threads in summarizer"`
+	EnableSummarizer     bool   `long:"enable-summarizer" env:"ENABLE_SUMMARIZER" description:"enable summarizer for user topics"`
 
 	RtjcParams struct {
 		SwgSize   int   `long:"swg-size" env:"SWG_SIZE" default:"10" description:"Rtjc sized waiting group size"`
@@ -205,6 +206,7 @@ func main() {
 		Swg:             syncs.NewSizedGroup(opts.RtjcParams.SwgSize),
 		SubmitRateBurst: opts.RtjcParams.RateBurst,
 		SubmitRateLimit: rate.Limit(1 / float64(opts.RtjcParams.RateSec)),
+		EnableSummary:   opts.EnableSummarizer,
 	}
 	go rtjc.Listen(ctx)
 

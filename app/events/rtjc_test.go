@@ -44,7 +44,6 @@ func makeTestingRtjc(submitter *mocks.Submitter, summarizer *mocks.Summarizer) R
 		Swg:             syncs.NewSizedGroup(1),
 		SubmitRateLimit: 1,
 		SubmitRateBurst: 100,
-		EnableSummary:   true,
 	}
 }
 

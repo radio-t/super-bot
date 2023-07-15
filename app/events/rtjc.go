@@ -32,7 +32,6 @@ type Rtjc struct {
 	Swg             *syncs.SizedGroup
 	SubmitRateLimit rate.Limit
 	SubmitRateBurst int
-	EnableSummary   bool
 }
 
 // submitter defines interface to submit (usually asynchronously) to the chat
@@ -81,7 +80,7 @@ func (l Rtjc) processMessage(ctx context.Context, conn io.Reader) {
 }
 
 func (l Rtjc) sendSummary(ctx context.Context, msg string) {
-	if !strings.HasPrefix(msg, "⚠") || !l.EnableSummary {
+	if !strings.HasPrefix(msg, "⚠") {
 		return
 	}
 
@@ -89,6 +88,9 @@ func (l Rtjc) sendSummary(ctx context.Context, msg string) {
 	if err != nil {
 		log.Printf("[WARN] can't get summary, %v", err)
 		return
+	}
+	if len(summaryMsgs) > 5 {
+		summaryMsgs = summaryMsgs[:5]
 	}
 
 	// By default, rate limit to 15 messages per 2 minutes (1 per 8 sec)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -56,7 +57,7 @@ func (p *Podcasts) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	reqURL := fmt.Sprintf("%s/search?limit=%d&q=%s", p.siteAPI, p.maxResults, reqText)
+	reqURL := fmt.Sprintf("%s/search?limit=%d&q=%s", p.siteAPI, p.maxResults, url.QueryEscape(reqText))
 	req, err := http.NewRequest("GET", reqURL, http.NoBody)
 	if err != nil {
 		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-pkgz/syncs"
+	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 //go:generate moq --out mocks/http_client.go --pkg mocks --skip-ensure . HTTPClient:HTTPClient
@@ -30,9 +31,20 @@ type Interface interface {
 	Help() string
 }
 
+// ParseMode represents list of values for Telegram API
+type ParseMode string
+
+// enum of available parse mode types
+const (
+	ParseModeHTML       ParseMode = tbapi.ModeHTML
+	ParseModeMarkdown   ParseMode = tbapi.ModeMarkdown
+	ParseModeMarkdownV2 ParseMode = tbapi.ModeMarkdownV2
+)
+
 // Response describes bot's answer on particular message
 type Response struct {
 	Text        string
+	AltText     []string      // Additional texts which will be available though inline keyboard
 	Send        bool          // status
 	Pin         bool          // enable pin
 	Unpin       bool          // enable unpin
@@ -41,7 +53,7 @@ type Response struct {
 	User        User          // user to ban
 	ChannelID   int64         // channel to ban, if set then User and BanInterval are ignored
 	ReplyTo     int           // message to reply to, if 0 then no reply but common message
-	ParseMode   string        // parse mode for message in Telegram (we use Markdown by default)
+	ParseMode   ParseMode     // parse mode for message in Telegram (we use Markdown by default)
 }
 
 // HTTPClient wrap http.Client to allow mocking

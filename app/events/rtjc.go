@@ -38,6 +38,7 @@ type Rtjc struct {
 type submitter interface {
 	Submit(ctx context.Context, text string, pin bool) error
 	SubmitHTML(ctx context.Context, text string, pin bool) error
+	SubmitMultiHTML(ctx context.Context, texts []string, pin bool) error
 }
 
 type summarizer interface {
@@ -93,21 +94,25 @@ func (l Rtjc) sendSummary(ctx context.Context, msg string) {
 		summaryMsgs = summaryMsgs[:5]
 	}
 
+	if err := l.Submitter.SubmitMultiHTML(ctx, summaryMsgs, false); err != nil {
+		log.Printf("[WARN] can't send summary, %v", err)
+	}
+
 	// By default, rate limit to 15 messages per 2 minutes (1 per 8 sec)
 	// Telegram asks 30 sec of waiting after sending 20 messages
-	rl := rate.NewLimiter(l.SubmitRateLimit, l.SubmitRateBurst)
-	for i, sumMsg := range summaryMsgs {
-		if sumMsg == "" {
-			log.Printf("[WARN] empty summary item #%d for %q", i, msg)
-			continue
-		}
-		if err := rl.Wait(ctx); err != nil {
-			log.Printf("[WARN] can't wait for rate limit, %v", err)
-		}
-		if err := l.Submitter.SubmitHTML(ctx, sumMsg, false); err != nil {
-			log.Printf("[WARN] can't send summary, %v", err)
-		}
-	}
+	//rl := rate.NewLimiter(l.SubmitRateLimit, l.SubmitRateBurst)
+	//for i, sumMsg := range summaryMsgs {
+	//	if sumMsg == "" {
+	//		log.Printf("[WARN] empty summary item #%d for %q", i, msg)
+	//		continue
+	//	}
+	//	if err := rl.Wait(ctx); err != nil {
+	//		log.Printf("[WARN] can't wait for rate limit, %v", err)
+	//	}
+	//	if err := l.Submitter.SubmitHTML(ctx, sumMsg, false); err != nil {
+	//		log.Printf("[WARN] can't send summary, %v", err)
+	//	}
+	//}
 }
 
 func (l Rtjc) isPinned(msg string) (ok bool, m string) {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,6 +33,7 @@ type TelegramListener struct {
 	OverallBotActivityTerm Terminator // bot-only activity for all users
 	SuperUsers             SuperUser
 	chatID                 int64
+	Flipbook               Flipbook // Storage for multi-text messages
 
 	msgs struct {
 		once sync.Once
@@ -80,6 +82,11 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 		case update, ok := <-updates:
 			if !ok {
 				return fmt.Errorf("telegram update chan closed")
+			}
+
+			if update.CallbackQuery != nil {
+				l.processCallbackQuery(update.CallbackQuery)
+				continue
 			}
 
 			if update.Message == nil {
@@ -163,6 +170,70 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 	}
 }
 
+func (l *TelegramListener) processCallbackQuery(cbq *tbapi.CallbackQuery) {
+	if cbq.Message == nil {
+		log.Printf("[WARN] callback query without message")
+		return
+	}
+
+	if cbq.Message.Chat == nil {
+		log.Printf("[WARN] callback query without message chat")
+		return
+	}
+
+	if cbq.Message.Chat.ID != l.chatID {
+		log.Printf("[WARN] callback query from different chat")
+		return
+	}
+
+	msg := l.transform(cbq.Message)
+
+	if !l.SuperUsers.IsSuper(cbq.From.UserName) {
+		callback := tbapi.NewCallbackWithAlert(cbq.ID, fmt.Sprintf("You are banned!"))
+		_, _ = l.TbAPI.Request(callback)
+		return
+	}
+
+	callback := tbapi.NewCallback(cbq.ID, fmt.Sprintf("Updating"))
+	_, _ = l.TbAPI.Request(callback)
+
+	parts := strings.SplitN(cbq.Data, "|", 2)
+	if len(parts) < 2 {
+		log.Printf("[WARN] callback query data is invalid")
+		return
+	}
+
+	key := parts[0]
+	page, err := strconv.Atoi(parts[1])
+	if err != nil {
+		log.Printf("[WARN] callback query data is invalid")
+		return
+	}
+
+	text, prev, next, err := l.Flipbook.Get(key, page)
+	if err != nil {
+		log.Printf("[WARN] Can't get flipbook page: %v", err)
+		return
+	}
+
+	row := make([]tbapi.InlineKeyboardButton, 0)
+	if prev != -1 {
+		row = append(row, tbapi.NewInlineKeyboardButtonData("⬅️ Сюда", fmt.Sprintf("%s|%d", key, prev)))
+	}
+
+	if next != -1 {
+		row = append(row, tbapi.NewInlineKeyboardButtonData("Туда ➡️", fmt.Sprintf("%s|%d", key, next)))
+	}
+
+	markup := tbapi.NewInlineKeyboardMarkup(row)
+	update := tbapi.NewEditMessageTextAndMarkup(msg.ChatID, msg.ID, text, markup)
+	update.ParseMode = string(bot.ParseModeHTML)
+	update.DisableWebPagePreview = true
+	_, _ = l.TbAPI.Request(update)
+
+	log.Printf("[DEBUG] incoming callback query message: %+v", msg)
+}
+
 func getBanUsername(resp bot.Response, update tbapi.Update) string {
 	if resp.ChannelID == 0 {
 		return fmt.Sprintf("%v", resp.User)
@@ -177,6 +248,7 @@ func getBanUsername(resp bot.Response, update tbapi.Update) string {
 	if botChat.UserName == "" && update.Message.ReplyToMessage.SenderChat != nil {
 		botChat.UserName = update.Message.ReplyToMessage.SenderChat.UserName
 	}
+
 	return fmt.Sprintf("%v", botChat)
 }
 
@@ -220,12 +292,27 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 
 	log.Printf("[DEBUG] bot response - %+v, pin: %t, reply-to:%d, parse-mode:%s", resp.Text, resp.Pin, resp.ReplyTo, resp.ParseMode)
 	tbMsg := tbapi.NewMessage(chatID, resp.Text)
-	tbMsg.ParseMode = tbapi.ModeMarkdown
+	tbMsg.ParseMode = string(bot.ParseModeMarkdown)
 	if resp.ParseMode != "" {
-		tbMsg.ParseMode = resp.ParseMode
+		tbMsg.ParseMode = string(resp.ParseMode)
 	}
 	tbMsg.DisableWebPagePreview = !resp.Preview
 	tbMsg.ReplyToMessageID = resp.ReplyTo
+
+	if len(resp.AltText) > 0 {
+		key, err := l.Flipbook.Save(resp)
+		if err != nil {
+			log.Printf("[WARN] can't save flipbook: %v", err)
+		} else {
+			tbMsg.ReplyMarkup = tbapi.NewInlineKeyboardMarkup(
+				tbapi.NewInlineKeyboardRow(
+					//tbapi.NewInlineKeyboardButtonData("⬅️ Сюда", "prev|-1"),
+					tbapi.NewInlineKeyboardButtonData("Туда ➡️", fmt.Sprintf("%s|%d", key, 1)),
+				),
+			)
+		}
+	}
+
 	res, err := l.TbAPI.Send(tbMsg)
 	if err != nil {
 		return fmt.Errorf("can't send message to telegram %q: %w", resp.Text, err)
@@ -278,30 +365,45 @@ func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, cha
 	return nil
 }
 
-// Submit message text to telegram's group
-func (l *TelegramListener) Submit(ctx context.Context, text string, pin bool) error {
+func (l *TelegramListener) submitResponse(ctx context.Context, resp bot.Response) error {
 	l.msgs.once.Do(func() { l.msgs.ch = make(chan bot.Response, 100) })
 
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, Preview: true}:
+	case l.msgs.ch <- resp:
 	}
 	return nil
+}
+
+// Submit message text to telegram's group
+func (l *TelegramListener) Submit(ctx context.Context, text string, pin bool) error {
+	return l.submitResponse(ctx, bot.Response{Text: text, Pin: pin, Send: true, Preview: true})
 }
 
 // SubmitHTML message to telegram's group with HTML mode
 func (l *TelegramListener) SubmitHTML(ctx context.Context, text string, pin bool) error {
 	// Remove unsupported HTML tags
 	text = notify.TelegramSupportedHTML(text)
-	l.msgs.once.Do(func() { l.msgs.ch = make(chan bot.Response, 100) })
+	return l.submitResponse(ctx, bot.Response{Text: text, Pin: pin, Send: true, ParseMode: bot.ParseModeHTML, Preview: false})
+}
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, ParseMode: tbapi.ModeHTML, Preview: false}:
+// SubmitHTML message to telegram's group with HTML mode
+func (l *TelegramListener) SubmitMultiHTML(ctx context.Context, texts []string, pin bool) error {
+	if len(texts) == 0 {
+		return fmt.Errorf("SubmitMultiHTML: texts is empty")
 	}
-	return nil
+
+	// Remove unsupported HTML tags
+	filteredTexts := make([]string, 0, len(texts))
+	for _, text := range texts {
+		filteredTexts = append(filteredTexts, notify.TelegramSupportedHTML(text))
+	}
+
+	text := filteredTexts[0]
+	filteredTexts = filteredTexts[1:]
+
+	return l.submitResponse(ctx, bot.Response{Text: text, AltText: filteredTexts, Pin: pin, Send: true, ParseMode: bot.ParseModeHTML, Preview: false})
 }
 
 func (l *TelegramListener) getChatID(group string) (int64, error) {

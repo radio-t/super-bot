@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// SpamFilter bot, checks if user is a spammer using CAS API
 type SpamFilter struct {
 	casAPI string
 	dry    bool
@@ -26,6 +27,7 @@ func NewSpamFilter(api string, client HTTPClient, dry bool) *SpamFilter {
 	return &SpamFilter{casAPI: api, client: client, dry: dry, approvedUsers: map[int64]bool{}}
 }
 
+// OnMessage checks if user already approved and if not checks if user is a spammer
 func (s *SpamFilter) OnMessage(msg Message) (response Response) {
 	if s.approvedUsers[msg.From.ID] {
 		return Response{}

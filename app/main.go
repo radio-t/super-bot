@@ -46,6 +46,13 @@ var opts struct {
 	TemplateFile         string           `long:"export-template" default:"logs.html" description:"path to template file"`
 	ExportBroadcastUsers events.SuperUser `long:"broadcast" description:"broadcast-users"`
 
+	SpamFilter struct {
+		Enabled bool          `long:"enabled" env:"ENABLED" description:"enable spam filter"`
+		API     string        `long:"api" env:"CAS_API" default:"https://api.cas.chat" description:"CAS API"`
+		TimeOut time.Duration `long:"timeout" env:"TIMEOUT" default:"5s" description:"CAS timeout in seconds"`
+		Dry     bool          `long:"dry" env:"DRY" description:"dry mode, no bans"`
+	} `group:"spam-filter" namespace:"spam-filter" env-namespace:"SPAM_FILTER"`
+
 	OpenAI struct {
 		AuthToken         string `long:"token" env:"AUTH_TOKEN" description:"OpenAI auth token"`
 		MaxTokensResponse int    `long:"max-tokens" env:"MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
@@ -131,6 +138,12 @@ func main() {
 		bot.NewBanhammer(tbAPI, opts.SuperUsers, 5000),
 		bot.NewWhen(),
 		openAIBot,
+	}
+
+	if opts.SpamFilter.Enabled {
+		log.Printf("[INFO] spam filter enabled")
+		httpClient := &http.Client{Timeout: opts.SpamFilter.TimeOut}
+		multiBot = append(multiBot, bot.NewSpamFilter(opts.SpamFilter.API, httpClient, opts.SpamFilter.Dry))
 	}
 
 	if sb, err := bot.NewSys(opts.SysData); err == nil {

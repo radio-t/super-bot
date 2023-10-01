@@ -129,11 +129,12 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 				log.Printf("[WARN] failed to respond on update, %v", err)
 			}
 
+			isBanInvoked := resp.Send && resp.BanInterval > 0 &&
+				(!l.SuperUsers.IsSuper(resp.User.Username) || resp.ChannelID != 0) && // should not ban superusers, but ban channels
+				fromChat == l.chatID // ban only in the same chat
+
 			// some bots may request direct ban for given duration
-			if resp.Send &&
-				resp.BanInterval > 0 &&
-				(!l.SuperUsers.IsSuper(resp.User.Username) || resp.ChannelID != 0) && // should not ban superusers, but should ban channels
-				fromChat == l.chatID { // ban only in the same chat
+			if isBanInvoked {
 				log.Printf("[DEBUG] ban initiated for %+v", resp)
 				banUserStr := getBanUsername(resp, update)
 
@@ -146,6 +147,14 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 					log.Printf("[ERROR] can't ban %s on bot response, %v", banUserStr, err)
 				} else {
 					log.Print(banSuccessMessage)
+				}
+			}
+
+			// delete message if requested by bot
+			if resp.DeleteReplyTo && resp.ReplyTo != 0 {
+				_, err := l.TbAPI.Request(tbapi.DeleteMessageConfig{ChatID: l.chatID, MessageID: resp.ReplyTo})
+				if err != nil {
+					log.Printf("[WARN] failed to delete message %d, %v", resp.ReplyTo, err)
 				}
 			}
 

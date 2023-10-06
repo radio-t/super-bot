@@ -66,7 +66,7 @@ func (s *SpamFilter) OnMessage(msg Message) (response Response) {
 	if s.dry {
 		return Response{Text: "this is spam, but I'm in dry mode, so I'll do nothing yet", Send: true, ReplyTo: msg.ID}
 	}
-	return Response{Text: "this is spam, go to ban " + msg.From.DisplayName, Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
+	return Response{Text: "this is spam! go to ban, " + msg.From.DisplayName, Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
 }
 
 // Help returns help message

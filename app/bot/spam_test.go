@@ -41,7 +41,7 @@ func TestSpamFilter_OnMessage(t *testing.T) {
 			mockStatusCode: 200,
 			dryMode:        false,
 			expectedResp: Response{
-				Text:          "this is spam, go to ban Test User",
+				Text:          "this is spam! go to ban, Test User",
 				Send:          true,
 				ReplyTo:       1,
 				BanInterval:   permanentBanDuration,

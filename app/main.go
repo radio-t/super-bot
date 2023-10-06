@@ -49,7 +49,7 @@ var opts struct {
 	SpamFilter struct {
 		Enabled bool          `long:"enabled" env:"ENABLED" description:"enable spam filter"`
 		API     string        `long:"api" env:"CAS_API" default:"https://api.cas.chat" description:"CAS API"`
-		TimeOut time.Duration `long:"timeout" env:"TIMEOUT" default:"5s" description:"CAS timeout in seconds"`
+		TimeOut time.Duration `long:"timeout" env:"TIMEOUT" default:"5s" description:"CAS timeout"`
 		Dry     bool          `long:"dry" env:"DRY" description:"dry mode, no bans"`
 	} `group:"spam-filter" namespace:"spam-filter" env-namespace:"SPAM_FILTER"`
 
@@ -141,7 +141,8 @@ func main() {
 	}
 
 	if opts.SpamFilter.Enabled {
-		log.Printf("[INFO] spam filter enabled")
+		log.Printf("[INFO] spam filter enabled, api=%s, timeout=%s, dry=%v",
+			opts.SpamFilter.API, opts.SpamFilter.TimeOut, opts.SpamFilter.Dry)
 		httpCasClient := &http.Client{Timeout: opts.SpamFilter.TimeOut}
 		multiBot = append(multiBot, bot.NewSpamFilter(opts.SpamFilter.API, httpCasClient, opts.SpamFilter.Dry))
 	}

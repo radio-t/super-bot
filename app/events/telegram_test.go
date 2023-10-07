@@ -12,8 +12,8 @@ import (
 )
 
 func TestTelegramListener_DoNoBots(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
-	tbAPI := &tbAPIMock{GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
+	mockLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
+	mockAPI := &tbAPIMock{GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 		return tbapi.Chat{ID: 123}, nil
 	}}
 	bots := &bot.InterfaceMock{OnMessageFunc: func(msg bot.Message) bot.Response {
@@ -21,8 +21,8 @@ func TestTelegramListener_DoNoBots(t *testing.T) {
 	}}
 
 	l := TelegramListener{
-		MsgLogger: msgLogger,
-		TbAPI:     tbAPI,
+		MsgLogger: mockLogger,
+		TbAPI:     mockAPI,
 		Bots:      bots,
 		Group:     "gr",
 	}
@@ -52,19 +52,19 @@ func TestTelegramListener_DoNoBots(t *testing.T) {
 	updChan := make(chan tbapi.Update, 1)
 	updChan <- updMsg
 	close(updChan)
-	tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+	mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
 
-	assert.Equal(t, 1, len(msgLogger.SaveCalls()))
-	assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
-	assert.Equal(t, "user", msgLogger.SaveCalls()[0].Msg.From.Username)
+	assert.Equal(t, 1, len(mockLogger.SaveCalls()))
+	assert.Equal(t, "text 123", mockLogger.SaveCalls()[0].Msg.Text)
+	assert.Equal(t, "user", mockLogger.SaveCalls()[0].Msg.From.Username)
 }
 
 func TestTelegramListener_DoWithBots(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
-	tbAPI := &tbAPIMock{
+	mockLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
+	mockAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
 		},
@@ -81,8 +81,8 @@ func TestTelegramListener_DoWithBots(t *testing.T) {
 	}}
 
 	l := TelegramListener{
-		MsgLogger: msgLogger,
-		TbAPI:     tbAPI,
+		MsgLogger: mockLogger,
+		TbAPI:     mockAPI,
 		Bots:      bots,
 		Group:     "gr",
 	}
@@ -102,21 +102,21 @@ func TestTelegramListener_DoWithBots(t *testing.T) {
 	updChan := make(chan tbapi.Update, 1)
 	updChan <- updMsg
 	close(updChan)
-	tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+	mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
-	assert.Equal(t, 2, len(msgLogger.SaveCalls()))
-	assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
-	assert.Equal(t, "user", msgLogger.SaveCalls()[0].Msg.From.Username)
-	assert.Equal(t, "bot's answer", msgLogger.SaveCalls()[1].Msg.Text)
-	assert.Equal(t, 1, len(tbAPI.SendCalls()))
-	assert.Equal(t, "bot's answer", tbAPI.SendCalls()[0].C.(tbapi.MessageConfig).Text)
+	assert.Equal(t, 2, len(mockLogger.SaveCalls()))
+	assert.Equal(t, "text 123", mockLogger.SaveCalls()[0].Msg.Text)
+	assert.Equal(t, "user", mockLogger.SaveCalls()[0].Msg.From.Username)
+	assert.Equal(t, "bot's answer", mockLogger.SaveCalls()[1].Msg.Text)
+	assert.Equal(t, 1, len(mockAPI.SendCalls()))
+	assert.Equal(t, "bot's answer", mockAPI.SendCalls()[0].C.(tbapi.MessageConfig).Text)
 }
 
 func TestTelegramListener_DoWithRtjc(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
-	tbAPI := &tbAPIMock{
+	mockLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
+	mockAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
 		},
@@ -133,8 +133,8 @@ func TestTelegramListener_DoWithRtjc(t *testing.T) {
 	bots := &bot.InterfaceMock{}
 
 	l := TelegramListener{
-		MsgLogger: msgLogger,
-		TbAPI:     tbAPI,
+		MsgLogger: mockLogger,
+		TbAPI:     mockAPI,
 		Bots:      bots,
 		Group:     "gr",
 	}
@@ -144,7 +144,7 @@ func TestTelegramListener_DoWithRtjc(t *testing.T) {
 
 	updChan := make(chan tbapi.Update, 1)
 
-	tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+	mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 	time.AfterFunc(time.Millisecond*50, func() {
 		assert.NoError(t, l.Submit(ctx, "rtjc message", true))
@@ -152,18 +152,18 @@ func TestTelegramListener_DoWithRtjc(t *testing.T) {
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "context deadline exceeded")
-	assert.Equal(t, 1, len(msgLogger.SaveCalls()))
-	assert.Equal(t, "rtjc message", msgLogger.SaveCalls()[0].Msg.Text)
-	assert.Equal(t, 1, len(tbAPI.SendCalls()))
-	assert.Equal(t, 1, len(tbAPI.RequestCalls()))
-	assert.Equal(t, int64(123), tbAPI.RequestCalls()[0].C.(tbapi.PinChatMessageConfig).ChatID)
+	assert.Equal(t, 1, len(mockLogger.SaveCalls()))
+	assert.Equal(t, "rtjc message", mockLogger.SaveCalls()[0].Msg.Text)
+	assert.Equal(t, 1, len(mockAPI.SendCalls()))
+	assert.Equal(t, 1, len(mockAPI.RequestCalls()))
+	assert.Equal(t, int64(123), mockAPI.RequestCalls()[0].C.(tbapi.PinChatMessageConfig).ChatID)
 }
 
 func TestTelegramListener_DoWithAutoBan(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
+	mockLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 	firstReq := true
 	firstSend := true
-	tbAPI := &tbAPIMock{
+	mockAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
 		},
@@ -187,8 +187,8 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 	}}
 
 	l := TelegramListener{
-		MsgLogger: msgLogger,
-		TbAPI:     tbAPI,
+		MsgLogger: mockLogger,
+		TbAPI:     mockAPI,
 		Bots:      bots,
 		Group:     "gr",
 		AllActivityTerm: Terminator{
@@ -220,20 +220,20 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 		updChan <- updMsg
 		close(updChan)
 
-		tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+		mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 		err := l.Do(ctx)
 		assert.EqualError(t, err, "telegram update chan closed")
 
-		assert.Equal(t, 1, len(tbAPI.SendCalls()))
-		assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", tbAPI.SendCalls()[0].C.(tbapi.MessageConfig).Text)
-		assert.Equal(t, 1, len(tbAPI.RequestCalls()))
-		assert.Equal(t, int64(123), tbAPI.RequestCalls()[0].C.(tbapi.RestrictChatMemberConfig).ChatID)
-		assert.Equal(t, 6, len(msgLogger.SaveCalls()))
-		assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
-		assert.Equal(t, "user_name", msgLogger.SaveCalls()[0].Msg.From.Username)
-		assert.Equal(t, "user_name", msgLogger.SaveCalls()[5].Msg.From.Username)
-		assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", msgLogger.SaveCalls()[4].Msg.Text)
+		assert.Equal(t, 1, len(mockAPI.SendCalls()))
+		assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", mockAPI.SendCalls()[0].C.(tbapi.MessageConfig).Text)
+		assert.Equal(t, 1, len(mockAPI.RequestCalls()))
+		assert.Equal(t, int64(123), mockAPI.RequestCalls()[0].C.(tbapi.RestrictChatMemberConfig).ChatID)
+		assert.Equal(t, 6, len(mockLogger.SaveCalls()))
+		assert.Equal(t, "text 123", mockLogger.SaveCalls()[0].Msg.Text)
+		assert.Equal(t, "user_name", mockLogger.SaveCalls()[0].Msg.From.Username)
+		assert.Equal(t, "user_name", mockLogger.SaveCalls()[5].Msg.From.Username)
+		assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", mockLogger.SaveCalls()[4].Msg.Text)
 	})
 
 	t.Run("test for channel", func(t *testing.T) {
@@ -258,27 +258,27 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 		updChan <- updMsg
 		updChan <- updMsg
 		close(updChan)
-		tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+		mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 		err := l.Do(ctx)
 		assert.EqualError(t, err, "telegram update chan closed")
 
-		assert.Equal(t, 2, len(tbAPI.SendCalls()))
-		assert.Equal(t, "@test\\_bot _пал смертью храбрых, заблокирован навечно..._", tbAPI.SendCalls()[1].C.(tbapi.MessageConfig).Text)
-		assert.Equal(t, 2, len(tbAPI.RequestCalls()))
-		assert.Equal(t, int64(123), tbAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).ChatID)
-		assert.Equal(t, int64(12345), tbAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
-		assert.Equal(t, 12, len(msgLogger.SaveCalls()))
-		assert.Equal(t, "text 321", msgLogger.SaveCalls()[6].Msg.Text)
-		assert.Equal(t, "ChannelBot", msgLogger.SaveCalls()[6].Msg.From.Username)
-		assert.Equal(t, "user_name", msgLogger.SaveCalls()[10].Msg.From.Username)
-		assert.Equal(t, "@test\\_bot _пал смертью храбрых, заблокирован навечно..._", msgLogger.SaveCalls()[10].Msg.Text)
+		assert.Equal(t, 2, len(mockAPI.SendCalls()))
+		assert.Equal(t, "@test\\_bot _пал смертью храбрых, заблокирован навечно..._", mockAPI.SendCalls()[1].C.(tbapi.MessageConfig).Text)
+		assert.Equal(t, 2, len(mockAPI.RequestCalls()))
+		assert.Equal(t, int64(123), mockAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).ChatID)
+		assert.Equal(t, int64(12345), mockAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
+		assert.Equal(t, 12, len(mockLogger.SaveCalls()))
+		assert.Equal(t, "text 321", mockLogger.SaveCalls()[6].Msg.Text)
+		assert.Equal(t, "ChannelBot", mockLogger.SaveCalls()[6].Msg.From.Username)
+		assert.Equal(t, "user_name", mockLogger.SaveCalls()[10].Msg.From.Username)
+		assert.Equal(t, "@test\\_bot _пал смертью храбрых, заблокирован навечно..._", mockLogger.SaveCalls()[10].Msg.Text)
 	})
 }
 
 func TestTelegramListener_DoWithBotsActivityBan(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
-	tbAPI := &tbAPIMock{
+	mockLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
+	mockAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
 		},
@@ -294,8 +294,8 @@ func TestTelegramListener_DoWithBotsActivityBan(t *testing.T) {
 	}}
 
 	l := TelegramListener{
-		MsgLogger: msgLogger,
-		TbAPI:     tbAPI,
+		MsgLogger: mockLogger,
+		TbAPI:     mockAPI,
 		Bots:      bots,
 		Group:     "gr",
 		AllActivityTerm: Terminator{
@@ -331,26 +331,26 @@ func TestTelegramListener_DoWithBotsActivityBan(t *testing.T) {
 	updChan <- updMsg
 	close(updChan)
 
-	tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+	mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
 
-	assert.Equal(t, 4, len(tbAPI.SendCalls()))
-	assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", tbAPI.SendCalls()[3].C.(tbapi.MessageConfig).Text)
-	assert.Equal(t, 3, len(tbAPI.RequestCalls()))
-	assert.Equal(t, int64(123), tbAPI.RequestCalls()[2].C.(tbapi.RestrictChatMemberConfig).ChatID)
-	assert.Equal(t, 9, len(msgLogger.SaveCalls()))
-	assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
-	assert.Equal(t, "user_name", msgLogger.SaveCalls()[0].Msg.From.Username)
-	assert.Equal(t, "user_name", msgLogger.SaveCalls()[8].Msg.From.Username)
-	assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", msgLogger.SaveCalls()[5].Msg.Text)
-	assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", msgLogger.SaveCalls()[7].Msg.Text)
+	assert.Equal(t, 4, len(mockAPI.SendCalls()))
+	assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", mockAPI.SendCalls()[3].C.(tbapi.MessageConfig).Text)
+	assert.Equal(t, 3, len(mockAPI.RequestCalls()))
+	assert.Equal(t, int64(123), mockAPI.RequestCalls()[2].C.(tbapi.RestrictChatMemberConfig).ChatID)
+	assert.Equal(t, 9, len(mockLogger.SaveCalls()))
+	assert.Equal(t, "text 123", mockLogger.SaveCalls()[0].Msg.Text)
+	assert.Equal(t, "user_name", mockLogger.SaveCalls()[0].Msg.From.Username)
+	assert.Equal(t, "user_name", mockLogger.SaveCalls()[8].Msg.From.Username)
+	assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", mockLogger.SaveCalls()[5].Msg.Text)
+	assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", mockLogger.SaveCalls()[7].Msg.Text)
 }
 
 func TestTelegramListener_DoWithAllActivityBan(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
-	tbAPI := &tbAPIMock{
+	mockLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
+	mockAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
 		},
@@ -366,8 +366,8 @@ func TestTelegramListener_DoWithAllActivityBan(t *testing.T) {
 	}}
 
 	l := TelegramListener{
-		MsgLogger: msgLogger,
-		TbAPI:     tbAPI,
+		MsgLogger: mockLogger,
+		TbAPI:     mockAPI,
 		Bots:      bots,
 		Group:     "gr",
 		AllActivityTerm: Terminator{
@@ -403,25 +403,25 @@ func TestTelegramListener_DoWithAllActivityBan(t *testing.T) {
 	updChan <- updMsg
 	close(updChan)
 
-	tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+	mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
 
-	assert.Equal(t, 5, len(tbAPI.SendCalls()))
-	assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", tbAPI.SendCalls()[4].C.(tbapi.MessageConfig).Text)
-	assert.Equal(t, 4, len(tbAPI.RequestCalls()))
-	assert.Equal(t, int64(123), tbAPI.RequestCalls()[3].C.(tbapi.RestrictChatMemberConfig).ChatID)
-	assert.Equal(t, 10, len(msgLogger.SaveCalls()))
-	assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
-	assert.Equal(t, "user_name", msgLogger.SaveCalls()[0].Msg.From.Username)
-	assert.Equal(t, "user_name", msgLogger.SaveCalls()[9].Msg.From.Username)
-	assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", msgLogger.SaveCalls()[9].Msg.Text)
+	assert.Equal(t, 5, len(mockAPI.SendCalls()))
+	assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", mockAPI.SendCalls()[4].C.(tbapi.MessageConfig).Text)
+	assert.Equal(t, 4, len(mockAPI.RequestCalls()))
+	assert.Equal(t, int64(123), mockAPI.RequestCalls()[3].C.(tbapi.RestrictChatMemberConfig).ChatID)
+	assert.Equal(t, 10, len(mockLogger.SaveCalls()))
+	assert.Equal(t, "text 123", mockLogger.SaveCalls()[0].Msg.Text)
+	assert.Equal(t, "user_name", mockLogger.SaveCalls()[0].Msg.From.Username)
+	assert.Equal(t, "user_name", mockLogger.SaveCalls()[9].Msg.From.Username)
+	assert.Equal(t, "@user\\_name _тебя слишком много, отдохни..._", mockLogger.SaveCalls()[9].Msg.Text)
 }
 
 func TestTelegramListener_DoWithBotBan(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
-	tbAPI := &tbAPIMock{
+	mockLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
+	mockAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
 		},
@@ -447,8 +447,8 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 	}}
 
 	l := TelegramListener{
-		MsgLogger:  msgLogger,
-		TbAPI:      tbAPI,
+		MsgLogger:  mockLogger,
+		TbAPI:      mockAPI,
 		Bots:       bots,
 		SuperUsers: SuperUser{"admin"},
 		Group:      "gr",
@@ -474,18 +474,18 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 		updChan := make(chan tbapi.Update, 1)
 		updChan <- updMsg
 		close(updChan)
-		tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+		mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 		err := l.Do(ctx)
 		assert.EqualError(t, err, "telegram update chan closed")
-		assert.Equal(t, 2, len(msgLogger.SaveCalls()))
-		assert.Equal(t, "text 123", msgLogger.SaveCalls()[0].Msg.Text)
-		assert.Equal(t, "user", msgLogger.SaveCalls()[0].Msg.From.Username)
-		assert.Equal(t, "bot's answer", msgLogger.SaveCalls()[1].Msg.Text)
-		assert.Equal(t, 1, len(tbAPI.SendCalls()))
-		assert.Equal(t, "bot's answer", tbAPI.SendCalls()[0].C.(tbapi.MessageConfig).Text)
-		assert.Equal(t, 1, len(tbAPI.RequestCalls()))
-		assert.Equal(t, int64(123), tbAPI.RequestCalls()[0].C.(tbapi.RestrictChatMemberConfig).ChatID)
+		assert.Equal(t, 2, len(mockLogger.SaveCalls()))
+		assert.Equal(t, "text 123", mockLogger.SaveCalls()[0].Msg.Text)
+		assert.Equal(t, "user", mockLogger.SaveCalls()[0].Msg.From.Username)
+		assert.Equal(t, "bot's answer", mockLogger.SaveCalls()[1].Msg.Text)
+		assert.Equal(t, 1, len(mockAPI.SendCalls()))
+		assert.Equal(t, "bot's answer", mockAPI.SendCalls()[0].C.(tbapi.MessageConfig).Text)
+		assert.Equal(t, 1, len(mockAPI.RequestCalls()))
+		assert.Equal(t, int64(123), mockAPI.RequestCalls()[0].C.(tbapi.RestrictChatMemberConfig).ChatID)
 	})
 
 	t.Run("test ban of the channel", func(t *testing.T) {
@@ -505,19 +505,19 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 		updChan := make(chan tbapi.Update, 1)
 		updChan <- updMsg
 		close(updChan)
-		tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+		mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 		err := l.Do(ctx)
 		assert.EqualError(t, err, "telegram update chan closed")
-		assert.Equal(t, 4, len(msgLogger.SaveCalls()))
-		assert.Equal(t, "text 321", msgLogger.SaveCalls()[2].Msg.Text)
-		assert.Equal(t, "ChannelBot", msgLogger.SaveCalls()[2].Msg.From.Username)
-		assert.Equal(t, "bot's answer for channel", msgLogger.SaveCalls()[3].Msg.Text)
-		assert.Equal(t, 2, len(tbAPI.SendCalls()))
-		assert.Equal(t, "bot's answer for channel", tbAPI.SendCalls()[1].C.(tbapi.MessageConfig).Text)
-		assert.Equal(t, 2, len(tbAPI.RequestCalls()))
-		assert.Equal(t, int64(123), tbAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).ChatID)
-		assert.Equal(t, int64(12345), tbAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
+		assert.Equal(t, 4, len(mockLogger.SaveCalls()))
+		assert.Equal(t, "text 321", mockLogger.SaveCalls()[2].Msg.Text)
+		assert.Equal(t, "ChannelBot", mockLogger.SaveCalls()[2].Msg.From.Username)
+		assert.Equal(t, "bot's answer for channel", mockLogger.SaveCalls()[3].Msg.Text)
+		assert.Equal(t, 2, len(mockAPI.SendCalls()))
+		assert.Equal(t, "bot's answer for channel", mockAPI.SendCalls()[1].C.(tbapi.MessageConfig).Text)
+		assert.Equal(t, 2, len(mockAPI.RequestCalls()))
+		assert.Equal(t, int64(123), mockAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).ChatID)
+		assert.Equal(t, int64(12345), mockAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
 	})
 
 	t.Run("test ban of the channel on behalf of the superuser", func(t *testing.T) {
@@ -539,26 +539,26 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 		updChan := make(chan tbapi.Update, 1)
 		updChan <- updMsg
 		close(updChan)
-		tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+		mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 		err := l.Do(ctx)
 		assert.EqualError(t, err, "telegram update chan closed")
-		assert.Equal(t, 6, len(msgLogger.SaveCalls()))
-		assert.Equal(t, "text 543", msgLogger.SaveCalls()[4].Msg.Text)
-		assert.Equal(t, "admin", msgLogger.SaveCalls()[4].Msg.From.Username)
-		assert.Equal(t, "bot's answer for admin", msgLogger.SaveCalls()[5].Msg.Text)
-		assert.Equal(t, 3, len(tbAPI.SendCalls()))
-		assert.Equal(t, "bot's answer for admin", tbAPI.SendCalls()[2].C.(tbapi.MessageConfig).Text)
-		assert.Equal(t, 3, len(tbAPI.RequestCalls()))
-		assert.Equal(t, int64(123), tbAPI.RequestCalls()[2].C.(tbapi.BanChatSenderChatConfig).ChatID)
-		assert.Equal(t, int64(54321), tbAPI.RequestCalls()[2].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
+		assert.Equal(t, 6, len(mockLogger.SaveCalls()))
+		assert.Equal(t, "text 543", mockLogger.SaveCalls()[4].Msg.Text)
+		assert.Equal(t, "admin", mockLogger.SaveCalls()[4].Msg.From.Username)
+		assert.Equal(t, "bot's answer for admin", mockLogger.SaveCalls()[5].Msg.Text)
+		assert.Equal(t, 3, len(mockAPI.SendCalls()))
+		assert.Equal(t, "bot's answer for admin", mockAPI.SendCalls()[2].C.(tbapi.MessageConfig).Text)
+		assert.Equal(t, 3, len(mockAPI.RequestCalls()))
+		assert.Equal(t, int64(123), mockAPI.RequestCalls()[2].C.(tbapi.BanChatSenderChatConfig).ChatID)
+		assert.Equal(t, int64(54321), mockAPI.RequestCalls()[2].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
 	})
 }
 
 func TestTelegramListener_DoPinMessages(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
+	mockLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 
-	tbAPI := &tbAPIMock{
+	mockAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
 		},
@@ -581,8 +581,8 @@ func TestTelegramListener_DoPinMessages(t *testing.T) {
 	}}
 
 	l := TelegramListener{
-		MsgLogger: msgLogger,
-		TbAPI:     tbAPI,
+		MsgLogger: mockLogger,
+		TbAPI:     mockAPI,
 		Bots:      bots,
 		Group:     "gr",
 	}
@@ -602,20 +602,20 @@ func TestTelegramListener_DoPinMessages(t *testing.T) {
 	updChan := make(chan tbapi.Update, 1)
 	updChan <- updMsg
 	close(updChan)
-	tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+	mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
 	assert.Equal(t, 1, len(bots.OnMessageCalls()))
-	assert.Equal(t, 1, len(tbAPI.SendCalls()))
-	assert.Equal(t, 1, len(tbAPI.RequestCalls()))
-	assert.Equal(t, 456, tbAPI.RequestCalls()[0].C.(tbapi.PinChatMessageConfig).MessageID)
+	assert.Equal(t, 1, len(mockAPI.SendCalls()))
+	assert.Equal(t, 1, len(mockAPI.RequestCalls()))
+	assert.Equal(t, 456, mockAPI.RequestCalls()[0].C.(tbapi.PinChatMessageConfig).MessageID)
 }
 
 func TestTelegramListener_DoUnpinMessages(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
+	mockLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
 
-	tbAPI := &tbAPIMock{
+	mockAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
 		},
@@ -638,8 +638,8 @@ func TestTelegramListener_DoUnpinMessages(t *testing.T) {
 	}}
 
 	l := TelegramListener{
-		MsgLogger: msgLogger,
-		TbAPI:     tbAPI,
+		MsgLogger: mockLogger,
+		TbAPI:     mockAPI,
 		Bots:      bots,
 		Group:     "gr",
 	}
@@ -659,19 +659,19 @@ func TestTelegramListener_DoUnpinMessages(t *testing.T) {
 	updChan := make(chan tbapi.Update, 1)
 	updChan <- updMsg
 	close(updChan)
-	tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+	mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
 	assert.Equal(t, 1, len(bots.OnMessageCalls()))
-	assert.Equal(t, 1, len(tbAPI.SendCalls()))
-	assert.Equal(t, 1, len(tbAPI.RequestCalls()))
-	assert.Equal(t, int64(123), tbAPI.RequestCalls()[0].C.(tbapi.UnpinChatMessageConfig).ChatID)
+	assert.Equal(t, 1, len(mockAPI.SendCalls()))
+	assert.Equal(t, 1, len(mockAPI.RequestCalls()))
+	assert.Equal(t, int64(123), mockAPI.RequestCalls()[0].C.(tbapi.UnpinChatMessageConfig).ChatID)
 }
 
 func TestTelegramListener_DoNotSaveMessagesFromOtherChats(t *testing.T) {
-	msgLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
-	tbAPI := &tbAPIMock{
+	mockLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
+	mockAPI := &tbAPIMock{
 		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
 			return tbapi.Chat{ID: 123}, nil
 		},
@@ -685,8 +685,8 @@ func TestTelegramListener_DoNotSaveMessagesFromOtherChats(t *testing.T) {
 	}}
 
 	l := TelegramListener{
-		MsgLogger: msgLogger,
-		TbAPI:     tbAPI,
+		MsgLogger: mockLogger,
+		TbAPI:     mockAPI,
 		Bots:      bots,
 		Group:     "gr",
 	}
@@ -706,14 +706,14 @@ func TestTelegramListener_DoNotSaveMessagesFromOtherChats(t *testing.T) {
 	updChan := make(chan tbapi.Update, 1)
 	updChan <- updMsg
 	close(updChan)
-	tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+	mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
 
-	assert.Equal(t, 0, len(msgLogger.SaveCalls()))
+	assert.Equal(t, 0, len(mockLogger.SaveCalls()))
 	assert.Equal(t, 1, len(bots.OnMessageCalls()))
-	assert.Equal(t, 1, len(tbAPI.SendCalls()))
+	assert.Equal(t, 1, len(mockAPI.SendCalls()))
 }
 
 func TestTelegram_transformTextMessage(t *testing.T) {

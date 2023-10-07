@@ -7,6 +7,7 @@ import (
 
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/radio-t/super-bot/app/bot"
 )
@@ -714,6 +715,63 @@ func TestTelegramListener_DoNotSaveMessagesFromOtherChats(t *testing.T) {
 	assert.Equal(t, 0, len(msgLogger.SaveCalls()))
 	assert.Equal(t, 1, len(bots.OnMessageCalls()))
 	assert.Equal(t, 1, len(tbAPI.SendCalls()))
+}
+
+func TestTelegramListener_DoDeleteMessages(t *testing.T) {
+	mockLogger := &msgLoggerMock{SaveFunc: func(msg *bot.Message) {}}
+	mockAPI := &tbAPIMock{
+		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
+			return tbapi.Chat{ID: 123}, nil
+		},
+		SendFunc: func(c tbapi.Chattable) (tbapi.Message, error) {
+			return tbapi.Message{Text: c.(tbapi.MessageConfig).Text, From: &tbapi.User{UserName: "ChannelBot"}}, nil
+		},
+		RequestFunc: func(c tbapi.Chattable) (*tbapi.APIResponse, error) {
+			return &tbapi.APIResponse{Ok: true}, nil
+		},
+	}
+	bots := &bot.InterfaceMock{OnMessageFunc: func(msg bot.Message) bot.Response {
+		t.Logf("on-message: %+v", msg)
+		if msg.Text == "text 123" && msg.From.Username == "user" {
+			return bot.Response{DeleteReplyTo: true, ReplyTo: msg.ID, ChannelID: msg.ChatID}
+		}
+		return bot.Response{}
+	}}
+
+	l := TelegramListener{
+		MsgLogger: mockLogger,
+		TbAPI:     mockAPI,
+		Bots:      bots,
+		Group:     "gr",
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Minute)
+	defer cancel()
+
+	updMsg := tbapi.Update{
+		Message: &tbapi.Message{
+			MessageID: 321,
+			Chat:      &tbapi.Chat{ID: 123},
+			Text:      "text 123",
+			From:      &tbapi.User{UserName: "user"},
+			Date:      int(time.Date(2020, 2, 11, 19, 35, 55, 9, time.UTC).Unix()),
+		},
+	}
+
+	updChan := make(chan tbapi.Update, 2)
+	updChan <- updMsg
+	close(updChan)
+	mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+
+	err := l.Do(ctx)
+	assert.EqualError(t, err, "telegram update chan closed")
+	require.Equal(t, 1, len(mockLogger.SaveCalls()))
+	assert.Equal(t, "text 123", mockLogger.SaveCalls()[0].Msg.Text)
+	assert.Equal(t, "user", mockLogger.SaveCalls()[0].Msg.From.Username)
+	// asking to delete the message produces DeleteMessageConfig call with the same message and channel IDs
+	require.Equal(t, 1, len(mockAPI.RequestCalls()))
+	assert.Equal(t, 321, mockAPI.RequestCalls()[0].C.(tbapi.DeleteMessageConfig).MessageID)
+	assert.Equal(t, int64(123), mockAPI.RequestCalls()[0].C.(tbapi.DeleteMessageConfig).ChatID)
 }
 
 func TestTelegram_transformTextMessage(t *testing.T) {

@@ -144,7 +144,7 @@ func main() {
 		log.Printf("[INFO] spam filter enabled, api=%s, timeout=%s, dry=%v",
 			opts.SpamFilter.API, opts.SpamFilter.TimeOut, opts.SpamFilter.Dry)
 		httpCasClient := &http.Client{Timeout: opts.SpamFilter.TimeOut}
-		multiBot = append(multiBot, bot.NewSpamFilter(opts.SpamFilter.API, httpCasClient, opts.SpamFilter.Dry))
+		multiBot = append(multiBot, bot.NewSpamFilter(opts.SpamFilter.API, httpCasClient, opts.SuperUsers, opts.SpamFilter.Dry))
 	} else {
 		log.Print("[INFO] spam filter disabled")
 	}

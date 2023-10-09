@@ -12,8 +12,14 @@ import (
 )
 
 func TestNewSpamFilter(t *testing.T) {
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "super" || userName == "admin" {
+			return true
+		}
+		return false
+	}}
 	client := &mocks.HTTPClient{}
-	sf := NewSpamFilter("http://localhost", client, false)
+	sf := NewSpamFilter("http://localhost", client, su, false)
 	assert.NotNil(t, sf)
 	assert.Equal(t, "http://localhost", sf.casAPI)
 	assert.Equal(t, client, sf.client)
@@ -21,6 +27,13 @@ func TestNewSpamFilter(t *testing.T) {
 }
 
 func TestSpamFilter_OnMessage(t *testing.T) {
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "super" || userName == "admin" {
+			return true
+		}
+		return false
+	}}
+
 	tests := []struct {
 		name           string
 		mockResp       string
@@ -79,7 +92,7 @@ func TestSpamFilter_OnMessage(t *testing.T) {
 				},
 			}
 
-			s := NewSpamFilter("http://localhost", mockedHTTPClient, tt.dryMode)
+			s := NewSpamFilter("http://localhost", mockedHTTPClient, su, tt.dryMode)
 
 			msg := Message{
 				From: User{
@@ -107,7 +120,14 @@ func TestSpamFilter_OnMessageCheckOnce(t *testing.T) {
 		},
 	}
 
-	s := NewSpamFilter("http://localhost", mockedHTTPClient, false)
+	su := &mocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		if userName == "super" || userName == "admin" {
+			return true
+		}
+		return false
+	}}
+
+	s := NewSpamFilter("http://localhost", mockedHTTPClient, su, false)
 	res := s.OnMessage(Message{From: User{ID: 1, Username: "testuser"}, ID: 1, Text: "Hello"})
 	assert.Equal(t, Response{}, res)
 	assert.Len(t, mockedHTTPClient.DoCalls(), 1, "Do should be called once")

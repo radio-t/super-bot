@@ -10,9 +10,10 @@ import (
 
 // SpamFilter bot, checks if user is a spammer using CAS API
 type SpamFilter struct {
-	casAPI string
-	dry    bool
-	client HTTPClient
+	casAPI    string
+	dry       bool
+	client    HTTPClient
+	superUser SuperUser
 
 	approvedUsers map[int64]bool
 }
@@ -22,15 +23,19 @@ type SpamFilter struct {
 var permanentBanDuration = time.Hour * 24 * 400
 
 // NewSpamFilter makes a spam detecting bot
-func NewSpamFilter(api string, client HTTPClient, dry bool) *SpamFilter {
+func NewSpamFilter(api string, client HTTPClient, superUser SuperUser, dry bool) *SpamFilter {
 	log.Printf("[INFO] Spam bot with %s", api)
-	return &SpamFilter{casAPI: api, client: client, dry: dry, approvedUsers: map[int64]bool{}}
+	return &SpamFilter{casAPI: api, client: client, dry: dry, approvedUsers: map[int64]bool{}, superUser: superUser}
 }
 
 // OnMessage checks if user already approved and if not checks if user is a spammer
 func (s *SpamFilter) OnMessage(msg Message) (response Response) {
 	if s.approvedUsers[msg.From.ID] {
 		return Response{}
+	}
+
+	if s.superUser.IsSuper(msg.From.Username) {
+		return Response{} // don't check super users for spam
 	}
 
 	reqURL := fmt.Sprintf("%s/check?user_id=%d", s.casAPI, msg.From.ID)

@@ -207,7 +207,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		User:          user,
 		ChannelID:     channelID,
 		ReplyTo:       replyTo,
-		DeleteReplyTo: deleteReplyTo > 0,
+		DeleteReplyTo: atomic.LoadInt32(&deleteReplyTo) > 0,
 	}
 }
 

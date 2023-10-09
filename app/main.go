@@ -94,7 +94,7 @@ func main() {
 
 	setupLog(opts.Dbg)
 	log.Printf("[INFO] super users: %v", opts.SuperUsers)
-
+	log.Printf("[DEBUG] opts: %+v", opts)
 	if opts.ExportNum > 0 {
 		export()
 		return

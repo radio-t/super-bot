@@ -145,6 +145,8 @@ func main() {
 			opts.SpamFilter.API, opts.SpamFilter.TimeOut, opts.SpamFilter.Dry)
 		httpCasClient := &http.Client{Timeout: opts.SpamFilter.TimeOut}
 		multiBot = append(multiBot, bot.NewSpamFilter(opts.SpamFilter.API, httpCasClient, opts.SpamFilter.Dry))
+	} else {
+		log.Print("[INFO] spam filter disabled")
 	}
 
 	if sb, err := bot.NewSys(opts.SysData); err == nil {

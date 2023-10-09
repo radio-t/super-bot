@@ -149,7 +149,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 	var user User
 	var mutex = &sync.Mutex{}
 	var replyTo int
-	var deleteReplyTo bool
+	var deleteReplyTo int32
 
 	wg := syncs.NewSizedGroup(4)
 	for _, bot := range b {
@@ -176,7 +176,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 					mutex.Unlock()
 				}
 				if resp.DeleteReplyTo {
-					deleteReplyTo = true
+					atomic.AddInt32(&deleteReplyTo, 1)
 				}
 			}
 		})
@@ -207,7 +207,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		User:          user,
 		ChannelID:     channelID,
 		ReplyTo:       replyTo,
-		DeleteReplyTo: deleteReplyTo,
+		DeleteReplyTo: deleteReplyTo > 0,
 	}
 }
 

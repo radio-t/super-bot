@@ -56,6 +56,8 @@ func (s *SpamFilter) OnMessage(msg Message) (response Response) {
 		log.Printf("[WARN] failed to parse response from %s, error=%v", reqURL, err)
 		return Response{}
 	}
+	log.Printf("[DEBUG] response from %s: %+v", reqURL, respData)
+
 	if respData.OK {
 		log.Printf("[INFO] user %s is not a spammer, added to aproved", msg.From.Username)
 		s.approvedUsers[msg.From.ID] = true

@@ -48,7 +48,7 @@ func (s *SpamFilter) OnMessage(msg Message) (response Response) {
 	defer resp.Body.Close()
 
 	respData := struct {
-		OK          bool   `json:"ok"`
+		OK          bool   `json:"ok"` // ok means user is a spammer
 		Description string `json:"description"`
 	}{}
 
@@ -58,13 +58,13 @@ func (s *SpamFilter) OnMessage(msg Message) (response Response) {
 	}
 	log.Printf("[DEBUG] response from %s: %+v", reqURL, respData)
 
-	if respData.OK {
+	if !respData.OK {
 		log.Printf("[INFO] user %s is not a spammer, added to aproved", msg.From.Username)
 		s.approvedUsers[msg.From.ID] = true
 		return Response{}
 	}
 
-	log.Printf("[INFO] user %s detected as spammer: %s, msg: %s", msg.From.Username, respData.Description, msg.Text)
+	log.Printf("[INFO] user %s detected as spammer: %s, msg: %q", msg.From.Username, respData.Description, msg.Text)
 	if s.dry {
 		return Response{Text: "this is spam, but I'm in dry mode, so I'll do nothing yet", Send: true, ReplyTo: msg.ID}
 	}

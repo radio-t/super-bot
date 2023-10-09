@@ -30,14 +30,14 @@ func TestSpamFilter_OnMessage(t *testing.T) {
 	}{
 		{
 			name:           "User is not a spammer",
-			mockResp:       `{"ok": true, "description": "Not a spammer"}`,
+			mockResp:       `{"ok": false, "description": "Not a spammer"}`,
 			mockStatusCode: 200,
 			dryMode:        false,
 			expectedResp:   Response{},
 		},
 		{
 			name:           "User is a spammer, not in dry mode",
-			mockResp:       `{"ok": false, "description": "Is a spammer"}`,
+			mockResp:       `{"ok": true, "description": "Is a spammer"}`,
 			mockStatusCode: 200,
 			dryMode:        false,
 			expectedResp: Response{
@@ -50,7 +50,7 @@ func TestSpamFilter_OnMessage(t *testing.T) {
 		},
 		{
 			name:           "User is a spammer, in dry mode",
-			mockResp:       `{"ok": false, "description": "Is a spammer"}`,
+			mockResp:       `{"ok": true, "description": "Is a spammer"}`,
 			mockStatusCode: 200,
 			dryMode:        true,
 			expectedResp: Response{

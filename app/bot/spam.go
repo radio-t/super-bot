@@ -23,7 +23,7 @@ var permanentBanDuration = time.Hour * 24 * 400
 
 // NewSpamFilter makes a spam detecting bot
 func NewSpamFilter(api string, client HTTPClient, dry bool) *SpamFilter {
-	log.Printf("[INFO] Excerpt bot with %s", api)
+	log.Printf("[INFO] Spam bot with %s", api)
 	return &SpamFilter{casAPI: api, client: client, dry: dry, approvedUsers: map[int64]bool{}}
 }
 

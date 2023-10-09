@@ -149,6 +149,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 	var user User
 	var mutex = &sync.Mutex{}
 	var replyTo int
+	var deleteReplyTo bool
 
 	wg := syncs.NewSizedGroup(4)
 	for _, bot := range b {
@@ -174,6 +175,9 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 					channelID = resp.ChannelID
 					mutex.Unlock()
 				}
+				if resp.DeleteReplyTo {
+					deleteReplyTo = true
+				}
 			}
 		})
 	}
@@ -195,14 +199,15 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 
 	log.Printf("[DEBUG] answers %d, send %v", len(lines), len(lines) > 0)
 	return Response{
-		Text:        strings.Join(lines, "\n"),
-		Send:        len(lines) > 0,
-		Pin:         atomic.LoadInt32(&pin) > 0,
-		Unpin:       atomic.LoadInt32(&unpin) > 0,
-		BanInterval: banInterval,
-		User:        user,
-		ChannelID:   channelID,
-		ReplyTo:     replyTo,
+		Text:          strings.Join(lines, "\n"),
+		Send:          len(lines) > 0,
+		Pin:           atomic.LoadInt32(&pin) > 0,
+		Unpin:         atomic.LoadInt32(&unpin) > 0,
+		BanInterval:   banInterval,
+		User:          user,
+		ChannelID:     channelID,
+		ReplyTo:       replyTo,
+		DeleteReplyTo: deleteReplyTo,
 	}
 }
 

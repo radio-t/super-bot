@@ -54,7 +54,7 @@ func TestSpamFilter_OnMessage(t *testing.T) {
 			mockStatusCode: 200,
 			dryMode:        true,
 			expectedResp: Response{
-				Text:    "this is spam, but I'm in dry mode, so I'll do nothing yet",
+				Text:    "this is spam from \"testuser\", but I'm in dry mode, so I'll do nothing yet",
 				Send:    true,
 				ReplyTo: 1,
 			},
@@ -102,7 +102,7 @@ func TestSpamFilter_OnMessageCheckOnce(t *testing.T) {
 		DoFunc: func(req *http.Request) (*http.Response, error) {
 			return &http.Response{
 				StatusCode: 200,
-				Body:       io.NopCloser(bytes.NewBufferString(`{"ok": true, "description": "Not a spammer"}`)),
+				Body:       io.NopCloser(bytes.NewBufferString(`{"ok": false, "description": "Not a spammer"}`)),
 			}, nil
 		},
 	}

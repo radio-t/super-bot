@@ -66,7 +66,10 @@ func (s *SpamFilter) OnMessage(msg Message) (response Response) {
 
 	log.Printf("[INFO] user %s detected as spammer: %s, msg: %q", msg.From.Username, respData.Description, msg.Text)
 	if s.dry {
-		return Response{Text: "this is spam, but I'm in dry mode, so I'll do nothing yet", Send: true, ReplyTo: msg.ID}
+		return Response{
+			Text: fmt.Sprintf("this is spam from %q, but I'm in dry mode, so I'll do nothing yet", msg.From.Username),
+			Send: true, ReplyTo: msg.ID,
+		}
 	}
 	return Response{Text: "this is spam! go to ban, " + msg.From.DisplayName, Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
 }

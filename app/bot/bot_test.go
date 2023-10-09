@@ -51,7 +51,7 @@ func TestMultiBotCombinesAllBotResponses(t *testing.T) {
 	}
 	b2 := &InterfaceMock{
 		ReactOnFunc:   func() []string { return []string{"cmd"} },
-		OnMessageFunc: func(m Message) Response { return Response{Send: true, Text: "b2 resp"} },
+		OnMessageFunc: func(m Message) Response { return Response{Send: true, Text: "b2 resp", DeleteReplyTo: true} },
 	}
 
 	mb := MultiBot{b1, b2}
@@ -64,4 +64,5 @@ func TestMultiBotCombinesAllBotResponses(t *testing.T) {
 	require.Contains(t, parts, "b1 resp")
 	require.Contains(t, parts, "b2 resp")
 	assert.Equal(t, 789, resp.ReplyTo)
+	assert.True(t, resp.DeleteReplyTo)
 }

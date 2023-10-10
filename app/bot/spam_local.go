@@ -16,7 +16,7 @@ type SpamLocalFilter struct {
 	threshold float64
 
 	enabled       bool
-	spamMessages  []string
+	tokenizedSpam []map[string]int
 	approvedUsers map[int64]bool
 }
 
@@ -24,9 +24,11 @@ type SpamLocalFilter struct {
 func NewSpamLocalFilter(spamSamples io.Reader, threshold float64, superUser SuperUser, dry bool) *SpamLocalFilter {
 	log.Printf("[INFO] Spam bot (local), threshold=%0.2f", threshold)
 	res := &SpamLocalFilter{dry: dry, approvedUsers: map[int64]bool{}, superUser: superUser, threshold: threshold}
+
 	scanner := bufio.NewScanner(spamSamples)
 	for scanner.Scan() {
-		res.spamMessages = append(res.spamMessages, scanner.Text())
+		tokenizedSpam := res.tokenize(scanner.Text())
+		res.tokenizedSpam = append(res.tokenizedSpam, tokenizedSpam)
 	}
 	if err := scanner.Err(); err != nil {
 		log.Printf("[WARN] failed to read spam samples, error=%v", err)
@@ -77,8 +79,8 @@ func (s *SpamLocalFilter) ReactOn() []string { return []string{} }
 func (s *SpamLocalFilter) isSpam(message string) bool {
 	tokenizedMessage := s.tokenize(message)
 	maxSimilarity := 0.0
-	for _, spam := range s.spamMessages {
-		similarity := s.cosineSimilarity(tokenizedMessage, s.tokenize(spam))
+	for _, spam := range s.tokenizedSpam {
+		similarity := s.cosineSimilarity(tokenizedMessage, spam)
 		if similarity > maxSimilarity {
 			maxSimilarity = similarity
 		}

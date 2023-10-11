@@ -15,10 +15,9 @@ import (
 
 // SpamOpenAIFilter bot, checks if user is a spammer using openai api call
 type SpamOpenAIFilter struct {
-	dry       bool
-	superUser SuperUser
-	openai    OpenAIClient
-	maxLen    int
+	dry          bool
+	superUser    SuperUser
+	openaiClient OpenAIClient
 
 	spamPrompt    string
 	enabled       bool
@@ -31,9 +30,9 @@ type OpenAIClient interface {
 }
 
 // NewSpamOpenAIFilter makes a spam detecting bot
-func NewSpamOpenAIFilter(spamSamples io.Reader, openai OpenAIClient, maxLen int, superUser SuperUser, dry bool) *SpamOpenAIFilter {
+func NewSpamOpenAIFilter(spamSamples io.Reader, openaiClient OpenAIClient, maxLen int, superUser SuperUser, dry bool) *SpamOpenAIFilter {
 	log.Printf("[INFO] Spam bot (openai)")
-	res := &SpamOpenAIFilter{dry: dry, approvedUsers: map[int64]bool{}, superUser: superUser, openai: openai}
+	res := &SpamOpenAIFilter{dry: dry, approvedUsers: map[int64]bool{}, superUser: superUser, openaiClient: openaiClient}
 
 	scanner := bufio.NewScanner(spamSamples)
 	for scanner.Scan() {
@@ -90,13 +89,12 @@ func (s *SpamOpenAIFilter) isSpam(message string) bool {
 	messages = append(messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleSystem,
 		Content: "this is the list of spam messages. I will give you a messages to detect if this is spam or not and you will answer with a single world \"OK\" or \"SPAM\"\n\n" + s.spamPrompt,
-	})
-	messages = append(messages, openai.ChatCompletionMessage{
+	}, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: message,
 	})
 
-	resp, err := s.openai.CreateChatCompletion(
+	resp, err := s.openaiClient.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:     openai.GPT3Dot5Turbo,

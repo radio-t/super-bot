@@ -111,5 +111,6 @@ func (s *SpamOpenAIFilter) isSpam(message string) bool {
 		return false
 	}
 
+	log.Printf("[DEBUG] openai response: %q", resp.Choices[0].Message.Content)
 	return strings.Contains(resp.Choices[0].Message.Content, "SPAM")
 }

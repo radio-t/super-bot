@@ -90,7 +90,7 @@ func (s *SpamOpenAIFilter) isSpam(message string) bool {
 	messages := []openai.ChatCompletionMessage{}
 	messages = append(messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleSystem,
-		Content: "this is the list of spam messages. I will give you a messages to detect if this is spam or not and you will answer with a single world \"OK\" or \"SPAM\"10\n" + s.spamPrompt,
+		Content: "this is the list of spam messages. I will give you a messages to detect if this is spam or not and you will answer with a single world \"OK\" or \"SPAM\"\n\n" + s.spamPrompt,
 	}, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: message,

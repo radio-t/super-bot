@@ -54,7 +54,7 @@ func (s *SpamLocalFilter) OnMessage(msg Message) (response Response) {
 	}
 
 	if !s.isSpam(msg.Text) {
-		log.Printf("[INFO] user %s is not a spammer, added to aproved", msg.From.Username)
+		log.Printf("[INFO] user %s (%d) is not a spammer, added to aproved", msg.From.Username, msg.From.ID)
 		s.approvedUsers[msg.From.ID] = true
 		return Response{} // not a spam
 	}

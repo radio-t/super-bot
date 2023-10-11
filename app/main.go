@@ -47,10 +47,12 @@ var opts struct {
 	ExportBroadcastUsers events.SuperUser `long:"broadcast" description:"broadcast-users"`
 
 	SpamFilter struct {
-		Enabled bool          `long:"enabled" env:"ENABLED" description:"enable spam filter"`
-		API     string        `long:"api" env:"CAS_API" default:"https://api.cas.chat" description:"CAS API"`
-		TimeOut time.Duration `long:"timeout" env:"TIMEOUT" default:"5s" description:"CAS timeout"`
-		Dry     bool          `long:"dry" env:"DRY" description:"dry mode, no bans"`
+		Enabled   bool          `long:"enabled" env:"ENABLED" description:"enable spam filter"`
+		API       string        `long:"api" env:"CAS_API" default:"https://api.cas.chat" description:"CAS API"`
+		TimeOut   time.Duration `long:"timeout" env:"TIMEOUT" default:"5s" description:"CAS timeout"`
+		Samples   string        `long:"samples" env:"SAMPLES" default:"" description:"path to spam samples"`
+		Threshold float64       `long:"threshold" env:"THRESHOLD" default:"0.5" description:"spam threshold"`
+		Dry       bool          `long:"dry" env:"DRY" description:"dry mode, no bans"`
 	} `group:"spam-filter" namespace:"spam-filter" env-namespace:"SPAM_FILTER"`
 
 	OpenAI struct {
@@ -144,7 +146,15 @@ func main() {
 		log.Printf("[INFO] spam filter enabled, api=%s, timeout=%s, dry=%v",
 			opts.SpamFilter.API, opts.SpamFilter.TimeOut, opts.SpamFilter.Dry)
 		httpCasClient := &http.Client{Timeout: opts.SpamFilter.TimeOut}
-		multiBot = append(multiBot, bot.NewSpamFilter(opts.SpamFilter.API, httpCasClient, opts.SuperUsers, opts.SpamFilter.Dry))
+		multiBot = append(multiBot, bot.NewSpamCasFilter(opts.SpamFilter.API, httpCasClient, opts.SuperUsers, opts.SpamFilter.Dry))
+		if opts.SpamFilter.Samples != "" {
+			spamFh, err := os.Open(opts.SpamFilter.Samples)
+			if err != nil {
+				log.Fatalf("[ERROR] failed to open spam samples file %s, %v", opts.SpamFilter.Samples, err)
+			}
+			multiBot = append(multiBot, bot.NewSpamLocalFilter(spamFh, opts.SpamFilter.Threshold,
+				opts.SuperUsers, opts.SpamFilter.Dry))
+		}
 	} else {
 		log.Print("[INFO] spam filter disabled")
 	}

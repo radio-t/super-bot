@@ -19,7 +19,7 @@ func TestNewSpamFilter(t *testing.T) {
 		return false
 	}}
 	client := &mocks.HTTPClient{}
-	sf := NewSpamFilter("http://localhost", client, su, false)
+	sf := NewSpamCasFilter("http://localhost", client, su, false)
 	assert.NotNil(t, sf)
 	assert.Equal(t, "http://localhost", sf.casAPI)
 	assert.Equal(t, client, sf.client)
@@ -92,7 +92,7 @@ func TestSpamFilter_OnMessage(t *testing.T) {
 				},
 			}
 
-			s := NewSpamFilter("http://localhost", mockedHTTPClient, su, tt.dryMode)
+			s := NewSpamCasFilter("http://localhost", mockedHTTPClient, su, tt.dryMode)
 
 			msg := Message{
 				From: User{
@@ -127,7 +127,7 @@ func TestSpamFilter_OnMessageCheckOnce(t *testing.T) {
 		return false
 	}}
 
-	s := NewSpamFilter("http://localhost", mockedHTTPClient, su, false)
+	s := NewSpamCasFilter("http://localhost", mockedHTTPClient, su, false)
 	res := s.OnMessage(Message{From: User{ID: 1, Username: "testuser"}, ID: 1, Text: "Hello"})
 	assert.Equal(t, Response{}, res)
 	assert.Len(t, mockedHTTPClient.DoCalls(), 1, "Do should be called once")

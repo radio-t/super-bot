@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// SpamFilter bot, checks if user is a spammer using CAS API
-type SpamFilter struct {
+// SpamCasFilter bot, checks if user is a spammer using CAS API
+type SpamCasFilter struct {
 	casAPI    string
 	dry       bool
 	client    HTTPClient
@@ -22,14 +22,14 @@ type SpamFilter struct {
 // they are considered to be restricted forever.
 var permanentBanDuration = time.Hour * 24 * 400
 
-// NewSpamFilter makes a spam detecting bot
-func NewSpamFilter(api string, client HTTPClient, superUser SuperUser, dry bool) *SpamFilter {
-	log.Printf("[INFO] Spam bot with %s", api)
-	return &SpamFilter{casAPI: api, client: client, dry: dry, approvedUsers: map[int64]bool{}, superUser: superUser}
+// NewSpamCasFilter makes a spam detecting bot
+func NewSpamCasFilter(api string, client HTTPClient, superUser SuperUser, dry bool) *SpamCasFilter {
+	log.Printf("[INFO] Spam bot (cas) with %s", api)
+	return &SpamCasFilter{casAPI: api, client: client, dry: dry, approvedUsers: map[int64]bool{}, superUser: superUser}
 }
 
 // OnMessage checks if user already approved and if not checks if user is a spammer
-func (s *SpamFilter) OnMessage(msg Message) (response Response) {
+func (s *SpamCasFilter) OnMessage(msg Message) (response Response) {
 	if s.approvedUsers[msg.From.ID] {
 		return Response{}
 	}
@@ -80,7 +80,7 @@ func (s *SpamFilter) OnMessage(msg Message) (response Response) {
 }
 
 // Help returns help message
-func (s *SpamFilter) Help() string { return "" }
+func (s *SpamCasFilter) Help() string { return "" }
 
 // ReactOn keys
-func (s *SpamFilter) ReactOn() []string { return []string{} }
+func (s *SpamCasFilter) ReactOn() []string { return []string{} }

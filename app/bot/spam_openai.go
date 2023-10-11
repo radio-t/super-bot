@@ -31,7 +31,7 @@ type OpenAIClient interface {
 
 // NewSpamOpenAIFilter makes a spam detecting bot
 func NewSpamOpenAIFilter(spamSamples io.Reader, openaiClient OpenAIClient, maxLen int, superUser SuperUser, dry bool) *SpamOpenAIFilter {
-	log.Printf("[INFO] Spam bot (openai)")
+	log.Printf("[INFO] Spam bot (openai): maxLen=%d, dry=%v", maxLen, dry)
 	res := &SpamOpenAIFilter{dry: dry, approvedUsers: map[int64]bool{}, superUser: superUser, openaiClient: openaiClient}
 
 	scanner := bufio.NewScanner(spamSamples)
@@ -44,6 +44,7 @@ func NewSpamOpenAIFilter(spamSamples io.Reader, openaiClient OpenAIClient, maxLe
 	} else {
 		res.enabled = true
 	}
+	log.Printf("[DEBUG] spam initial prompt: %q", res.spamPrompt)
 	if len(res.spamPrompt) > maxLen {
 		res.spamPrompt = res.spamPrompt[:maxLen]
 	}
@@ -67,14 +68,14 @@ func (s *SpamOpenAIFilter) OnMessage(msg Message) (response Response) {
 		return Response{} // not a spam
 	}
 
-	log.Printf("[INFO] user %s detected as spammer, msg: %q", msg.From.Username, msg.Text)
+	log.Printf("[INFO] user %s detected as spammer by openai, msg: %q", msg.From.Username, msg.Text)
 	if s.dry {
 		return Response{
-			Text: fmt.Sprintf("this is spam from %q, but I'm in dry mode, so I'll do nothing yet", msg.From.Username),
+			Text: fmt.Sprintf("this is spam (openai) from %q, but I'm in dry mode, so I'll do nothing yet", msg.From.Username),
 			Send: true, ReplyTo: msg.ID,
 		}
 	}
-	return Response{Text: "this is spam! go to ban, " + msg.From.DisplayName, Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
+	return Response{Text: "this is spam (openai)! go to ban, " + msg.From.DisplayName, Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
 }
 
 // Help returns help message

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -152,9 +154,15 @@ func main() {
 			if err != nil {
 				log.Fatalf("[ERROR] failed to open spam samples file %s, %v", opts.SpamFilter.Samples, err)
 			}
+			spamContent, ere := io.ReadAll(spamFh)
+			if ere != nil {
+				log.Fatalf("[ERROR] failed to read spam samples file %s, %v", opts.SpamFilter.Samples, err)
+			}
+			spamReaderLocal := bytes.NewReader(spamContent)
+			spamReaderAI := bytes.NewReader(spamContent)
 			multiBot = append(multiBot,
-				bot.NewSpamLocalFilter(spamFh, opts.SpamFilter.Threshold, opts.SuperUsers, opts.SpamFilter.Dry),
-				bot.NewSpamOpenAIFilter(spamFh, openAIBot, opts.OpenAI.MaxSymbolsRequest, opts.SuperUsers, opts.SpamFilter.Dry),
+				bot.NewSpamLocalFilter(spamReaderLocal, opts.SpamFilter.Threshold, opts.SuperUsers, opts.SpamFilter.Dry),
+				bot.NewSpamOpenAIFilter(spamReaderAI, openAIBot, opts.OpenAI.MaxSymbolsRequest, opts.SuperUsers, opts.SpamFilter.Dry),
 			)
 		}
 	} else {

@@ -44,7 +44,7 @@ func NewSpamOpenAIFilter(spamSamples io.Reader, openaiClient OpenAIClient, maxLe
 	} else {
 		res.enabled = true
 	}
-	log.Printf("[DEBUG] spam initial prompt: %q", res.spamPrompt)
+	log.Printf("[DEBUG] spam initial prompt: %d", len(res.spamPrompt))
 	if len(res.spamPrompt) > maxLen {
 		res.spamPrompt = res.spamPrompt[:maxLen]
 	}
@@ -90,7 +90,7 @@ func (s *SpamOpenAIFilter) isSpam(message string) bool {
 	messages := []openai.ChatCompletionMessage{}
 	messages = append(messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleSystem,
-		Content: "this is the list of spam messages. I will give you a messages to detect if this is spam or not and you will answer with a single world \"OK\" or \"SPAM\"\n\n" + s.spamPrompt,
+		Content: "this is the list of spam messages. I will give you a messages to detect if this is spam or not and you will answer with a single world \"OK\" or \"SPAM\"10\n" + s.spamPrompt,
 	}, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: message,
@@ -100,7 +100,7 @@ func (s *SpamOpenAIFilter) isSpam(message string) bool {
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:     openai.GPT3Dot5Turbo,
-			MaxTokens: 1024,
+			MaxTokens: 100,
 			Messages:  messages,
 		},
 	)

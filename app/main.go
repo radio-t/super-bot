@@ -154,6 +154,8 @@ func main() {
 			}
 			multiBot = append(multiBot, bot.NewSpamLocalFilter(spamFh, opts.SpamFilter.Threshold,
 				opts.SuperUsers, opts.SpamFilter.Dry))
+			multiBot = append(multiBot, bot.NewSpamOpenAIFilter(spamFh, openAIBot, opts.OpenAI.MaxSymbolsRequest,
+				opts.SuperUsers, opts.SpamFilter.Dry))
 		}
 	} else {
 		log.Print("[INFO] spam filter disabled")

@@ -304,3 +304,8 @@ func (o *OpenAI) Summary(text string) (response string, err error) {
 func (o *OpenAI) ReactOn() []string {
 	return []string{"chat!", "gpt!", "ai!", "чат!"}
 }
+
+// CreateChatCompletion exposes the underlying openai.CreateChatCompletion method
+func (o *OpenAI) CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
+	return o.client.CreateChatCompletion(ctx, req)
+}

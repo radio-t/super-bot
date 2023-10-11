@@ -47,6 +47,7 @@ func NewSpamOpenAIFilter(spamSamples io.Reader, openaiClient OpenAIClient, maxLe
 	if len(res.spamPrompt) > maxLen {
 		res.spamPrompt = res.spamPrompt[:maxLen]
 	}
+	log.Printf("[DEBUG] spam prompt len: %d", len(res.spamPrompt))
 	return res
 }
 

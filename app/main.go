@@ -159,10 +159,8 @@ func main() {
 				log.Fatalf("[ERROR] failed to read spam samples file %s, %v", opts.SpamFilter.Samples, err)
 			}
 			spamReaderLocal := bytes.NewReader(spamContent)
-			// spamReaderAI := bytes.NewReader(spamContent) //nolint
 			multiBot = append(multiBot,
 				bot.NewSpamLocalFilter(spamReaderLocal, opts.SpamFilter.Threshold, opts.SuperUsers, opts.SpamFilter.Dry),
-				// bot.NewSpamOpenAIFilter(spamReaderAI, openAIBot, opts.OpenAI.MaxSymbolsRequest, opts.SuperUsers, opts.SpamFilter.Dry), //nolint
 			)
 		}
 	} else {

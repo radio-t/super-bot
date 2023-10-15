@@ -54,7 +54,7 @@ func NewSpamOpenAIFilter(spamSamples io.Reader, openaiClient OpenAIClient, maxLe
 
 // OnMessage checks if user already approved and if not checks if user is a spammer
 func (s *SpamOpenAIFilter) OnMessage(msg Message) (response Response) {
-	if s.approvedUsers[msg.From.ID] {
+	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 {
 		return Response{}
 	}
 

@@ -30,7 +30,7 @@ func NewSpamCasFilter(api string, client HTTPClient, superUser SuperUser, dry bo
 
 // OnMessage checks if user already approved and if not checks if user is a spammer
 func (s *SpamCasFilter) OnMessage(msg Message) (response Response) {
-	if s.approvedUsers[msg.From.ID] {
+	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 {
 		return Response{}
 	}
 

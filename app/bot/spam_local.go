@@ -45,7 +45,7 @@ func (s *SpamLocalFilter) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	if s.approvedUsers[msg.From.ID] {
+	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 {
 		return Response{}
 	}
 
@@ -62,9 +62,9 @@ func (s *SpamLocalFilter) OnMessage(msg Message) (response Response) {
 	}
 
 	if !s.isSpam(msg.Text) {
-		log.Printf("[INFO] user %s is not a spammer id %d, added to aproved", dispalyUsername, msg.From.ID)
 		if id := msg.From.ID; id != 0 {
 			s.approvedUsers[id] = true
+			log.Printf("[INFO] user %s is not a spammer id %d, added to aproved", dispalyUsername, msg.From.ID)
 		}
 		return Response{} // not a spam
 	}

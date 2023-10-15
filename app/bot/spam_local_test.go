@@ -30,7 +30,7 @@ func TestSpamLocalFilter_OnMessage(t *testing.T) {
 		},
 		{
 			Message{From: User{ID: 2, Username: "spammer", DisplayName: "Spammer"}, Text: "Win a free iPhone now!", ID: 2},
-			Response{Text: "this is spam! go to ban, Spammer", Send: true, ReplyTo: 2, BanInterval: permanentBanDuration, DeleteReplyTo: true},
+			Response{Text: "this is spam! go to ban, \"Spammer\" (id:2)", Send: true, ReplyTo: 2, BanInterval: permanentBanDuration, DeleteReplyTo: true},
 		},
 		{
 			Message{From: User{ID: 3, Username: "super", DisplayName: "SuperUser"}, Text: "Win a free iPhone now!", ID: 3},

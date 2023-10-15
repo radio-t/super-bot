@@ -53,20 +53,31 @@ func (s *SpamLocalFilter) OnMessage(msg Message) (response Response) {
 		return Response{} // don't check super users for spam
 	}
 
+	dispalyUsername := msg.From.DisplayName
+	if dispalyUsername == "" {
+		dispalyUsername = msg.From.Username
+	}
+	if dispalyUsername == "" {
+		dispalyUsername = fmt.Sprintf("%d", msg.From.ID)
+	}
+
 	if !s.isSpam(msg.Text) {
-		log.Printf("[INFO] user %s (%d) is not a spammer, added to aproved", msg.From.Username, msg.From.ID)
-		s.approvedUsers[msg.From.ID] = true
+		log.Printf("[INFO] user %s is not a spammer id %d, added to aproved", dispalyUsername, msg.From.ID)
+		if id := msg.From.ID; id != 0 {
+			s.approvedUsers[id] = true
+		}
 		return Response{} // not a spam
 	}
 
-	log.Printf("[INFO] user %s detected as spammer, msg: %q", msg.From.Username, msg.Text)
+	log.Printf("[INFO] user %s detected as spammer, msg: %q", dispalyUsername, msg.Text)
 	if s.dry {
 		return Response{
-			Text: fmt.Sprintf("this is spam from %q, but I'm in dry mode, so I'll do nothing yet", msg.From.Username),
+			Text: fmt.Sprintf("this is spam from %q, but I'm in dry mode, so I'll do nothing yet", dispalyUsername),
 			Send: true, ReplyTo: msg.ID,
 		}
 	}
-	return Response{Text: "this is spam! go to ban, " + msg.From.DisplayName, Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
+	return Response{Text: fmt.Sprintf("this is spam! go to ban, %q (id:%d)", dispalyUsername, msg.From.ID),
+		Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
 }
 
 // Help returns help message

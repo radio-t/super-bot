@@ -61,21 +61,22 @@ func (s *SpamOpenAIFilter) OnMessage(msg Message) (response Response) {
 	if s.superUser.IsSuper(msg.From.Username) {
 		return Response{} // don't check super users for spam
 	}
-
+	displayUsername := DisplayName(msg)
 	if !s.isSpam(msg.Text) {
-		log.Printf("[INFO] user %s (%d) is not a spammer, added to aproved", msg.From.Username, msg.From.ID)
+		log.Printf("[INFO] user %s (%d) is not a spammer, added to aproved", displayUsername, msg.From.ID)
 		s.approvedUsers[msg.From.ID] = true
 		return Response{} // not a spam
 	}
 
-	log.Printf("[INFO] user %s detected as spammer by openai, msg: %q", msg.From.Username, msg.Text)
+	log.Printf("[INFO] user %q detected as spammer by openai, msg: %q", displayUsername, msg.Text)
 	if s.dry {
 		return Response{
-			Text: fmt.Sprintf("this is spam (openai) from %q, but I'm in dry mode, so I'll do nothing yet", msg.From.Username),
+			Text: fmt.Sprintf("this is spam (openai) from %q, but I'm in dry mode, so I'll do nothing yet", displayUsername),
 			Send: true, ReplyTo: msg.ID,
 		}
 	}
-	return Response{Text: "this is spam (openai)! go to ban, " + msg.From.DisplayName, Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
+	return Response{Text: "this is spam (openai)! go to ban, " + displayUsername, Send: true, ReplyTo: msg.ID,
+		BanInterval: permanentBanDuration, DeleteReplyTo: true}
 }
 
 // Help returns help message

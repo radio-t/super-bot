@@ -67,7 +67,7 @@ func TestSpamFilter_OnMessage(t *testing.T) {
 			mockStatusCode: 200,
 			dryMode:        true,
 			expectedResp: Response{
-				Text:    "this is spam from \"testuser\", but I'm in dry mode, so I'll do nothing yet",
+				Text:    "this is spam from \"Test User\", but I'm in dry mode, so I'll do nothing yet",
 				Send:    true,
 				ReplyTo: 1,
 			},

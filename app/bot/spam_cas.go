@@ -62,21 +62,22 @@ func (s *SpamCasFilter) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 	log.Printf("[DEBUG] response from %s: %+v", reqURL, respData)
-
+	displayUsername := DisplayName(msg)
 	if !respData.OK {
-		log.Printf("[INFO] user %s is not a spammer, added to aproved", msg.From.Username)
+		log.Printf("[INFO] user %q is not a spammer, added to aproved", displayUsername)
 		s.approvedUsers[msg.From.ID] = true
 		return Response{}
 	}
 
-	log.Printf("[INFO] user %s detected as spammer: %s, msg: %q", msg.From.Username, respData.Description, msg.Text)
+	log.Printf("[INFO] user %q detected as spammer: %s, msg: %q", displayUsername, respData.Description, msg.Text)
 	if s.dry {
 		return Response{
-			Text: fmt.Sprintf("this is spam from %q, but I'm in dry mode, so I'll do nothing yet", msg.From.Username),
+			Text: fmt.Sprintf("this is spam from %q, but I'm in dry mode, so I'll do nothing yet", displayUsername),
 			Send: true, ReplyTo: msg.ID,
 		}
 	}
-	return Response{Text: "this is spam! go to ban, " + msg.From.DisplayName, Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
+	return Response{Text: "this is spam! go to ban, " + displayUsername, Send: true, ReplyTo: msg.ID,
+		BanInterval: permanentBanDuration, DeleteReplyTo: true}
 }
 
 // Help returns help message

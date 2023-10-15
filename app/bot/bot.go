@@ -249,3 +249,15 @@ func EscapeMarkDownV1Text(text string) string {
 	}
 	return text
 }
+
+// DisplayName returns user's display name or username or id
+func DisplayName(msg Message) string {
+	displayUsername := msg.From.DisplayName
+	if displayUsername == "" {
+		displayUsername = msg.From.Username
+	}
+	if displayUsername == "" {
+		displayUsername = fmt.Sprintf("%d", msg.From.ID)
+	}
+	return displayUsername
+}

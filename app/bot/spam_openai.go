@@ -92,7 +92,7 @@ func (s *SpamOpenAIFilter) isSpam(message string) bool {
 	messages := []openai.ChatCompletionMessage{}
 	messages = append(messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleSystem,
-		Content: "This is the list of spam messages. I will give you a messages to detect if a given message is spam or not and you will answer with a single world \"OK\" or \"SPAM\". Answer \"SPAM\" only if you absolutely certain it is. Don't say SPAM if message is just a few words\n\n" + s.spamPrompt,
+		Content: "This is the list of spam messages. I will give you a message to detect if it is spam or not and you will answer with a single world \"OK\" or \"SPAM\". Answer \"SPAM\" only if you absolutely certain it is spam\n\n" + s.spamPrompt,
 	}, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: message,
@@ -101,7 +101,7 @@ func (s *SpamOpenAIFilter) isSpam(message string) bool {
 	resp, err := s.openaiClient.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:     openai.GPT3Dot5Turbo,
+			Model:     openai.GPT4,
 			MaxTokens: 100,
 			Messages:  messages,
 		},

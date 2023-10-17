@@ -16,7 +16,7 @@ func TestSpamOpenAIFilter_isSpam(t *testing.T) {
 	spamSamples := strings.NewReader("spam1\nspam2\nspam3")
 	mockOpenAI := &mocks.OpenAIClientMock{}
 
-	filter := NewSpamOpenAIFilter(spamSamples, mockOpenAI, 4096, nil, false)
+	filter := NewSpamOpenAIFilter(spamSamples, mockOpenAI, 4096, nil, 5, false)
 	require.True(t, filter.enabled)
 	assert.True(t, len(filter.spamPrompt) <= 4096)
 
@@ -74,7 +74,7 @@ func TestSpamOpenAIFilter_OnMessage(t *testing.T) {
 		},
 	}
 
-	filter := NewSpamOpenAIFilter(spamSamples, mockOpenAI, 4096, superUser, false)
+	filter := NewSpamOpenAIFilter(spamSamples, mockOpenAI, 4096, superUser, 5, false)
 
 	msg := Message{From: User{ID: 1, Username: "user1"}, Text: "hello"}
 	resp := filter.OnMessage(msg)

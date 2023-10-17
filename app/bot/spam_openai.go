@@ -18,13 +18,12 @@ type SpamOpenAIFilter struct {
 	dry          bool
 	superUser    SuperUser
 	openaiClient OpenAIClient
+	milMsgLen    int
 
 	spamPrompt    string
 	enabled       bool
 	approvedUsers map[int64]bool
 }
-
-const minMsgLenForSpam = 100 // arbitrary value, just to not check short messages
 
 // OpenAIClient is interface for OpenAI client with the possibility to mock it
 type OpenAIClient interface {
@@ -32,8 +31,8 @@ type OpenAIClient interface {
 }
 
 // NewSpamOpenAIFilter makes a spam detecting bot
-func NewSpamOpenAIFilter(spamSamples io.Reader, openaiClient OpenAIClient, maxLen int, superUser SuperUser, dry bool) *SpamOpenAIFilter {
-	log.Printf("[INFO] Spam bot (openai): maxLen=%d, dry=%v", maxLen, dry)
+func NewSpamOpenAIFilter(spamSamples io.Reader, openaiClient OpenAIClient, maxPromptLen int, superUser SuperUser, minMsgLen int, dry bool) *SpamOpenAIFilter {
+	log.Printf("[INFO] Spam bot (openai): max prompt len=%d, min msg: %d, dry=%v", maxPromptLen, minMsgLen, dry)
 	res := &SpamOpenAIFilter{dry: dry, approvedUsers: map[int64]bool{}, superUser: superUser, openaiClient: openaiClient}
 
 	scanner := bufio.NewScanner(spamSamples)
@@ -47,8 +46,8 @@ func NewSpamOpenAIFilter(spamSamples io.Reader, openaiClient OpenAIClient, maxLe
 		res.enabled = true
 	}
 	log.Printf("[DEBUG] spam initial prompt: %d", len(res.spamPrompt))
-	if len(res.spamPrompt) > maxLen {
-		res.spamPrompt = res.spamPrompt[:maxLen]
+	if len(res.spamPrompt) > maxPromptLen {
+		res.spamPrompt = res.spamPrompt[:maxPromptLen]
 	}
 	log.Printf("[DEBUG] spam prompt len: %d", len(res.spamPrompt))
 	return res
@@ -56,7 +55,7 @@ func NewSpamOpenAIFilter(spamSamples io.Reader, openaiClient OpenAIClient, maxLe
 
 // OnMessage checks if user already approved and if not checks if user is a spammer
 func (s *SpamOpenAIFilter) OnMessage(msg Message) (response Response) {
-	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 || len(msg.Text) < minMsgLenForSpam || !s.enabled {
+	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 || len(msg.Text) < s.milMsgLen || !s.enabled {
 		return Response{}
 	}
 

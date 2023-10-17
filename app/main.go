@@ -54,6 +54,7 @@ var opts struct {
 		TimeOut   time.Duration `long:"timeout" env:"TIMEOUT" default:"5s" description:"CAS timeout"`
 		Samples   string        `long:"samples" env:"SAMPLES" default:"" description:"path to spam samples"`
 		Threshold float64       `long:"threshold" env:"THRESHOLD" default:"0.5" description:"spam threshold"`
+		MinMsgLen int           `long:"min-msg-len" env:"MIN_MSG_LEN" default:"100" description:"min message length to check"`
 		Dry       bool          `long:"dry" env:"DRY" description:"dry mode, no bans"`
 	} `group:"spam-filter" namespace:"spam-filter" env-namespace:"SPAM_FILTER"`
 
@@ -161,10 +162,10 @@ func main() {
 			spamReaderLocal := bytes.NewReader(spamContent)
 			spamReaderAI := bytes.NewReader(spamContent)
 			multiBot = append(multiBot,
-				bot.NewSpamLocalFilter(spamReaderLocal, opts.SpamFilter.Threshold, opts.SuperUsers, opts.SpamFilter.Dry),
+				bot.NewSpamLocalFilter(spamReaderLocal, opts.SpamFilter.Threshold, opts.SuperUsers,
+					opts.SpamFilter.MinMsgLen, opts.SpamFilter.Dry),
 				bot.NewSpamOpenAIFilter(spamReaderAI, openAIBot, opts.OpenAI.MaxSymbolsRequest,
-					opts.SuperUsers, opts.SpamFilter.Dry),
-			)
+					opts.SuperUsers, opts.SpamFilter.MinMsgLen, opts.SpamFilter.Dry))
 		}
 	} else {
 		log.Print("[INFO] spam filter disabled")

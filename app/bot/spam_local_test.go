@@ -18,8 +18,7 @@ func TestSpamLocalFilter_OnMessage(t *testing.T) {
 	}}
 	spamSamples := strings.NewReader("win free iPhone\nlottery prize")
 
-	filter := NewSpamLocalFilter(spamSamples, 0.5, superUser, false)
-
+	filter := NewSpamLocalFilter(spamSamples, 0.5, superUser, 5, false)
 	tests := []struct {
 		msg      Message
 		expected Response
@@ -39,13 +38,15 @@ func TestSpamLocalFilter_OnMessage(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.expected, filter.OnMessage(test.msg))
+		t.Run(test.msg.From.Username, func(t *testing.T) {
+			assert.Equal(t, test.expected, filter.OnMessage(test.msg))
+		})
 	}
 }
 
 func TestIsSpam(t *testing.T) {
 	spamSamples := strings.NewReader("win free iPhone\nlottery prize")
-	filter := NewSpamLocalFilter(spamSamples, 0.5, nil, false) // SuperUser set to nil for this test
+	filter := NewSpamLocalFilter(spamSamples, 0.5, nil, 5, false) // SuperUser set to nil for this test
 
 	tests := []struct {
 		name      string

@@ -14,6 +14,7 @@ type SpamLocalFilter struct {
 	dry       bool
 	superUser SuperUser
 	threshold float64
+	milMsgLen int
 
 	enabled       bool
 	tokenizedSpam []map[string]int
@@ -21,9 +22,9 @@ type SpamLocalFilter struct {
 }
 
 // NewSpamLocalFilter makes a spam detecting bot
-func NewSpamLocalFilter(spamSamples io.Reader, threshold float64, superUser SuperUser, dry bool) *SpamLocalFilter {
-	log.Printf("[INFO] Spam bot (local), threshold=%0.2f", threshold)
-	res := &SpamLocalFilter{dry: dry, approvedUsers: map[int64]bool{}, superUser: superUser, threshold: threshold}
+func NewSpamLocalFilter(spamSamples io.Reader, threshold float64, superUser SuperUser, minMsgLen int, dry bool) *SpamLocalFilter {
+	log.Printf("[INFO] Spam bot (local), threshold=%0.2f, min msg:%d", threshold, minMsgLen)
+	res := &SpamLocalFilter{dry: dry, approvedUsers: map[int64]bool{}, superUser: superUser, threshold: threshold, milMsgLen: minMsgLen}
 
 	scanner := bufio.NewScanner(spamSamples)
 	for scanner.Scan() {
@@ -45,7 +46,7 @@ func (s *SpamLocalFilter) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 || len(msg.Text) < minMsgLenForSpam {
+	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 || len(msg.Text) < s.milMsgLen {
 		return Response{}
 	}
 

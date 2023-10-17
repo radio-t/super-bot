@@ -24,6 +24,8 @@ type SpamOpenAIFilter struct {
 	approvedUsers map[int64]bool
 }
 
+const minMsgLenForSpam = 100 // arbitrary value, just to not check short messages
+
 // OpenAIClient is interface for OpenAI client with the possibility to mock it
 type OpenAIClient interface {
 	CreateChatCompletion(context.Context, openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
@@ -54,7 +56,7 @@ func NewSpamOpenAIFilter(spamSamples io.Reader, openaiClient OpenAIClient, maxLe
 
 // OnMessage checks if user already approved and if not checks if user is a spammer
 func (s *SpamOpenAIFilter) OnMessage(msg Message) (response Response) {
-	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 {
+	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 || len(msg.Text) < minMsgLenForSpam || !s.enabled {
 		return Response{}
 	}
 

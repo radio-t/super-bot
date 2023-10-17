@@ -45,7 +45,7 @@ func (s *SpamLocalFilter) OnMessage(msg Message) (response Response) {
 		return Response{}
 	}
 
-	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 {
+	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 || len(msg.Text) < minMsgLenForSpam {
 		return Response{}
 	}
 

@@ -1,7 +1,6 @@
 package openai
 
 import (
-	"bufio"
 	"context"
 	"errors"
 )
@@ -28,25 +27,23 @@ func (c *Client) CreateCompletionStream(
 		return
 	}
 
+	if !checkPromptType(request.Prompt) {
+		err = ErrCompletionRequestPromptTypeNotSupported
+		return
+	}
+
 	request.Stream = true
-	req, err := c.newStreamRequest(ctx, "POST", urlSuffix, request)
+	req, err := c.newRequest(ctx, "POST", c.fullURL(urlSuffix, request.Model), withBody(request))
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := sendRequestStream[CompletionResponse](c, req)
 	if err != nil {
 		return
 	}
-
-	resp, err := c.config.HTTPClient.Do(req) //nolint:bodyclose // body is closed in stream.Close()
-	if err != nil {
-		return
-	}
-
 	stream = &CompletionStream{
-		streamReader: &streamReader[CompletionResponse]{
-			emptyMessagesLimit: c.config.EmptyMessagesLimit,
-			reader:             bufio.NewReader(resp.Body),
-			response:           resp,
-			errAccumulator:     newErrorAccumulator(),
-			unmarshaler:        &jsonUnmarshaler{},
-		},
+		streamReader: resp,
 	}
 	return
 }

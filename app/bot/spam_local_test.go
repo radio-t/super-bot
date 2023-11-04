@@ -28,6 +28,11 @@ func TestSpamLocalFilter_OnMessage(t *testing.T) {
 			Response{},
 		},
 		{
+			Message{From: User{ID: 4, Username: "john", DisplayName: "John"}, Text: "Hello 😁🐶🍕 how are you? ", ID: 4},
+			Response{Text: "this is spam! go to ban, \"John\" (id:4)", Send: true,
+				BanInterval: permanentBanDuration, ReplyTo: 4, DeleteReplyTo: true},
+		},
+		{
 			Message{From: User{ID: 2, Username: "spammer", DisplayName: "Spammer"}, Text: "Win a free iPhone now!", ID: 2},
 			Response{Text: "this is spam! go to ban, \"Spammer\" (id:2)", Send: true, ReplyTo: 2, BanInterval: permanentBanDuration, DeleteReplyTo: true},
 		},
@@ -66,6 +71,33 @@ func TestIsSpam(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			filter.threshold = test.threshold // Update threshold for each test case
 			assert.Equal(t, test.expected, filter.isSpam(test.message))
+		})
+	}
+}
+
+// nolint
+func TestCountEmojis(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  int
+	}{
+		{"NoEmoji", "Hello, world!", 0},
+		{"OneEmoji", "Hi there 👋", 1},
+		{"TwoEmojis", "Good morning 🌞🌻", 2},
+		{"Mixed", "👨‍👩‍👧‍👦 Family emoji", 1},
+		{"EmojiSequences", "🏳️‍🌈 Rainbow flag", 1},
+		{"TextAfterEmoji", "😊 Have a nice day!", 1},
+		{"OnlyEmojis", "😁🐶🍕", 3},
+		{"WithCyrillic", "Привет, 🍕 мир! 👋", 2},
+	}
+
+	spamSamples := strings.NewReader("win free iPhone\nlottery prize")
+	filter := NewSpamLocalFilter(spamSamples, 0.5, nil, 5, false)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, filter.countEmojis(tt.input))
 		})
 	}
 }

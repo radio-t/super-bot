@@ -39,6 +39,7 @@ func NewSpamLocalFilter(spamSamples io.Reader, threshold float64, superUser Supe
 		res.enabled = false
 	} else {
 		res.enabled = true
+		log.Printf("[INFO] loaded %d spam samples, local spam filter enabled", len(res.tokenizedSpam))
 	}
 	return res
 }

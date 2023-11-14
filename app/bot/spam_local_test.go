@@ -76,20 +76,21 @@ func TestIsSpam(t *testing.T) {
 }
 
 // nolint
-func TestCountEmojis(t *testing.T) {
+func TestTooManyEmojis(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
-		want  int
+		count int
+		spam  bool
 	}{
-		{"NoEmoji", "Hello, world!", 0},
-		{"OneEmoji", "Hi there 👋", 1},
-		{"TwoEmojis", "Good morning 🌞🌻", 2},
-		{"Mixed", "👨‍👩‍👧‍👦 Family emoji", 1},
-		{"EmojiSequences", "🏳️‍🌈 Rainbow flag", 1},
-		{"TextAfterEmoji", "😊 Have a nice day!", 1},
-		{"OnlyEmojis", "😁🐶🍕", 3},
-		{"WithCyrillic", "Привет, 🍕 мир! 👋", 2},
+		{"NoEmoji", "Hello, world!", 0, false},
+		{"OneEmoji", "Hi there 👋", 1, false},
+		{"TwoEmojis", "Good morning 🌞🌻", 2, false},
+		{"Mixed", "👨‍👩‍👧‍👦 Family emoji", 1, false},
+		{"EmojiSequences", "🏳️‍🌈 Rainbow flag", 1, false},
+		{"TextAfterEmoji", "😊 Have a nice day!", 1, false},
+		{"OnlyEmojis", "😁🐶🍕", 3, true},
+		{"WithCyrillic", "Привет 🌞 🍕 мир! 👋", 3, true},
 	}
 
 	spamSamples := strings.NewReader("win free iPhone\nlottery prize")
@@ -97,7 +98,9 @@ func TestCountEmojis(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, filter.countEmojis(tt.input))
+			isSpam, count := filter.tooManyEmojis(tt.input, 2)
+			assert.Equal(t, tt.count, count)
+			assert.Equal(t, tt.spam, isSpam)
 		})
 	}
 }

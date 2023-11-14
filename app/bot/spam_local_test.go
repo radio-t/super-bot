@@ -104,3 +104,35 @@ func TestTooManyEmojis(t *testing.T) {
 		})
 	}
 }
+
+func TestStopWords(t *testing.T) {
+	filter := &SpamLocalFilter{}
+
+	tests := []struct {
+		name     string
+		message  string
+		expected bool
+	}{
+		{
+			name:     "Stop word present",
+			message:  "Hello, please send me a message в личку",
+			expected: true,
+		},
+		{
+			name:     "No stop word present",
+			message:  "Hello, how are you?",
+			expected: false,
+		},
+		{
+			name:     "Case insensitive stop word present",
+			message:  "Hello, please send me a message В ЛИЧКУ",
+			expected: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, filter.stopWords(test.message))
+		})
+	}
+}

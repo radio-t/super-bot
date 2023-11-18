@@ -107,10 +107,11 @@ func (s *SpamLocalFilter) isSpam(message string) bool {
 			maxSimilarity = similarity
 		}
 		if similarity >= s.threshold {
+			log.Printf("[DEBUG] high spam similarity: %0.2f", maxSimilarity)
 			return true
 		}
 	}
-	log.Printf("[DEBUG] spam similarity: %0.2f", maxSimilarity)
+	log.Printf("[DEBUG] low spam similarity: %0.2f", maxSimilarity)
 	return false
 }
 

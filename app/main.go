@@ -162,6 +162,7 @@ func main() {
 			SimilarityThreshold: opts.SpamFilter.Threshold,
 			SuperUser:           opts.SuperUsers,
 			MinMsgLen:           opts.SpamFilter.MinMsgLen,
+			CasAPI:              opts.SpamFilter.API,
 			HTTPClient:          httpCasClient,
 			Dry:                 opts.SpamFilter.Dry,
 		}

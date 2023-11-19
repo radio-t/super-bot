@@ -29,14 +29,15 @@ var permanentBanDuration = time.Hour * 24 * 400
 
 var stopWords = []string{"в личку", "писать в лс", "пишите в лс"}
 
+// SpamParams is a full set of parameters for spam bot
 type SpamParams struct {
 	SuperUser           SuperUser
 	SpamSamples         io.Reader
 	SimilarityThreshold float64
 	MinMsgLen           int
-	Dry                 bool
 	CasAPI              string
 	HTTPClient          HTTPClient
+	Dry                 bool
 }
 
 // NewSpamFilter makes a spam detecting bot

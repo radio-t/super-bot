@@ -2,102 +2,130 @@ package bot
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"math"
+	"net/http"
 	"regexp"
 	"strings"
+	"time"
 )
 
-// SpamLocalFilter bot, checks if user is a spammer using internal matching
-type SpamLocalFilter struct {
-	dry       bool
-	superUser SuperUser
-	threshold float64
-	milMsgLen int
+// SpamFilter bot, checks if user is a spammer using internal matching as well as CAS API
+type SpamFilter struct {
+	SpamParams
 
-	enabled       bool
 	tokenizedSpam []map[string]int
 	approvedUsers map[int64]bool
 }
 
 const maxEmojiAllowed = 2
 
-var stopWords = []string{"в личку"}
+// If user is restricted for more than 366 days or less than 30 seconds from the current time,
+// they are considered to be restricted forever.
+var permanentBanDuration = time.Hour * 24 * 400
 
-// NewSpamLocalFilter makes a spam detecting bot
-func NewSpamLocalFilter(spamSamples io.Reader, threshold float64, superUser SuperUser, minMsgLen int, dry bool) *SpamLocalFilter {
-	log.Printf("[INFO] Spam bot (local), threshold=%0.2f, min msg:%d", threshold, minMsgLen)
-	res := &SpamLocalFilter{dry: dry, approvedUsers: map[int64]bool{}, superUser: superUser, threshold: threshold, milMsgLen: minMsgLen}
+var stopWords = []string{"в личку", "писать в лс", "пишите в лс"}
 
-	scanner := bufio.NewScanner(spamSamples)
+type SpamParams struct {
+	SuperUser           SuperUser
+	SpamSamples         io.Reader
+	SimilarityThreshold float64
+	MinMsgLen           int
+	Dry                 bool
+	CasAPI              string
+	HTTPClient          HTTPClient
+}
+
+// NewSpamFilter makes a spam detecting bot
+func NewSpamFilter(p SpamParams) *SpamFilter {
+	log.Printf("[INFO] spam bot: %+v", p)
+	res := &SpamFilter{SpamParams: p, approvedUsers: map[int64]bool{}}
+
+	scanner := bufio.NewScanner(p.SpamSamples)
 	for scanner.Scan() {
 		tokenizedSpam := res.tokenize(scanner.Text())
 		res.tokenizedSpam = append(res.tokenizedSpam, tokenizedSpam)
 	}
 	if err := scanner.Err(); err != nil {
 		log.Printf("[WARN] failed to read spam samples, error=%v", err)
-		res.enabled = false
 	} else {
-		res.enabled = true
 		log.Printf("[INFO] loaded %d spam samples, local spam filter enabled", len(res.tokenizedSpam))
 	}
 	return res
 }
 
 // OnMessage checks if user already approved and if not checks if user is a spammer
-func (s *SpamLocalFilter) OnMessage(msg Message) (response Response) {
-	if !s.enabled {
+func (s *SpamFilter) OnMessage(msg Message) (response Response) {
+	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 || len(msg.Text) < s.MinMsgLen {
 		return Response{}
 	}
 
-	if s.approvedUsers[msg.From.ID] || msg.From.ID == 0 || len(msg.Text) < s.milMsgLen {
-		return Response{}
-	}
-
-	if s.superUser.IsSuper(msg.From.Username) {
+	if s.SuperUser.IsSuper(msg.From.Username) {
 		return Response{} // don't check super users for spam
 	}
 
 	displayUsername := DisplayName(msg)
-	emojiSpam, _ := s.tooManyEmojis(msg.Text, maxEmojiAllowed)
-	if !s.isSpam(msg.Text) && !emojiSpam && !s.stopWords(msg.Text) {
-		if id := msg.From.ID; id != 0 {
-			s.approvedUsers[id] = true
-			log.Printf("[INFO] user %s is not a spammer id %d, added to aproved", displayUsername, msg.From.ID)
+	isEmojiSpam, _ := s.tooManyEmojis(msg.Text, maxEmojiAllowed)
+	if s.isSpamSimilarity(msg.Text) || isEmojiSpam || s.stopWords(msg.Text) || s.isCasSpam(msg.From.ID) {
+		log.Printf("[INFO] user %s detected as spammer, msg: %q", displayUsername, msg.Text)
+		if s.Dry {
+			return Response{
+				Text: fmt.Sprintf("this is spam from %q, but I'm in dry mode, so I'll do nothing yet", displayUsername),
+				Send: true, ReplyTo: msg.ID,
+			}
 		}
-		return Response{} // not a spam
+		return Response{Text: fmt.Sprintf("this is spam! go to ban, %q (id:%d)", displayUsername, msg.From.ID),
+			Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
 	}
 
-	log.Printf("[INFO] user %s detected as spammer, msg: %q", displayUsername, msg.Text)
-	if s.dry {
-		return Response{
-			Text: fmt.Sprintf("this is spam from %q, but I'm in dry mode, so I'll do nothing yet", displayUsername),
-			Send: true, ReplyTo: msg.ID,
-		}
+	if id := msg.From.ID; id != 0 {
+		s.approvedUsers[id] = true
+		log.Printf("[INFO] user %s is not a spammer id %d, added to aproved", displayUsername, msg.From.ID)
 	}
-	return Response{Text: fmt.Sprintf("this is spam! go to ban, %q (id:%d)", displayUsername, msg.From.ID),
-		Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
+	return Response{} // not a spam
 }
 
 // Help returns help message
-func (s *SpamLocalFilter) Help() string { return "" }
+func (s *SpamFilter) Help() string { return "" }
 
 // ReactOn keys
-func (s *SpamLocalFilter) ReactOn() []string { return []string{} }
+func (s *SpamFilter) ReactOn() []string { return []string{} }
 
-// isSpam checks if a given message is similar to any of the known bad messages.
-func (s *SpamLocalFilter) isSpam(message string) bool {
-
-	// check for emoji spam, count number of emojis
-	emojiCount := 0
-	for _, r := range message {
-		if r >= 0x1F600 && r <= 0x1F64F {
-			emojiCount++
-		}
+func (s *SpamFilter) isCasSpam(msgID int64) bool {
+	reqURL := fmt.Sprintf("%s/check?user_id=%d", s.CasAPI, msgID)
+	req, err := http.NewRequest("GET", reqURL, http.NoBody)
+	if err != nil {
+		log.Printf("[WARN] failed to make request %s, error=%v", reqURL, err)
+		return false
 	}
 
+	resp, err := s.HTTPClient.Do(req)
+	if err != nil {
+		log.Printf("[WARN] failed to send request %s, error=%v", reqURL, err)
+		return false
+	}
+	defer resp.Body.Close()
+
+	respData := struct {
+		OK          bool   `json:"ok"` // ok means user is a spammer
+		Description string `json:"description"`
+	}{}
+
+	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+		log.Printf("[WARN] failed to parse response from %s, error=%v", reqURL, err)
+		return false
+	}
+	if respData.OK {
+		log.Printf("[INFO] user %q detected as spammer: %s", msgID, respData.Description)
+	}
+	return respData.OK
+}
+
+// isSpam checks if a given message is similar to any of the known bad messages.
+func (s *SpamFilter) isSpamSimilarity(message string) bool {
 	// check for spam similarity
 	tokenizedMessage := s.tokenize(message)
 	maxSimilarity := 0.0
@@ -106,7 +134,7 @@ func (s *SpamLocalFilter) isSpam(message string) bool {
 		if similarity > maxSimilarity {
 			maxSimilarity = similarity
 		}
-		if similarity >= s.threshold {
+		if similarity >= s.SimilarityThreshold {
 			log.Printf("[DEBUG] high spam similarity: %0.2f", maxSimilarity)
 			return true
 		}
@@ -117,7 +145,7 @@ func (s *SpamLocalFilter) isSpam(message string) bool {
 
 // tokenize takes a string and returns a map where the keys are unique words (tokens)
 // and the values are the frequencies of those words in the string.
-func (s *SpamLocalFilter) tokenize(inp string) map[string]int {
+func (s *SpamFilter) tokenize(inp string) map[string]int {
 	tokenFrequency := make(map[string]int)
 	tokens := strings.Fields(inp)
 	for _, token := range tokens {
@@ -127,7 +155,7 @@ func (s *SpamLocalFilter) tokenize(inp string) map[string]int {
 }
 
 // cosineSimilarity calculates the cosine similarity between two token frequency maps.
-func (s *SpamLocalFilter) cosineSimilarity(a, b map[string]int) float64 {
+func (s *SpamFilter) cosineSimilarity(a, b map[string]int) float64 {
 	if len(a) == 0 || len(b) == 0 {
 		return 0.0
 	}
@@ -151,7 +179,7 @@ func (s *SpamLocalFilter) cosineSimilarity(a, b map[string]int) float64 {
 	return float64(dotProduct) / (math.Sqrt(float64(normA)) * math.Sqrt(float64(normB)))
 }
 
-func (s *SpamLocalFilter) stopWords(message string) bool {
+func (s *SpamFilter) stopWords(message string) bool {
 	lowerCaseMessage := strings.ToLower(message)
 	for _, word := range stopWords {
 		if strings.Contains(lowerCaseMessage, strings.ToLower(word)) {
@@ -162,7 +190,7 @@ func (s *SpamLocalFilter) stopWords(message string) bool {
 	return false
 }
 
-func (s *SpamLocalFilter) tooManyEmojis(message string, threshold int) (ok bool, count int) {
+func (s *SpamFilter) tooManyEmojis(message string, threshold int) (ok bool, count int) {
 	matches := emojiPattern.FindAllString(message, -1)
 	if len(matches) > threshold {
 		log.Printf("[DEBUG] spam emojis, %d of %d", len(matches), threshold)

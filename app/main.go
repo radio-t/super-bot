@@ -146,23 +146,26 @@ func main() {
 	}
 
 	if opts.SpamFilter.Enabled {
-		log.Printf("[INFO] spam filter enabled, api=%s, timeout=%s, dry=%v",
-			opts.SpamFilter.API, opts.SpamFilter.TimeOut, opts.SpamFilter.Dry)
+		log.Printf("[INFO] spam filter enabled, dry=%v", opts.SpamFilter.Dry)
 		httpCasClient := &http.Client{Timeout: opts.SpamFilter.TimeOut}
-		multiBot = append(multiBot, bot.NewSpamCasFilter(opts.SpamFilter.API, httpCasClient, opts.SuperUsers, opts.SpamFilter.Dry))
-		if opts.SpamFilter.Samples != "" {
-			spamFh, err := os.Open(opts.SpamFilter.Samples)
-			if err != nil {
-				log.Fatalf("[ERROR] failed to open spam samples file %s, %v", opts.SpamFilter.Samples, err)
-			}
-			spamContent, ere := io.ReadAll(spamFh)
-			if ere != nil {
-				log.Fatalf("[ERROR] failed to read spam samples file %s, %v", opts.SpamFilter.Samples, err)
-			}
-			spamReaderLocal := bytes.NewReader(spamContent)
-			multiBot = append(multiBot, bot.NewSpamLocalFilter(spamReaderLocal, opts.SpamFilter.Threshold, opts.SuperUsers,
-				opts.SpamFilter.MinMsgLen, opts.SpamFilter.Dry))
+		spamFh, err := os.Open(opts.SpamFilter.Samples)
+		if err != nil {
+			log.Fatalf("[ERROR] failed to open spam samples file %s, %v", opts.SpamFilter.Samples, err)
 		}
+		spamContent, ere := io.ReadAll(spamFh)
+		if ere != nil {
+			log.Fatalf("[ERROR] failed to read spam samples file %s, %v", opts.SpamFilter.Samples, err)
+		}
+		spamReaderLocal := bytes.NewReader(spamContent)
+		params := bot.SpamParams{
+			SpamSamples:         spamReaderLocal,
+			SimilarityThreshold: opts.SpamFilter.Threshold,
+			SuperUser:           opts.SuperUsers,
+			MinMsgLen:           opts.SpamFilter.MinMsgLen,
+			HTTPClient:          httpCasClient,
+			Dry:                 opts.SpamFilter.Dry,
+		}
+		multiBot = append(multiBot, bot.NewSpamFilter(params))
 	} else {
 		log.Print("[INFO] spam filter disabled")
 	}

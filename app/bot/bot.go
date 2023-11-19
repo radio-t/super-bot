@@ -197,7 +197,9 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		return lines[i] < lines[j]
 	})
 
-	log.Printf("[DEBUG] answers %d, send %v", len(lines), len(lines) > 0)
+	if len(lines) > 0 {
+		log.Printf("[DEBUG] answers %d, send %v", len(lines), len(lines) > 0)
+	}
 	return Response{
 		Text:          strings.Join(lines, "\n"),
 		Send:          len(lines) > 0,

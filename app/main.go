@@ -305,4 +305,7 @@ func setupLog(dbg bool) {
 		logOpts = []lgr.Option{lgr.Debug, lgr.CallerFile, lgr.CallerFunc, lgr.Msec, lgr.LevelBraces, lgr.StackTraceOnError}
 	}
 	lgr.SetupStdLogger(logOpts...)
+	if err := tbapi.SetLogger(lgr.ToStdLogger(lgr.Default(), "DEBUG")); err != nil {
+		log.Printf("[WARN] failed to set telegram logger, %v", err)
+	}
 }

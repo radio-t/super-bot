@@ -150,6 +150,9 @@ func (s *SpamFilter) tokenize(inp string) map[string]int {
 	tokenFrequency := make(map[string]int)
 	tokens := strings.Fields(inp)
 	for _, token := range tokens {
+		token = s.cleanEmoji(token)
+		token = strings.Trim(token, ".,!?-")
+		token = strings.ToLower(token)
 		tokenFrequency[strings.ToLower(token)]++
 	}
 	return tokenFrequency
@@ -198,6 +201,10 @@ func (s *SpamFilter) tooManyEmojis(message string, threshold int) (ok bool, coun
 		return true, len(matches)
 	}
 	return false, len(matches)
+}
+
+func (s *SpamFilter) cleanEmoji(message string) string {
+	return emojiPattern.ReplaceAllString(message, "")
 }
 
 // borrowed from https://stackoverflow.com/a/72255061

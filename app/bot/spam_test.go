@@ -55,11 +55,15 @@ func TestFilter_OnMessage(t *testing.T) {
 		{
 			Message{From: User{ID: 4, Username: "john", DisplayName: "John"}, Text: "Hello 😁🐶🍕 how are you? ", ID: 4},
 			Response{Text: "this is spam! go to ban, \"John\" (id:4)", Send: true,
-				BanInterval: permanentBanDuration, ReplyTo: 4, DeleteReplyTo: true},
+				BanInterval: permanentBanDuration, ReplyTo: 4, DeleteReplyTo: true,
+				User: User{ID: 4, Username: "john", DisplayName: "John"}},
 		},
 		{
 			Message{From: User{ID: 2, Username: "spammer", DisplayName: "Spammer"}, Text: "Win a free iPhone now!", ID: 2},
-			Response{Text: "this is spam! go to ban, \"Spammer\" (id:2)", Send: true, ReplyTo: 2, BanInterval: permanentBanDuration, DeleteReplyTo: true},
+			Response{Text: "this is spam! go to ban, \"Spammer\" (id:2)", Send: true,
+				ReplyTo: 2, BanInterval: permanentBanDuration, DeleteReplyTo: true,
+				User: User{ID: 2, Username: "spammer", DisplayName: "Spammer"},
+			},
 		},
 		{
 			Message{From: User{ID: 3, Username: "super", DisplayName: "SuperUser"}, Text: "Win a free iPhone now!", ID: 3},
@@ -67,7 +71,10 @@ func TestFilter_OnMessage(t *testing.T) {
 		},
 		{
 			Message{From: User{ID: 101, Username: "spammer", DisplayName: "blah"}, Text: "something something", ID: 10},
-			Response{Text: "this is spam! go to ban, \"blah\" (id:101)", Send: true, ReplyTo: 10, BanInterval: permanentBanDuration, DeleteReplyTo: true},
+			Response{Text: "this is spam! go to ban, \"blah\" (id:101)", Send: true,
+				ReplyTo: 10, BanInterval: permanentBanDuration, DeleteReplyTo: true,
+				User: User{ID: 101, Username: "spammer", DisplayName: "blah"},
+			},
 		},
 	}
 

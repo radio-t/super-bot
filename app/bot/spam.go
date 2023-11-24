@@ -79,7 +79,9 @@ func (s *SpamFilter) OnMessage(msg Message) (response Response) {
 			}
 		}
 		return Response{Text: fmt.Sprintf("this is spam! go to ban, %q (id:%d)", displayUsername, msg.From.ID),
-			Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true}
+			Send: true, ReplyTo: msg.ID, BanInterval: permanentBanDuration, DeleteReplyTo: true,
+			User: User{Username: msg.From.Username, ID: msg.From.ID, DisplayName: msg.From.DisplayName},
+		}
 	}
 
 	if id := msg.From.ID; id != 0 {

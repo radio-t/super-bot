@@ -170,7 +170,7 @@ func (s *SpamFilter) tokenize(inp string) map[string]int {
 				return true
 			}
 		}
-		return true
+		return false
 	}
 
 	tokenFrequency := make(map[string]int)

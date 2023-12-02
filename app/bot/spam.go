@@ -152,9 +152,33 @@ func (s *SpamFilter) isSpamSimilarity(message string) bool {
 // tokenize takes a string and returns a map where the keys are unique words (tokens)
 // and the values are the frequencies of those words in the string.
 func (s *SpamFilter) tokenize(inp string) map[string]int {
+
+	isExcludedToken := func(token string) bool {
+		list := []string{
+			"and", "the", "is", "in", "on", "at", "for", "with", "not",
+			"by", "be", "this", "are", "from", "or", "that", "an", "it",
+			"his", "but", "he", "she", "as", "you", "do", "their", "all",
+			"will", "there", "can",
+
+			"и", "или", "но", "а", "в", "о", "на", "у", "к", "по", "из",
+			"она", "он", "это", "эти", "тот", "эта", "та", "те", "его",
+			"ее", "как", "но", "что", "для", "мы", "вы", "ты", "они",
+			"мне", "еще", "когда", "где", "этих", "тех", "все", "будет", "могу", "да", "нет",
+		}
+		for _, w := range list {
+			if strings.EqualFold(token, w) {
+				return true
+			}
+		}
+		return true
+	}
+
 	tokenFrequency := make(map[string]int)
 	tokens := strings.Fields(inp)
 	for _, token := range tokens {
+		if isExcludedToken(token) {
+			continue
+		}
 		token = s.cleanEmoji(token)
 		token = strings.Trim(token, ".,!?-")
 		token = strings.ToLower(token)

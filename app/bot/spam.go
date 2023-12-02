@@ -131,14 +131,17 @@ func (s *SpamFilter) isCasSpam(msgID int64) bool {
 func (s *SpamFilter) isSpamSimilarity(message string) bool {
 	// check for spam similarity
 	tokenizedMessage := s.tokenize(message)
-	maxSimilarity := 0.0
-	for _, spam := range s.tokenizedSpam {
+	maxSimilarity, maxTokens, maxID := 0.0, map[string]int{}, 0
+	for i, spam := range s.tokenizedSpam {
 		similarity := s.cosineSimilarity(tokenizedMessage, spam)
 		if similarity > maxSimilarity {
 			maxSimilarity = similarity
+			maxTokens = spam
+			maxID = i + 1
 		}
 		if similarity >= s.SimilarityThreshold {
-			log.Printf("[DEBUG] high spam similarity: %0.2f", maxSimilarity)
+			log.Printf("[DEBUG] high spam similarity: %0.2f, line %d, toekns: %v",
+				maxSimilarity, maxID, maxTokens)
 			return true
 		}
 	}

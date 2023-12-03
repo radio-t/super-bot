@@ -27,7 +27,10 @@ const maxEmojiAllowed = 2
 // they are considered to be restricted forever.
 var permanentBanDuration = time.Hour * 24 * 400
 
-var stopWords = []string{"в личку", "писать в лс", "пишите в лс", "в лuчные сообщенuя"}
+var stopWords = []string{
+	"в личку", "писать в лс", "пишите в лс", "в лuчные сообщенuя", "личных сообщениях", "заработок удалённо",
+	"заработок в интернете", "заработок в сети", "заработок в сети интернет",
+}
 
 // SpamParams is a full set of parameters for spam bot
 type SpamParams struct {

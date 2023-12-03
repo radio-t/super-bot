@@ -166,7 +166,7 @@ func (s *SpamFilter) tokenize(inp string) map[string]int {
 			"мне", "еще", "когда", "где", "этих", "тех", "все", "будет", "могу", "да", "нет",
 		}
 		for _, w := range list {
-			if strings.EqualFold(token, w) {
+			if strings.EqualFold(token, w) || len([]rune(token)) < 3 {
 				return true
 			}
 		}

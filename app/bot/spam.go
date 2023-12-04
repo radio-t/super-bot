@@ -243,6 +243,7 @@ func (s *SpamFilter) cosineSimilarity(a, b map[string]int) float64 {
 
 func (s *SpamFilter) stopWords(message string) bool {
 	lowerCaseMessage := strings.ToLower(message)
+	lowerCaseMessage = emojiPattern.ReplaceAllString(lowerCaseMessage, "")
 	for _, word := range stopWords {
 		if strings.Contains(lowerCaseMessage, strings.ToLower(word)) {
 			log.Printf("[DEBUG] spam stop word %q", word)

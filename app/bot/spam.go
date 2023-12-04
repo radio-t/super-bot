@@ -73,7 +73,9 @@ func (s *SpamFilter) OnMessage(msg Message) (response Response) {
 
 	displayUsername := strings.TrimSpace(DisplayName(msg))
 	isEmojiSpam, _ := s.tooManyEmojis(msg.Text, maxEmojiAllowed)
-	if s.isSpamSimilarity(msg.Text) || isEmojiSpam || s.stopWords(msg.Text) || s.isCasSpam(msg.From.ID) {
+	stopWordsSpam := s.stopWords(msg.Text)
+	similaritySpam := s.isSpamSimilarity(msg.Text)
+	if similaritySpam || isEmojiSpam || stopWordsSpam || s.isCasSpam(msg.From.ID) {
 		log.Printf("[INFO] user %s detected as spammer, msg: %q", displayUsername, msg.Text)
 		if s.Dry {
 			return Response{

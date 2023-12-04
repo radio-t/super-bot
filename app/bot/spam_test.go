@@ -76,6 +76,13 @@ func TestFilter_OnMessage(t *testing.T) {
 				User: User{ID: 101, Username: "spammer", DisplayName: "blah"},
 			},
 		},
+		{
+			Message{From: User{ID: 102, Username: "spammer", DisplayName: "blah"}, Text: "something пишите в лс something", ID: 10},
+			Response{Text: "this is spam! go to ban, \"blah\" (id:102)", Send: true,
+				ReplyTo: 10, BanInterval: permanentBanDuration, DeleteReplyTo: true,
+				User: User{ID: 102, Username: "spammer", DisplayName: "blah"},
+			},
+		},
 	}
 
 	for _, test := range tests {

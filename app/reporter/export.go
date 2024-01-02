@@ -161,7 +161,8 @@ func (e *Exporter) toHTML(messages []bot.Message, num int) (string, error) {
 
 	var h bytes.Buffer
 	if err := t.ExecuteTemplate(&h, name, data); err != nil {
-		return "", fmt.Errorf("failed to process template: %w", err)
+		log.Printf("[WARN] failed to execute template: %v", err)
+		return "", nil
 	}
 	return h.String(), nil
 }

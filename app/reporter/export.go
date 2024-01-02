@@ -331,7 +331,9 @@ func format(text string, entities *[]bot.Entity) (out template.HTML) {
 		pos = entity.Offset + entity.Length
 	}
 
-	result += html.EscapeString(string(runes[pos:]))
+	if len(runes) > pos {
+		result += html.EscapeString(string(runes[pos:]))
+	}
 
 	return template.HTML(strings.ReplaceAll(result, "\n", "<br>")) // nolint
 }

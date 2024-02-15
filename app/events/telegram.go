@@ -109,10 +109,14 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
 
 			// immediately ban channels or groups
-			if fromChat == l.chatID && msg.SenderChat.ID != 0 {
+			if fromChat == l.chatID && msg.SenderChat.ID != 0 && !l.SuperUsers.IsSuper(update.Message.From.UserName) {
 				log.Printf("[INFO] detected channel/group message, initiating ban: %d %s",
 					msg.SenderChat.ID, msg.SenderChat.UserName)
-				// continue
+				permBanDuration := time.Hour * 24 * 400
+				if err := l.banUserOrChannel(permBanDuration, fromChat, 0, update.Message.Chat.ID); err != nil {
+					log.Printf("[ERROR] can't ban channel/group: %v", err)
+				}
+				continue
 			}
 
 			// check for all-activity ban

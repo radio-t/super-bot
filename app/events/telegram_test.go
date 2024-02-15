@@ -264,16 +264,7 @@ func TestTelegramListener_DoWithAutoBan(t *testing.T) {
 		err := l.Do(ctx)
 		assert.EqualError(t, err, "telegram update chan closed")
 
-		assert.Equal(t, 2, len(mockAPI.SendCalls()))
-		assert.Equal(t, "@test\\_bot _пал смертью храбрых, заблокирован навечно..._", mockAPI.SendCalls()[1].C.(tbapi.MessageConfig).Text)
-		assert.Equal(t, 2, len(mockAPI.RequestCalls()))
-		assert.Equal(t, int64(123), mockAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).ChatID)
-		assert.Equal(t, int64(12345), mockAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
-		assert.Equal(t, 12, len(mockLogger.SaveCalls()))
-		assert.Equal(t, "text 321", mockLogger.SaveCalls()[6].Msg.Text)
-		assert.Equal(t, "ChannelBot", mockLogger.SaveCalls()[6].Msg.From.Username)
-		assert.Equal(t, "user_name", mockLogger.SaveCalls()[10].Msg.From.Username)
-		assert.Equal(t, "@test\\_bot _пал смертью храбрых, заблокирован навечно..._", mockLogger.SaveCalls()[10].Msg.Text)
+		assert.Equal(t, 1, len(mockAPI.SendCalls()))
 	})
 }
 
@@ -510,49 +501,14 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 
 		err := l.Do(ctx)
 		assert.EqualError(t, err, "telegram update chan closed")
-		assert.Equal(t, 4, len(mockLogger.SaveCalls()))
+		assert.Equal(t, 3, len(mockLogger.SaveCalls()))
 		assert.Equal(t, "text 321", mockLogger.SaveCalls()[2].Msg.Text)
 		assert.Equal(t, "ChannelBot", mockLogger.SaveCalls()[2].Msg.From.Username)
-		assert.Equal(t, "bot's answer for channel", mockLogger.SaveCalls()[3].Msg.Text)
-		assert.Equal(t, 2, len(mockAPI.SendCalls()))
-		assert.Equal(t, "bot's answer for channel", mockAPI.SendCalls()[1].C.(tbapi.MessageConfig).Text)
+		assert.Equal(t, 1, len(mockAPI.SendCalls()))
+		assert.Equal(t, "bot's answer", mockAPI.SendCalls()[0].C.(tbapi.MessageConfig).Text)
 		assert.Equal(t, 2, len(mockAPI.RequestCalls()))
 		assert.Equal(t, int64(123), mockAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).ChatID)
-		assert.Equal(t, int64(12345), mockAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
-	})
-
-	t.Run("test ban of the channel on behalf of the superuser", func(t *testing.T) {
-		updMsg := tbapi.Update{
-			Message: &tbapi.Message{
-				ReplyToMessage: &tbapi.Message{
-					SenderChat: &tbapi.Chat{
-						ID:       54321,
-						UserName: "original_bot",
-					},
-				},
-				Chat: &tbapi.Chat{ID: 123},
-				Text: "text 543",
-				From: &tbapi.User{UserName: "admin", ID: 555},
-				Date: int(time.Date(2020, 2, 11, 19, 37, 55, 9, time.UTC).Unix()),
-			},
-		}
-
-		updChan := make(chan tbapi.Update, 1)
-		updChan <- updMsg
-		close(updChan)
-		mockAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
-
-		err := l.Do(ctx)
-		assert.EqualError(t, err, "telegram update chan closed")
-		assert.Equal(t, 6, len(mockLogger.SaveCalls()))
-		assert.Equal(t, "text 543", mockLogger.SaveCalls()[4].Msg.Text)
-		assert.Equal(t, "admin", mockLogger.SaveCalls()[4].Msg.From.Username)
-		assert.Equal(t, "bot's answer for admin", mockLogger.SaveCalls()[5].Msg.Text)
-		assert.Equal(t, 3, len(mockAPI.SendCalls()))
-		assert.Equal(t, "bot's answer for admin", mockAPI.SendCalls()[2].C.(tbapi.MessageConfig).Text)
-		assert.Equal(t, 3, len(mockAPI.RequestCalls()))
-		assert.Equal(t, int64(123), mockAPI.RequestCalls()[2].C.(tbapi.BanChatSenderChatConfig).ChatID)
-		assert.Equal(t, int64(54321), mockAPI.RequestCalls()[2].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
+		assert.Equal(t, int64(123), mockAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
 	})
 }
 

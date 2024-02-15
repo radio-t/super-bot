@@ -144,7 +144,7 @@ func (s Summarizer) GetSummariesByRemarkLink(remarkLink string) (messages []stri
 			continue
 		}
 
-		swg.Go(func(ctx context.Context) {
+		swg.Go(func(context.Context) {
 			summary, err := s.Summary(link)
 			if err != nil {
 				log.Printf("[WARN] can't get summary for %s: %v", link, err)

@@ -112,7 +112,7 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 			if fromChat == l.chatID && msg.SenderChat.ID != 0 {
 				log.Printf("[INFO] detected channel/group message, initiating ban: %d %s",
 					msg.SenderChat.ID, msg.SenderChat.UserName)
-				continue
+				// continue
 			}
 
 			// check for all-activity ban

@@ -116,6 +116,10 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 				if err := l.banUserOrChannel(permBanDuration, fromChat, 0, msg.SenderChat.ID); err != nil {
 					log.Printf("[ERROR] can't ban channel/group: %v", err)
 				}
+				_, err := l.TbAPI.Request(tbapi.DeleteMessageConfig{ChatID: l.chatID, MessageID: update.Message.MessageID})
+				if err != nil {
+					log.Printf("[WARN] failed to delete message %d, %v", update.Message.MessageID, err)
+				}
 				continue
 			}
 

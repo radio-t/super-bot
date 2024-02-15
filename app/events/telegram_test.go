@@ -506,7 +506,7 @@ func TestTelegramListener_DoWithBotBan(t *testing.T) {
 		assert.Equal(t, "ChannelBot", mockLogger.SaveCalls()[2].Msg.From.Username)
 		assert.Equal(t, 1, len(mockAPI.SendCalls()))
 		assert.Equal(t, "bot's answer", mockAPI.SendCalls()[0].C.(tbapi.MessageConfig).Text)
-		assert.Equal(t, 2, len(mockAPI.RequestCalls()))
+		assert.Equal(t, 3, len(mockAPI.RequestCalls()))
 		assert.Equal(t, int64(123), mockAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).ChatID)
 		assert.Equal(t, int64(12345), mockAPI.RequestCalls()[1].C.(tbapi.BanChatSenderChatConfig).SenderChatID)
 	})

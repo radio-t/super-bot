@@ -113,7 +113,7 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 				log.Printf("[INFO] detected channel/group message, initiating ban: %d %s",
 					msg.SenderChat.ID, msg.SenderChat.UserName)
 				permBanDuration := time.Hour * 24 * 400
-				if err := l.banUserOrChannel(permBanDuration, fromChat, 0, update.Message.Chat.ID); err != nil {
+				if err := l.banUserOrChannel(permBanDuration, fromChat, 0, msg.SenderChat.ID); err != nil {
 					log.Printf("[ERROR] can't ban channel/group: %v", err)
 				}
 				continue

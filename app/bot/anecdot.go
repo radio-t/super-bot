@@ -19,7 +19,7 @@ type Anecdote struct {
 
 // NewAnecdote makes a bot for http://rzhunemogu.ru
 func NewAnecdote(client HTTPClient) *Anecdote {
-	log.Printf("[INFO] anecdote bot with https://jokesrv.rubedo.cloud/ and https://api.chucknorris.io/jokes/random")
+	log.Printf("[INFO] anecdote bot with  https://jokesrv.fermyon.app and https://api.chucknorris.io/jokes/random")
 	c, _ := lcw.NewExpirableCache(lcw.MaxKeys(100), lcw.TTL(time.Hour))
 	return &Anecdote{client: client, categCache: c}
 }
@@ -56,12 +56,12 @@ func (a Anecdote) OnMessage(msg Message) (response Response) {
 
 }
 
-// get categorize from https://jokesrv.rubedo.cloud/categories and extend with / prefix and ! suffix
+// get categorize from https://jokesrv.fermyon.app/categories and extend with / prefix and ! suffix
 // to mach commands
 func (a Anecdote) categories() ([]string, error) {
 	res, err := a.categCache.Get("categories", func() (interface{}, error) {
 		var categories []string
-		req, err := http.NewRequest("GET", "https://jokesrv.rubedo.cloud/categories", http.NoBody)
+		req, err := http.NewRequest("GET", "https://jokesrv.fermyon.app/categories", http.NoBody)
 		if err != nil {
 			return nil, fmt.Errorf("can't make categories request: %w", err)
 		}
@@ -91,7 +91,7 @@ func (a Anecdote) categories() ([]string, error) {
 }
 
 func (a Anecdote) jokesrv(category string) (response Response) {
-	reqURL := "https://jokesrv.rubedo.cloud/" + category
+	reqURL := "https://jokesrv.fermyon.app/" + category
 
 	req, err := makeHTTPRequest(reqURL)
 	if err != nil {

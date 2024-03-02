@@ -109,7 +109,9 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 			log.Printf("[DEBUG] incoming msg: %+v", msg)
 
 			// immediately ban channels or groups
-			if fromChat == l.chatID && msg.SenderChat.ID != 0 && !l.SuperUsers.IsSuper(update.Message.From.UserName) {
+			allowGroupBan := fromChat == l.chatID && msg.SenderChat.ID != 0 &&
+				!l.SuperUsers.IsSuper(update.Message.From.UserName) && msg.SenderChat.UserName != "radio_t_podcast"
+			if allowGroupBan {
 				log.Printf("[INFO] detected channel/group message, initiating ban: %d %s",
 					msg.SenderChat.ID, msg.SenderChat.UserName)
 				permBanDuration := time.Hour * 24 * 400

@@ -11,13 +11,13 @@ import (
 	"github.com/go-pkgz/lcw"
 )
 
-// Anecdote bot, returns from https://jokesrv.rubedo.cloud/
+// Anecdote bot, returns from jokesrv.fermyon.app or chucknorris.io
 type Anecdote struct {
 	client     HTTPClient
 	categCache lcw.LoadingCache
 }
 
-// NewAnecdote makes a bot for http://rzhunemogu.ru
+// NewAnecdote makes a bot for jokesrv.fermyon.app and chucknorris.io
 func NewAnecdote(client HTTPClient) *Anecdote {
 	log.Printf("[INFO] anecdote bot with  https://jokesrv.fermyon.app and https://api.chucknorris.io/jokes/random")
 	c, _ := lcw.NewExpirableCache(lcw.MaxKeys(100), lcw.TTL(time.Hour))

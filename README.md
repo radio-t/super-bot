@@ -20,7 +20,7 @@
 | Команда                                   | Описание                                                                                                       |
 |-------------------------------------------|----------------------------------------------------------------------------------------------------------------|
 | `ping`, `пинг`                            | ответит `pong`, `понг`, см. [basic.data](https://github.com/radio-t/gitter-rt-bot/blob/master/data/basic.data) |
-| `анекдот!`, `анкедот!`, `joke!`, `chuck!` | расскажет анекдот с rzhunemogu.ru или icndb.com (нужен `MASHAPE_TOKEN`)                                        |
+| `анекдот!`, `анкедот!`, `joke!`, `chuck!` | расскажет анекдот с jokesrv.fermyon.app или chucknorris.io                                        |
 | `news!`, `новости!`                       | 5 последних [новостей для Радио-Т](https://news.radio-t.com)                                                   |
 | `so!`                                     | 1 вопрос со [Stackoverflow](https://stackoverflow.com/questions?tab=Active)                                    |
 | `?? <запрос>`, `/ddg <запрос>`            | поискать "<запрос>" на [DuckDuckGo](https://duckduckgo.com)                                                    |

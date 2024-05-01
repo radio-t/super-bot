@@ -108,10 +108,14 @@ all the data at once.
 
 ### Repeater
 
-`Repeater` expects a single method interface `Do(fn func() error, stopOnErrs ...error) (err error)`. [repeater](github.com/go-pkgz/repeater) can be used directly.
+`Repeater` expects a single method interface `Do(fn func() error, failOnCodes ...error) (err error)`. [repeater](github.com/go-pkgz/repeater) can be used directly.
 
-By default, the repeater will retry on any error and any status code. However, user can pass `stopOnErrs` codes to eliminate retries, 
-for example: `Repeater(repeaterSvc, 500, 400)` won't repeat on 500 and 400 statuses.
+By default, the repeater will retry on any error and any status code >=400.
+However, user can pass `failOnCodes` to explicitly define what status code should be treated as errors and retry only on those.
+For example: `Repeater(repeaterSvc, 500, 400)` repeats requests on 500 and 400 statuses only.
+
+For a special case if user want to retry only on the underlying transport errors (network, timeouts, etc) and not on any status codes,
+`Repeater(repeaterSvc, 0)` can be used.
 
 ### User-Defined Middlewares
 

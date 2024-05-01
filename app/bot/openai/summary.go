@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-pkgz/lcw"
+	"github.com/go-pkgz/lcw/v2"
 	"github.com/go-pkgz/syncs"
 	tbapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -28,7 +28,7 @@ type Summarizer struct {
 
 	// Cache is using to optimize `Summary` calls (generating summary by link)
 	// In debug mode cache is dumped to local file
-	cache lcw.LoadingCache
+	cache lcw.LoadingCache[summaryItem]
 
 	threads int
 	debug   bool
@@ -49,7 +49,8 @@ type openAISummary interface {
 // NewSummarizer creates new summarizer object
 // If debug is true, it loads cache from file
 func NewSummarizer(openAISummary openAISummary, remark remarkCommentsGetter, uKeeper uKeeperGetter, threads int, debug bool) Summarizer {
-	cache, _ := lcw.NewExpirableCache(lcw.MaxKeys(100), lcw.TTL(time.Hour*12))
+	o := lcw.NewOpts[summaryItem]()
+	cache, _ := lcw.NewExpirableCache(o.MaxKeys(100), o.TTL(time.Hour*12))
 
 	if debug {
 		err := loadBackup(cache)
@@ -169,7 +170,7 @@ func (s Summarizer) GetSummariesByRemarkLink(remarkLink string) (messages []stri
 // If debug is true, it saves cache to file
 // Important: this isn't thread safe
 func (s Summarizer) Summary(link string) (summary string, err error) {
-	item, err := s.cache.Get(link, func() (interface{}, error) { return s.summaryInternal(link) })
+	item, err := s.cache.Get(link, func() (summaryItem, error) { return s.summaryInternal(link) })
 	if err != nil {
 		return "", err
 	}
@@ -181,7 +182,7 @@ func (s Summarizer) Summary(link string) (summary string, err error) {
 		}
 	}
 
-	return item.(summaryItem).render(), nil
+	return item.render(), nil
 }
 
 func (s Summarizer) summaryInternal(link string) (item summaryItem, err error) {
@@ -226,7 +227,7 @@ func (s summaryItem) isEmpty() bool {
 }
 
 // loadBackup loads cache from local file in debug mode
-func loadBackup(cache lcw.LoadingCache) error {
+func loadBackup(cache lcw.LoadingCache[summaryItem]) error {
 	type LocalCache struct {
 		Summaries map[string]summaryItem `json:"Summaries"`
 	}
@@ -244,7 +245,7 @@ func loadBackup(cache lcw.LoadingCache) error {
 	}
 
 	for k := range lc.Summaries {
-		_, _ = cache.Get(k, func() (interface{}, error) {
+		_, _ = cache.Get(k, func() (summaryItem, error) {
 			return lc.Summaries[k], nil
 		})
 	}
@@ -253,7 +254,7 @@ func loadBackup(cache lcw.LoadingCache) error {
 }
 
 // saveBackup saves cache to local file in debug mode
-func saveBackup(cache lcw.LoadingCache) error {
+func saveBackup(cache lcw.LoadingCache[summaryItem]) error {
 	type LocalCache struct {
 		Summaries map[string]summaryItem `json:"Summaries"`
 	}
@@ -263,12 +264,12 @@ func saveBackup(cache lcw.LoadingCache) error {
 	}
 
 	for _, k := range cache.Keys() {
-		v, _ := cache.Get(k, func() (interface{}, error) {
-			return nil, nil
+		v, _ := cache.Get(k, func() (summaryItem, error) {
+			return summaryItem{}, nil
 		})
 
-		if v != nil {
-			lc.Summaries[k] = v.(summaryItem)
+		if v.isEmpty() {
+			lc.Summaries[k] = v
 		}
 	}
 

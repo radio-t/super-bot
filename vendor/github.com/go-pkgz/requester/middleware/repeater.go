@@ -29,6 +29,11 @@ func Repeater(repeater RepeaterSvc, failOnCodes ...int) RoundTripperHandler {
 				if err != nil {
 					return err
 				}
+				// no explicit codes provided, fail on any 4xx or 5xx
+				if len(failOnCodes) == 0 && resp.StatusCode >= 400 {
+					return errors.New(resp.Status)
+				}
+				// fail on provided codes only
 				for _, fc := range failOnCodes {
 					if resp.StatusCode == fc {
 						return errors.New(resp.Status)

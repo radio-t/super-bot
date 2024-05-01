@@ -1,21 +1,6 @@
 linters-settings:
-  govet:
-    check-shadowing: true
-  golint:
-    min-confidence: 0.8
-  gocyclo:
-    min-complexity: 15
-  maligned:
-    suggest-new: true
-  dupl:
-    threshold: 100
-  goconst:
-    min-len: 2
-    min-occurrences: 2
   misspell:
     locale: US
-  lll:
-    line-length: 140
   gocritic:
     enabled-tags:
       - performance
@@ -25,7 +10,6 @@ linters-settings:
       - wrapperFunc
       - hugeParam
       - rangeValCopy
-  revive:
 
 linters:
   disable-all: true
@@ -54,12 +38,12 @@ linters:
 
 run:
   modules-download-mode: vendor
-  skip-dirs:
-    - vendor
   concurrency: 4
   tests: false
 
 issues:
+  exclude-dirs:
+    - vendor
   exclude-rules:
     - text: "weak cryptographic primitive"
       linters:

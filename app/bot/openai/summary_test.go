@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-pkgz/lcw"
+	"github.com/go-pkgz/lcw/v2"
 	"github.com/radio-t/super-bot/app/bot/openai/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,7 +43,8 @@ func TestSummarizer_GetSummariesByMessage(t *testing.T) {
 		},
 	}
 
-	cache, err := lcw.NewExpirableCache(lcw.MaxKeys(10), lcw.TTL(time.Hour))
+	o := lcw.NewOpts[summaryItem]()
+	cache, err := lcw.NewExpirableCache(o.MaxKeys(10), o.TTL(time.Hour))
 	assert.NoError(t, err)
 	s := Summarizer{
 		openAISummary: os,
@@ -86,7 +87,8 @@ func TestSummarizer_GetSummariesByMessageRemark(t *testing.T) {
 		},
 	}
 
-	cache, err := lcw.NewExpirableCache(lcw.MaxKeys(10), lcw.TTL(time.Hour))
+	o := lcw.NewOpts[summaryItem]()
+	cache, err := lcw.NewExpirableCache(o.MaxKeys(10), o.TTL(time.Hour))
 	assert.NoError(t, err)
 	s := Summarizer{
 		openAISummary: os,
@@ -128,7 +130,8 @@ func TestSummarizer_GetSummariesByMessage_ErrorNoLink(t *testing.T) {
 		},
 	}
 
-	cache, err := lcw.NewExpirableCache(lcw.MaxKeys(10), lcw.TTL(time.Hour))
+	o := lcw.NewOpts[summaryItem]()
+	cache, err := lcw.NewExpirableCache(o.MaxKeys(10), o.TTL(time.Hour))
 	assert.NoError(t, err)
 	s := Summarizer{
 		openAISummary: os,
@@ -166,7 +169,8 @@ func TestSummarizer_GetSummariesByMessage_ErrorSummary(t *testing.T) {
 		},
 	}
 
-	cache, err := lcw.NewExpirableCache(lcw.MaxKeys(10), lcw.TTL(time.Hour))
+	o := lcw.NewOpts[summaryItem]()
+	cache, err := lcw.NewExpirableCache(o.MaxKeys(10), o.TTL(time.Hour))
 	assert.NoError(t, err)
 	s := Summarizer{
 		openAISummary: os,
@@ -204,7 +208,8 @@ func TestSummarizer_GetSummariesByMessage_ErrorBadRadiotLink(t *testing.T) {
 		},
 	}
 
-	cache, err := lcw.NewExpirableCache(lcw.MaxKeys(10), lcw.TTL(time.Hour))
+	o := lcw.NewOpts[summaryItem]()
+	cache, err := lcw.NewExpirableCache(o.MaxKeys(10), o.TTL(time.Hour))
 	assert.NoError(t, err)
 	s := Summarizer{
 		openAISummary: os,
@@ -242,7 +247,8 @@ func TestSummarizer_GetSummariesByMessage_ErrorGetComments(t *testing.T) {
 		},
 	}
 
-	cache, err := lcw.NewExpirableCache(lcw.MaxKeys(10), lcw.TTL(time.Hour))
+	o := lcw.NewOpts[summaryItem]()
+	cache, err := lcw.NewExpirableCache(o.MaxKeys(10), o.TTL(time.Hour))
 	assert.NoError(t, err)
 	s := Summarizer{
 		openAISummary: os,
@@ -280,7 +286,8 @@ func TestSummarizer_GetSummariesByMessage_ErrorGetContent(t *testing.T) {
 		},
 	}
 
-	cache, err := lcw.NewExpirableCache(lcw.MaxKeys(10), lcw.TTL(time.Hour))
+	o := lcw.NewOpts[summaryItem]()
+	cache, err := lcw.NewExpirableCache(o.MaxKeys(10), o.TTL(time.Hour))
 	assert.NoError(t, err)
 	s := Summarizer{
 		openAISummary: os,
@@ -320,7 +327,8 @@ func TestSummarizer_GetSummariesByRemarkLink(t *testing.T) {
 		},
 	}
 
-	cache, err := lcw.NewExpirableCache(lcw.MaxKeys(10), lcw.TTL(time.Hour))
+	o := lcw.NewOpts[summaryItem]()
+	cache, err := lcw.NewExpirableCache(o.MaxKeys(10), o.TTL(time.Hour))
 	assert.NoError(t, err)
 	s := Summarizer{
 		openAISummary: os,
@@ -379,7 +387,8 @@ func TestSummarizer_Summary(t *testing.T) {
 		},
 	}
 
-	cache, err := lcw.NewExpirableCache(lcw.MaxKeys(10), lcw.TTL(time.Hour))
+	o := lcw.NewOpts[summaryItem]()
+	cache, err := lcw.NewExpirableCache(o.MaxKeys(10), o.TTL(time.Hour))
 	assert.NoError(t, err)
 	s := Summarizer{
 		openAISummary: os,

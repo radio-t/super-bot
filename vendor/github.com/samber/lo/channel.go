@@ -212,9 +212,8 @@ func Buffer[T any](ch <-chan T, size int) (collection []T, length int, readTime 
 	return buffer, index, time.Since(now), true
 }
 
-// Batch creates a slice of n elements from a channel. Returns the slice and the slice length.
-//
-// Deprecated: Use [Buffer] instead.
+// Buffer creates a slice of n elements from a channel. Returns the slice and the slice length.
+// Deprecated: Use lo.Buffer instead.
 func Batch[T any](ch <-chan T, size int) (collection []T, length int, readTime time.Duration, ok bool) {
 	return Buffer(ch, size)
 }
@@ -246,9 +245,8 @@ func BufferWithTimeout[T any](ch <-chan T, size int, timeout time.Duration) (col
 	return buffer, index, time.Since(now), true
 }
 
-// BatchWithTimeout creates a slice of n elements from a channel, with timeout. Returns the slice and the slice length.
-//
-// Deprecated: Use [BufferWithTimeout] instead.
+// BufferWithTimeout creates a slice of n elements from a channel, with timeout. Returns the slice and the slice length.
+// Deprecated: Use lo.BufferWithTimeout instead.
 func BatchWithTimeout[T any](ch <-chan T, size int, timeout time.Duration) (collection []T, length int, readTime time.Duration, ok bool) {
 	return BufferWithTimeout(ch, size, timeout)
 }
@@ -280,8 +278,7 @@ func FanIn[T any](channelBufferCap int, upstreams ...<-chan T) <-chan T {
 
 // ChannelMerge collects messages from multiple input channels into a single buffered channel.
 // Output messages has no priority. When all upstream channels reach EOF, downstream channel closes.
-//
-// Deprecated: Use [FanIn] instead.
+// Deprecated: Use lo.FanIn instead.
 func ChannelMerge[T any](channelBufferCap int, upstreams ...<-chan T) <-chan T {
 	return FanIn(channelBufferCap, upstreams...)
 }

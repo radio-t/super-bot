@@ -177,7 +177,7 @@ type ConfirmationBlockObject struct {
 	Title   *TextBlockObject `json:"title"`
 	Text    *TextBlockObject `json:"text"`
 	Confirm *TextBlockObject `json:"confirm"`
-	Deny    *TextBlockObject `json:"deny,omitempty"`
+	Deny    *TextBlockObject `json:"deny"`
 	Style   Style            `json:"style,omitempty"`
 }
 

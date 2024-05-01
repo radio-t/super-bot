@@ -6,7 +6,7 @@
 #   fmt-check:    Check if the source files are formated
 #   build:        Builds the code locally
 #   vet:          Vets the code
-#   staticcheck:  Runs staticcheck over the code
+#   lint:         Runs lint over the code (you do not need to fix everything)
 #   test:         Runs the tests
 #   cover:        Gives you the URL to a nice test coverage report
 #
@@ -33,8 +33,8 @@ build:
 vet:
 	@go vet
 
-staticcheck:
-	@staticcheck ./...
+lint:
+	@golint *.go
 
 test:
 	@go test -v ./...
@@ -42,7 +42,7 @@ test:
 cover: COVERAGE_FILE := coverage.out
 cover:
 	@go test -coverprofile=$(COVERAGE_FILE) && \
-	go tool cover -html=$(COVERAGE_FILE) && rm $(COVERAGE_FILE)
+	cover -html=$(COVERAGE_FILE) && rm $(COVERAGE_FILE)
 
 install:
 	@go install ./...

@@ -8,19 +8,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-pkgz/lcw"
+	"github.com/go-pkgz/lcw/v2"
 )
 
 // Anecdote bot, returns from jokesrv.fermyon.app or chucknorris.io
 type Anecdote struct {
 	client     HTTPClient
-	categCache lcw.LoadingCache
+	categCache lcw.LoadingCache[[]string]
 }
 
 // NewAnecdote makes a bot for jokesrv.fermyon.app and chucknorris.io
 func NewAnecdote(client HTTPClient) *Anecdote {
 	log.Printf("[INFO] anecdote bot with  https://jokesrv.fermyon.app and https://api.chucknorris.io/jokes/random")
-	c, _ := lcw.NewExpirableCache(lcw.MaxKeys(100), lcw.TTL(time.Hour))
+	o := lcw.NewOpts[[]string]()
+	c, _ := lcw.NewExpirableCache(o.MaxKeys(100), o.TTL(time.Hour))
 	return &Anecdote{client: client, categCache: c}
 }
 
@@ -59,7 +60,7 @@ func (a Anecdote) OnMessage(msg Message) (response Response) {
 // get categorize from https://jokesrv.fermyon.app/categories and extend with / prefix and ! suffix
 // to mach commands
 func (a Anecdote) categories() ([]string, error) {
-	res, err := a.categCache.Get("categories", func() (interface{}, error) {
+	res, err := a.categCache.Get("categories", func() ([]string, error) {
 		var categories []string
 		req, err := http.NewRequest("GET", "https://jokesrv.fermyon.app/categories", http.NoBody)
 		if err != nil {
@@ -83,8 +84,8 @@ func (a Anecdote) categories() ([]string, error) {
 		return nil, err
 	}
 
-	cc := make([]string, 0, len(res.([]string)))
-	for _, c := range res.([]string) {
+	cc := make([]string, 0, len(res))
+	for _, c := range res {
 		cc = append(cc, c+"!")
 	}
 	return cc, nil

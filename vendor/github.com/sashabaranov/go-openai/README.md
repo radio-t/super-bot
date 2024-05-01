@@ -453,7 +453,7 @@ func main() {
 	config := openai.DefaultAzureConfig("your Azure OpenAI Key", "https://your Azure OpenAI Endpoint")
 	// If you use a deployment name different from the model name, you can customize the AzureModelMapperFunc function
 	// config.AzureModelMapperFunc = func(model string) string {
-	// 	azureModelMapping = map[string]string{
+	// 	azureModelMapping := map[string]string{
 	// 		"gpt-3.5-turbo": "your gpt-3.5-turbo deployment name",
 	// 	}
 	// 	return azureModelMapping[model]
@@ -483,7 +483,7 @@ func main() {
 ```
 </details>
 
-<detail>
+<details>
 <summary>Embedding Semantic Similarity</summary>
 
 ```go
@@ -502,7 +502,7 @@ func main() {
 	// Create an EmbeddingRequest for the user query
 	queryReq := openai.EmbeddingRequest{
 		Input: []string{"How many chucks would a woodchuck chuck"},
-		Model: openai.AdaEmbeddingv2,
+		Model: openai.AdaEmbeddingV2,
 	}
 
 	// Create an embedding for the user query
@@ -514,7 +514,7 @@ func main() {
 	// Create an EmbeddingRequest for the target text
 	targetReq := openai.EmbeddingRequest{
 		Input: []string{"How many chucks would a woodchuck chuck if the woodchuck could chuck wood"},
-		Model: openai.AdaEmbeddingv2,
+		Model: openai.AdaEmbeddingV2,
 	}
 
 	// Create an embedding for the target text
@@ -537,7 +537,7 @@ func main() {
 }
 
 ```
-</detail>
+</details>
 
 <details>
 <summary>Azure OpenAI Embeddings</summary>
@@ -559,7 +559,7 @@ func main() {
 
 	//If you use a deployment name different from the model name, you can customize the AzureModelMapperFunc function
 	//config.AzureModelMapperFunc = func(model string) string {
-	//    azureModelMapping = map[string]string{
+	//    azureModelMapping := map[string]string{
 	//        "gpt-3.5-turbo":"your gpt-3.5-turbo deployment name",
 	//    }
 	//    return azureModelMapping[model]
@@ -636,7 +636,7 @@ FunctionDefinition{
       },
       "unit": {
         Type: jsonschema.String,
-        Enum: []string{"celcius", "fahrenheit"},
+        Enum: []string{"celsius", "fahrenheit"},
       },
     },
     Required: []string{"location"},
@@ -757,8 +757,9 @@ Even when specifying a temperature field of 0, it doesn't guarantee that you'll 
 Due to the factors mentioned above, different answers may be returned even for the same question.
 
 **Workarounds:**
-1. Using `math.SmallestNonzeroFloat32`: By specifying `math.SmallestNonzeroFloat32` in the temperature field instead of 0, you can mimic the behavior of setting it to 0.
-2. Limiting Token Count: By limiting the number of tokens in the input and output and especially avoiding large requests close to 32k tokens, you can reduce the risk of non-deterministic behavior.
+1. As of November 2023, use [the new `seed` parameter](https://platform.openai.com/docs/guides/text-generation/reproducible-outputs) in conjunction with the `system_fingerprint` response field, alongside Temperature management.
+2. Try using `math.SmallestNonzeroFloat32`: By specifying `math.SmallestNonzeroFloat32` in the temperature field instead of 0, you can mimic the behavior of setting it to 0.
+3. Limiting Token Count: By limiting the number of tokens in the input and output and especially avoiding large requests close to 32k tokens, you can reduce the risk of non-deterministic behavior.
 
 By adopting these strategies, you can expect more consistent results.
 

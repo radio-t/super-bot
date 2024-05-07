@@ -15,13 +15,12 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - megacheck
     - revive
     - govet
     - unconvert
-    - megacheck
+    - staticcheck
     - unused
-    - gas
+    - gosec
     - misspell
     - unparam
     - typecheck

@@ -22,9 +22,9 @@ type newsArticle struct {
 }
 
 // NewNews makes new News bot
-func NewNews(client HTTPClient, api string, max int) *News {
+func NewNews(client HTTPClient, api string, maximum int) *News {
 	log.Printf("[INFO] news bot with api %s", api)
-	return &News{client: client, newsAPI: api, numArticles: max}
+	return &News{client: client, newsAPI: api, numArticles: maximum}
 }
 
 // Help returns help message

@@ -4,8 +4,6 @@ ARG GIT_BRANCH
 ARG GITHUB_SHA
 ARG CI
 
-ENV GOFLAGS="-mod=vendor"
-
 ADD . /build
 WORKDIR /build
 
@@ -18,6 +16,10 @@ RUN \
 
 
 FROM umputun/baseimage:app-latest
+
+# enables automatic changelog generation by tools like Dependabot
+LABEL org.opencontainers.image.source="https://github.com/radio-t/super-bot"
+
 COPY --from=build /build/telegram-rt-bot /srv/telegram-rt-bot
 COPY data/*.data /srv/data/
 COPY data/logs.html /srv/logs.html

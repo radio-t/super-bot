@@ -257,10 +257,10 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 
 	if err != nil {
 		// If it can't parse entities, try to send message without markdown parse mode
-		if strings.Contains(err.Error(), "Bad Request: can't parse entities:") {
+		if tbMsg.ParseMode == tbapi.ModeMarkdown && strings.Contains(err.Error(), "Bad Request: can't parse entities:") {
 			tbMsg.ParseMode = ""
+			res, err = l.TbAPI.Send(tbMsg)
 		}
-		res, err = l.TbAPI.Send(tbMsg)
 		if err != nil {
 			return fmt.Errorf("can't send message to telegram %q: %w", resp.Text, err)
 		}

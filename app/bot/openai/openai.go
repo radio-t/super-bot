@@ -93,7 +93,7 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 		}
 	}
 
-	if ok, banMessage := o.checkRequest(msg.From.Username, reqText); !ok {
+	if ok, banMessage := o.checkRequest(msg, reqText); !ok {
 		return bot.Response{
 			Text:        banMessage,
 			Send:        true,
@@ -142,17 +142,19 @@ func (o *OpenAI) request(text string) (react bool, reqText string) {
 	return false, ""
 }
 
-func (o *OpenAI) checkRequest(username, text string) (ok bool, banMessage string) {
-	if o.superUser.IsSuper(username) {
+func (o *OpenAI) checkRequest(msg bot.Message, text string) (ok bool, banMessage string) {
+	if o.superUser.IsSuper(msg.From.Username) {
 		return true, ""
 	}
 
 	wtfContains := bot.WTFSteroidChecker{Message: text}
 
+	username := strings.TrimSpace(bot.DisplayName(msg, true))
+
 	if wtfContains.ContainsWTF() {
 		log.Printf("[WARN] OpenAI bot has wtf request, %s banned", username)
 		reason := "Вы знаете правила"
-		return false, fmt.Sprintf("%s\n@%s получает бан на 1 час.", reason, username)
+		return false, fmt.Sprintf("%s\n%s получает бан на 1 час.", reason, username)
 	}
 
 	if o.nowFn().Sub(o.lastDT) < 30*time.Minute {
@@ -160,7 +162,7 @@ func (o *OpenAI) checkRequest(username, text string) (ok bool, banMessage string
 		reason := fmt.Sprintf("Слишком много запросов, следующий запрос можно будет сделать через %d минут.",
 			int(30-time.Since(o.lastDT).Minutes()))
 
-		return false, fmt.Sprintf("%s\n@%s получает бан на 1 час.", reason, username)
+		return false, fmt.Sprintf("%s\n%s получает бан на 1 час.", reason, username)
 	}
 
 	return true, ""

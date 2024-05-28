@@ -249,6 +249,10 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 
 	res, err := l.sendMdWithFallback(resp, chatID)
 
+	if err != nil {
+		return err
+	}
+
 	l.saveBotMessage(&res, chatID)
 
 	if resp.Pin {

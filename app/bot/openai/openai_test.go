@@ -446,3 +446,42 @@ func TestOpenAI_request(t *testing.T) {
 		})
 	}
 }
+
+func TestOpenAI_UserNameOrDisplayName_UsernameExists(t *testing.T) {
+	msg := bot.Message{
+		From: bot.User{
+			Username: "testuser",
+		},
+	}
+	result := UserNameOrDisplayName(msg)
+	assert.Equal(t, "@testuser", result)
+}
+
+func TestOpenAI_UserNameOrDisplayName_DisplayNameExists(t *testing.T) {
+	msg := bot.Message{
+		From: bot.User{
+			DisplayName: "Test User",
+		},
+	}
+	result := UserNameOrDisplayName(msg)
+	assert.Equal(t, "Test User", result)
+}
+
+func TestOpenAI_UserNameOrDisplayName_UsernameAndDisplayNameExists(t *testing.T) {
+	msg := bot.Message{
+		From: bot.User{
+			Username:    "testuser",
+			DisplayName: "Test User",
+		},
+	}
+	result := UserNameOrDisplayName(msg)
+	assert.Equal(t, "@testuser", result)
+}
+
+func TestOpenAI_UserNameOrDisplayName_NoUsernameOrDisplayName(t *testing.T) {
+	msg := bot.Message{
+		From: bot.User{},
+	}
+	result := UserNameOrDisplayName(msg)
+	assert.Equal(t, "пользователь", result)
+}

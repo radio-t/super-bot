@@ -147,7 +147,7 @@ func (o *OpenAI) checkRequest(msg bot.Message, text string) (ok bool, banMessage
 		return true, ""
 	}
 
-	username := strings.TrimSpace(UserNameOrDisplayName(msg))
+	username := UserNameOrDisplayName(msg)
 
 	wtfContains := bot.WTFSteroidChecker{Message: text}
 

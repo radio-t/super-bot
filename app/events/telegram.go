@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -245,16 +246,11 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	}
 
 	log.Printf("[DEBUG] bot response - %+v, pin: %t, reply-to:%d, parse-mode:%s", resp.Text, resp.Pin, resp.ReplyTo, resp.ParseMode)
-	tbMsg := tbapi.NewMessage(chatID, resp.Text)
-	tbMsg.ParseMode = tbapi.ModeMarkdown
-	if resp.ParseMode != "" {
-		tbMsg.ParseMode = resp.ParseMode
-	}
-	tbMsg.DisableWebPagePreview = !resp.Preview
-	tbMsg.ReplyToMessageID = resp.ReplyTo
-	res, err := l.TbAPI.Send(tbMsg)
+
+	res, err := l.sendMdWithFallback(resp, chatID)
+
 	if err != nil {
-		return fmt.Errorf("can't send message to telegram %q: %w", resp.Text, err)
+		return err
 	}
 
 	l.saveBotMessage(&res, chatID)
@@ -274,6 +270,33 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	}
 
 	return nil
+}
+
+// sendMdWithFallback sends message with markdown mode and fallback to plain text
+func (l *TelegramListener) sendMdWithFallback(resp bot.Response, chatID int64) (tbapi.Message, error) {
+	log.Printf("[DEBUG] sending message to telegram")
+	tbMsg := tbapi.NewMessage(chatID, resp.Text)
+	tbMsg.ParseMode = tbapi.ModeMarkdown
+	if resp.ParseMode != "" {
+		tbMsg.ParseMode = resp.ParseMode
+	}
+	tbMsg.DisableWebPagePreview = !resp.Preview
+	tbMsg.ReplyToMessageID = resp.ReplyTo
+	res, err := l.TbAPI.Send(tbMsg)
+
+	if err != nil {
+		// If it can't parse entities, try to send message as plain text
+		if tbMsg.ParseMode == tbapi.ModeMarkdown && strings.Contains(err.Error(), "Bad Request: can't parse entities:") {
+			log.Printf("[WARN] failed to send message as markdown, retrying as plain text. Error: %v", err)
+			tbMsg.ParseMode = ""
+			res, err = l.TbAPI.Send(tbMsg)
+		}
+		if err != nil {
+			return res, fmt.Errorf("can't send message to telegram %q: %w", resp.Text, err)
+		}
+	}
+
+	return res, nil
 }
 
 // bans user or a channel

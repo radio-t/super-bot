@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -859,4 +860,57 @@ func TestTelegram_transformEntities(t *testing.T) {
 			},
 		),
 	)
+}
+
+func TestSendMdWithFallback_SuccessMarkdown(t *testing.T) {
+	mockAPI := &tbAPIMock{
+		SendFunc: func(c tbapi.Chattable) (tbapi.Message, error) {
+			return tbapi.Message{Text: c.(tbapi.MessageConfig).Text}, nil
+		},
+	}
+
+	l := TelegramListener{TbAPI: mockAPI}
+
+	resp := bot.Response{Text: "Hello, world!", ParseMode: tbapi.ModeMarkdown}
+	_, err := l.sendMdWithFallback(resp, 123456)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(mockAPI.SendCalls()))
+	assert.Equal(t, tbapi.ModeMarkdown, mockAPI.SendCalls()[0].C.(tbapi.MessageConfig).ParseMode)
+}
+
+func TestSendMdWithFallback_FallbackToPlainText(t *testing.T) {
+	mockAPI := &tbAPIMock{
+		SendFunc: func(c tbapi.Chattable) (tbapi.Message, error) {
+			if c.(tbapi.MessageConfig).ParseMode == tbapi.ModeMarkdown {
+				return tbapi.Message{}, fmt.Errorf("Bad Request: can't parse entities:")
+			}
+			return tbapi.Message{Text: c.(tbapi.MessageConfig).Text}, nil
+		},
+	}
+
+	l := TelegramListener{TbAPI: mockAPI}
+
+	resp := bot.Response{Text: "Hello, world!", ParseMode: tbapi.ModeMarkdown}
+	_, err := l.sendMdWithFallback(resp, 123456)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(mockAPI.SendCalls()))
+	assert.Equal(t, "", mockAPI.SendCalls()[1].C.(tbapi.MessageConfig).ParseMode)
+}
+
+func TestSendMdWithFallback_ErrorMarkdownAndPlainText(t *testing.T) {
+	mockAPI := &tbAPIMock{
+		SendFunc: func(c tbapi.Chattable) (tbapi.Message, error) {
+			return tbapi.Message{}, fmt.Errorf("Bad Request: can't parse entities:")
+		},
+	}
+
+	l := TelegramListener{TbAPI: mockAPI}
+
+	resp := bot.Response{Text: "Hello, world!", ParseMode: tbapi.ModeMarkdown}
+	_, err := l.sendMdWithFallback(resp, 123456)
+
+	assert.Error(t, err)
+	assert.Equal(t, 2, len(mockAPI.SendCalls()))
 }

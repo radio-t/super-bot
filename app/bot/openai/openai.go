@@ -312,7 +312,7 @@ func (o *OpenAI) CreateChatCompletion(ctx context.Context, req openai.ChatComple
 	return o.client.CreateChatCompletion(ctx, req)
 }
 
-// UserNameOrDisplayName username or display name or "user"
+// UserNameOrDisplayName username or display name or "пользователь"
 func UserNameOrDisplayName(msg bot.Message) string {
 	username := ""
 	if msg.From.Username != "" {

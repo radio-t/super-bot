@@ -287,8 +287,7 @@ func (l *TelegramListener) sendMdWithFallback(resp bot.Response, chatID int64) (
 	if err != nil {
 		// If it can't parse entities, try to send message as plain text
 		if tbMsg.ParseMode == tbapi.ModeMarkdown && strings.Contains(err.Error(), "Bad Request: can't parse entities:") {
-			log.Printf("[WARN] failed to send message as markdown, %v", err)
-			log.Printf("[DEBUG] sending message as plain text")
+			log.Printf("[WARN] failed to send message as markdown, retrying as plain text. Error: %v", err)
 			tbMsg.ParseMode = ""
 			res, err = l.TbAPI.Send(tbMsg)
 		}

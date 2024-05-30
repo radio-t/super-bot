@@ -252,18 +252,11 @@ func EscapeMarkDownV1Text(text string) string {
 	return text
 }
 
-// DisplayName returns user's display name or username or id, if usernameFirst is true it will try to get username first
-// instead of display name
-func DisplayName(msg Message, usernameFirst bool) string {
-	displayUsername := ""
-	if usernameFirst && msg.From.Username != "" {
-		displayUsername = "@" + msg.From.Username
-	}
-	if displayUsername == "" && msg.From.DisplayName != "" {
-		displayUsername = msg.From.DisplayName
-	}
-	if displayUsername == "" && msg.From.Username != "" {
-		displayUsername = "@" + msg.From.Username
+// DisplayName returns user's display name or username or id
+func DisplayName(msg Message) string {
+	displayUsername := msg.From.DisplayName
+	if displayUsername == "" {
+		displayUsername = msg.From.Username
 	}
 	if displayUsername == "" {
 		displayUsername = fmt.Sprintf("%d", msg.From.ID)

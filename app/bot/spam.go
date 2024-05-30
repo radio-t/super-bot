@@ -72,7 +72,7 @@ func (s *SpamFilter) OnMessage(msg Message) (response Response) {
 		return Response{} // don't check super users for spam
 	}
 
-	displayUsername := strings.TrimSpace(DisplayName(msg, false))
+	displayUsername := strings.TrimSpace(DisplayName(msg))
 	isEmojiSpam, _ := s.tooManyEmojis(msg.Text, maxEmojiAllowed)
 	stopWordsSpam := s.stopWords(msg.Text)
 	similaritySpam := s.isSpamSimilarity(msg.Text)

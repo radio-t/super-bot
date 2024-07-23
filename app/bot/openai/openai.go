@@ -51,6 +51,8 @@ type OpenAI struct {
 	lastDT time.Time
 }
 
+const cooldownDuration = 5 * time.Minute
+
 // NewOpenAI makes a bot for ChatGPT
 func NewOpenAI(params Params, httpClient *http.Client, superUser bot.SuperUser) *OpenAI {
 	log.Printf("[INFO] OpenAI bot with github.com/sashabaranov/go-openai, Prompt=%s, max=%d. Auto response is %v",
@@ -125,7 +127,7 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 	}
 
 	log.Printf("[DEBUG] next request to ChatGPT can be made after %s, in %d minutes",
-		o.lastDT.Add(30*time.Minute), int(30-time.Since(o.lastDT).Minutes()))
+		o.lastDT.Add(cooldownDuration), int(cooldownDuration.Minutes()-time.Since(o.lastDT).Minutes()))
 	return bot.Response{
 		Text:    responseAI,
 		Send:    true,
@@ -158,10 +160,10 @@ func (o *OpenAI) checkRequest(msg bot.Message, text string) (ok bool, banMessage
 		return false, fmt.Sprintf("%s\n%s получает бан на 1 час.", reason, username)
 	}
 
-	if o.nowFn().Sub(o.lastDT) < 30*time.Minute {
+	if o.nowFn().Sub(o.lastDT) < cooldownDuration {
 		log.Printf("[WARN] OpenAI bot is too busy, last request was %s ago, %s banned", time.Since(o.lastDT), username)
 		reason := fmt.Sprintf("Слишком много запросов, следующий запрос можно будет сделать через %d минут.",
-			int(30-time.Since(o.lastDT).Minutes()))
+			int(cooldownDuration.Minutes()-time.Since(o.lastDT).Minutes()))
 
 		return false, fmt.Sprintf("%s\n%s получает бан на 1 час.", reason, username)
 	}

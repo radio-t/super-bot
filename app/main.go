@@ -59,6 +59,7 @@ var opts struct {
 	} `group:"spam-filter" namespace:"spam-filter" env-namespace:"SPAM_FILTER"`
 
 	OpenAI struct {
+		Model             string `long:"model" env:"MODEL" default:"gpt-3.5-turbo" description:"OpenAI model"`
 		AuthToken         string `long:"token" env:"AUTH_TOKEN" description:"OpenAI auth token"`
 		MaxTokensResponse int    `long:"max-tokens" env:"MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
 		MaxTokensRequest  int    `long:"max-tokens-request" env:"MAX_TOKENS_REQUEST" default:"3000" description:"OpenAI max tokens in request"`
@@ -115,6 +116,7 @@ func main() {
 	// 5 seconds is not enough for OpenAI requests
 	httpClientOpenAI := makeOpenAIHttpClient()
 	openAIBot := openai.NewOpenAI(openai.Params{
+		Model:                   opts.OpenAI.Model,
 		AuthToken:               opts.OpenAI.AuthToken,
 		MaxTokensResponse:       opts.OpenAI.MaxTokensResponse,
 		MaxTokensRequest:        opts.OpenAI.MaxTokensRequest,

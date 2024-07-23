@@ -34,6 +34,7 @@ type Params struct {
 	EnableAutoResponse      bool
 	HistorySize             int
 	HistoryReplyProbability int // Percentage of the probability to reply with history
+	Model                   string
 }
 
 // OpenAI bot, returns responses from ChatGPT via OpenAI API
@@ -273,11 +274,10 @@ func (o *OpenAI) chatGPTRequestWithHistory(sysPrompt string) (response string, e
 }
 
 func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage) (response string, err error) {
-
 	resp, err := o.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:     openai.GPT3Dot5Turbo,
+			Model:     o.params.Model,
 			MaxTokens: o.params.MaxTokensResponse,
 			Messages:  messages,
 		},

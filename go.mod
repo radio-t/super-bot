@@ -12,7 +12,7 @@ require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/sandwich-go/gpt3-encoder v0.0.0-20230203030618-cd99729dd0dd
-	github.com/sashabaranov/go-openai v1.27.0
+	github.com/sashabaranov/go-openai v1.27.1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/text v0.16.0
 	golang.org/x/time v0.5.0
@@ -25,6 +25,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.11.2 // indirect
 	github.com/go-pkgz/email v0.5.0 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
@@ -37,7 +38,6 @@ require (
 	github.com/samber/lo v1.46.0 // indirect
 	github.com/slack-go/slack v0.13.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/net v0.27.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

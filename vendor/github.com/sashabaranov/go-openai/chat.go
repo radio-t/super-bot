@@ -82,6 +82,7 @@ type ChatMessagePart struct {
 type ChatCompletionMessage struct {
 	Role         string `json:"role"`
 	Content      string `json:"content"`
+	Refusal      string `json:"refusal,omitempty"`
 	MultiContent []ChatMessagePart
 
 	// This property isn't in the official documentation, but it's in
@@ -107,6 +108,7 @@ func (m ChatCompletionMessage) MarshalJSON() ([]byte, error) {
 		msg := struct {
 			Role         string            `json:"role"`
 			Content      string            `json:"-"`
+			Refusal      string            `json:"refusal,omitempty"`
 			MultiContent []ChatMessagePart `json:"content,omitempty"`
 			Name         string            `json:"name,omitempty"`
 			FunctionCall *FunctionCall     `json:"function_call,omitempty"`
@@ -115,9 +117,11 @@ func (m ChatCompletionMessage) MarshalJSON() ([]byte, error) {
 		}(m)
 		return json.Marshal(msg)
 	}
+
 	msg := struct {
 		Role         string            `json:"role"`
 		Content      string            `json:"content"`
+		Refusal      string            `json:"refusal,omitempty"`
 		MultiContent []ChatMessagePart `json:"-"`
 		Name         string            `json:"name,omitempty"`
 		FunctionCall *FunctionCall     `json:"function_call,omitempty"`
@@ -131,12 +135,14 @@ func (m *ChatCompletionMessage) UnmarshalJSON(bs []byte) error {
 	msg := struct {
 		Role         string `json:"role"`
 		Content      string `json:"content"`
+		Refusal      string `json:"refusal,omitempty"`
 		MultiContent []ChatMessagePart
 		Name         string        `json:"name,omitempty"`
 		FunctionCall *FunctionCall `json:"function_call,omitempty"`
 		ToolCalls    []ToolCall    `json:"tool_calls,omitempty"`
 		ToolCallID   string        `json:"tool_call_id,omitempty"`
 	}{}
+
 	if err := json.Unmarshal(bs, &msg); err == nil {
 		*m = ChatCompletionMessage(msg)
 		return nil
@@ -144,6 +150,7 @@ func (m *ChatCompletionMessage) UnmarshalJSON(bs []byte) error {
 	multiMsg := struct {
 		Role         string `json:"role"`
 		Content      string
+		Refusal      string            `json:"refusal,omitempty"`
 		MultiContent []ChatMessagePart `json:"content"`
 		Name         string            `json:"name,omitempty"`
 		FunctionCall *FunctionCall     `json:"function_call,omitempty"`
@@ -175,27 +182,43 @@ type ChatCompletionResponseFormatType string
 
 const (
 	ChatCompletionResponseFormatTypeJSONObject ChatCompletionResponseFormatType = "json_object"
+	ChatCompletionResponseFormatTypeJSONSchema ChatCompletionResponseFormatType = "json_schema"
 	ChatCompletionResponseFormatTypeText       ChatCompletionResponseFormatType = "text"
 )
 
 type ChatCompletionResponseFormat struct {
-	Type ChatCompletionResponseFormatType `json:"type,omitempty"`
+	Type       ChatCompletionResponseFormatType        `json:"type,omitempty"`
+	JSONSchema *ChatCompletionResponseFormatJSONSchema `json:"json_schema,omitempty"`
+}
+
+type ChatCompletionResponseFormatJSONSchema struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description,omitempty"`
+	Schema      json.Marshaler `json:"schema"`
+	Strict      bool           `json:"strict"`
 }
 
 // ChatCompletionRequest represents a request structure for chat completion API.
 type ChatCompletionRequest struct {
-	Model            string                        `json:"model"`
-	Messages         []ChatCompletionMessage       `json:"messages"`
-	MaxTokens        int                           `json:"max_tokens,omitempty"`
-	Temperature      float32                       `json:"temperature,omitempty"`
-	TopP             float32                       `json:"top_p,omitempty"`
-	N                int                           `json:"n,omitempty"`
-	Stream           bool                          `json:"stream,omitempty"`
-	Stop             []string                      `json:"stop,omitempty"`
-	PresencePenalty  float32                       `json:"presence_penalty,omitempty"`
-	ResponseFormat   *ChatCompletionResponseFormat `json:"response_format,omitempty"`
-	Seed             *int                          `json:"seed,omitempty"`
-	FrequencyPenalty float32                       `json:"frequency_penalty,omitempty"`
+	Model    string                  `json:"model"`
+	Messages []ChatCompletionMessage `json:"messages"`
+	// MaxTokens The maximum number of tokens that can be generated in the chat completion.
+	// This value can be used to control costs for text generated via API.
+	// This value is now deprecated in favor of max_completion_tokens, and is not compatible with o1 series models.
+	// refs: https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_tokens
+	MaxTokens int `json:"max_tokens,omitempty"`
+	// MaxCompletionsTokens An upper bound for the number of tokens that can be generated for a completion,
+	// including visible output tokens and reasoning tokens https://platform.openai.com/docs/guides/reasoning
+	MaxCompletionsTokens int                           `json:"max_completion_tokens,omitempty"`
+	Temperature          float32                       `json:"temperature,omitempty"`
+	TopP                 float32                       `json:"top_p,omitempty"`
+	N                    int                           `json:"n,omitempty"`
+	Stream               bool                          `json:"stream,omitempty"`
+	Stop                 []string                      `json:"stop,omitempty"`
+	PresencePenalty      float32                       `json:"presence_penalty,omitempty"`
+	ResponseFormat       *ChatCompletionResponseFormat `json:"response_format,omitempty"`
+	Seed                 *int                          `json:"seed,omitempty"`
+	FrequencyPenalty     float32                       `json:"frequency_penalty,omitempty"`
 	// LogitBias is must be a token id string (specified by their token ID in the tokenizer), not a word string.
 	// incorrect: `"logit_bias":{"You": 6}`, correct: `"logit_bias":{"1639": 6}`
 	// refs: https://platform.openai.com/docs/api-reference/chat/create#chat/create-logit_bias
@@ -253,6 +276,7 @@ type ToolFunction struct {
 type FunctionDefinition struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	Strict      bool   `json:"strict,omitempty"`
 	// Parameters is an object describing the function.
 	// You can pass json.RawMessage to describe the schema,
 	// or you can pass in a struct which serializes to the proper JSON schema.
@@ -347,7 +371,16 @@ func (c *Client) CreateChatCompletion(
 		return
 	}
 
-	req, err := c.newRequest(ctx, http.MethodPost, c.fullURL(urlSuffix, request.Model), withBody(request))
+	if err = validateRequestForO1Models(request); err != nil {
+		return
+	}
+
+	req, err := c.newRequest(
+		ctx,
+		http.MethodPost,
+		c.fullURL(urlSuffix, withModel(request.Model)),
+		withBody(request),
+	)
 	if err != nil {
 		return
 	}

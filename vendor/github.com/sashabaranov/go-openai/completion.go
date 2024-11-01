@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ErrO1MaxTokensDeprecated                   = errors.New("this model is not supported MaxTokens, please use MaxCompletionsTokens")                              //nolint:lll
+	ErrO1MaxTokensDeprecated                   = errors.New("this model is not supported MaxTokens, please use MaxCompletionTokens")                               //nolint:lll
 	ErrCompletionUnsupportedModel              = errors.New("this model is not supported with this method, please use CreateChatCompletion client method instead") //nolint:lll
 	ErrCompletionStreamNotSupported            = errors.New("streaming is not supported with this method, please use CreateCompletionStream")                      //nolint:lll
 	ErrCompletionRequestPromptTypeNotSupported = errors.New("the type of CompletionRequest.Prompt only supports string and []string")                              //nolint:lll
@@ -161,7 +161,23 @@ func checkEndpointSupportsModel(endpoint, model string) bool {
 func checkPromptType(prompt any) bool {
 	_, isString := prompt.(string)
 	_, isStringSlice := prompt.([]string)
-	return isString || isStringSlice
+	if isString || isStringSlice {
+		return true
+	}
+
+	// check if it is prompt is []string hidden under []any
+	slice, isSlice := prompt.([]any)
+	if !isSlice {
+		return false
+	}
+
+	for _, item := range slice {
+		_, itemIsString := item.(string)
+		if !itemIsString {
+			return false
+		}
+	}
+	return true // all items in the slice are string, so it is []string
 }
 
 var unsupportedToolsForO1Models = map[ToolType]struct{}{
@@ -238,18 +254,23 @@ type CompletionRequest struct {
 	// LogitBias is must be a token id string (specified by their token ID in the tokenizer), not a word string.
 	// incorrect: `"logit_bias":{"You": 6}`, correct: `"logit_bias":{"1639": 6}`
 	// refs: https://platform.openai.com/docs/api-reference/completions/create#completions/create-logit_bias
-	LogitBias       map[string]int `json:"logit_bias,omitempty"`
-	LogProbs        int            `json:"logprobs,omitempty"`
-	MaxTokens       int            `json:"max_tokens,omitempty"`
-	N               int            `json:"n,omitempty"`
-	PresencePenalty float32        `json:"presence_penalty,omitempty"`
-	Seed            *int           `json:"seed,omitempty"`
-	Stop            []string       `json:"stop,omitempty"`
-	Stream          bool           `json:"stream,omitempty"`
-	Suffix          string         `json:"suffix,omitempty"`
-	Temperature     float32        `json:"temperature,omitempty"`
-	TopP            float32        `json:"top_p,omitempty"`
-	User            string         `json:"user,omitempty"`
+	LogitBias map[string]int `json:"logit_bias,omitempty"`
+	// Store can be set to true to store the output of this completion request for use in distillations and evals.
+	// https://platform.openai.com/docs/api-reference/chat/create#chat-create-store
+	Store bool `json:"store,omitempty"`
+	// Metadata to store with the completion.
+	Metadata        map[string]string `json:"metadata,omitempty"`
+	LogProbs        int               `json:"logprobs,omitempty"`
+	MaxTokens       int               `json:"max_tokens,omitempty"`
+	N               int               `json:"n,omitempty"`
+	PresencePenalty float32           `json:"presence_penalty,omitempty"`
+	Seed            *int              `json:"seed,omitempty"`
+	Stop            []string          `json:"stop,omitempty"`
+	Stream          bool              `json:"stream,omitempty"`
+	Suffix          string            `json:"suffix,omitempty"`
+	Temperature     float32           `json:"temperature,omitempty"`
+	TopP            float32           `json:"top_p,omitempty"`
+	User            string            `json:"user,omitempty"`
 }
 
 // CompletionChoice represents one of possible completions.

@@ -28,8 +28,8 @@ github.com/go-pkgz/lgr
 # github.com/go-pkgz/notify v1.2.0
 ## explicit; go 1.21
 github.com/go-pkgz/notify
-# github.com/go-pkgz/repeater v1.1.3
-## explicit; go 1.12
+# github.com/go-pkgz/repeater v1.2.0
+## explicit; go 1.20
 github.com/go-pkgz/repeater
 github.com/go-pkgz/repeater/strategy
 # github.com/go-pkgz/requester v0.2.0
@@ -94,7 +94,7 @@ github.com/samber/lo/internal/rand
 # github.com/sandwich-go/gpt3-encoder v0.0.0-20230203030618-cd99729dd0dd
 ## explicit; go 1.18
 github.com/sandwich-go/gpt3-encoder
-# github.com/sashabaranov/go-openai v1.31.0
+# github.com/sashabaranov/go-openai v1.32.5
 ## explicit; go 1.18
 github.com/sashabaranov/go-openai
 github.com/sashabaranov/go-openai/internal
@@ -120,7 +120,7 @@ golang.org/x/net/html/atom
 # golang.org/x/sys v0.23.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
-# golang.org/x/text v0.17.0
+# golang.org/x/text v0.19.0
 ## explicit; go 1.18
 golang.org/x/text/cases
 golang.org/x/text/internal
@@ -131,7 +131,7 @@ golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.6.0
+# golang.org/x/time v0.7.0
 ## explicit; go 1.18
 golang.org/x/time/rate
 # gopkg.in/yaml.v3 v3.0.1

@@ -41,11 +41,23 @@ type Violence struct {
 	Severity string `json:"severity,omitempty"`
 }
 
+type JailBreak struct {
+	Filtered bool `json:"filtered"`
+	Detected bool `json:"detected"`
+}
+
+type Profanity struct {
+	Filtered bool `json:"filtered"`
+	Detected bool `json:"detected"`
+}
+
 type ContentFilterResults struct {
-	Hate     Hate     `json:"hate,omitempty"`
-	SelfHarm SelfHarm `json:"self_harm,omitempty"`
-	Sexual   Sexual   `json:"sexual,omitempty"`
-	Violence Violence `json:"violence,omitempty"`
+	Hate      Hate      `json:"hate,omitempty"`
+	SelfHarm  SelfHarm  `json:"self_harm,omitempty"`
+	Sexual    Sexual    `json:"sexual,omitempty"`
+	Violence  Violence  `json:"violence,omitempty"`
+	JailBreak JailBreak `json:"jailbreak,omitempty"`
+	Profanity Profanity `json:"profanity,omitempty"`
 }
 
 type PromptAnnotation struct {
@@ -207,18 +219,18 @@ type ChatCompletionRequest struct {
 	// This value is now deprecated in favor of max_completion_tokens, and is not compatible with o1 series models.
 	// refs: https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_tokens
 	MaxTokens int `json:"max_tokens,omitempty"`
-	// MaxCompletionsTokens An upper bound for the number of tokens that can be generated for a completion,
+	// MaxCompletionTokens An upper bound for the number of tokens that can be generated for a completion,
 	// including visible output tokens and reasoning tokens https://platform.openai.com/docs/guides/reasoning
-	MaxCompletionsTokens int                           `json:"max_completion_tokens,omitempty"`
-	Temperature          float32                       `json:"temperature,omitempty"`
-	TopP                 float32                       `json:"top_p,omitempty"`
-	N                    int                           `json:"n,omitempty"`
-	Stream               bool                          `json:"stream,omitempty"`
-	Stop                 []string                      `json:"stop,omitempty"`
-	PresencePenalty      float32                       `json:"presence_penalty,omitempty"`
-	ResponseFormat       *ChatCompletionResponseFormat `json:"response_format,omitempty"`
-	Seed                 *int                          `json:"seed,omitempty"`
-	FrequencyPenalty     float32                       `json:"frequency_penalty,omitempty"`
+	MaxCompletionTokens int                           `json:"max_completion_tokens,omitempty"`
+	Temperature         float32                       `json:"temperature,omitempty"`
+	TopP                float32                       `json:"top_p,omitempty"`
+	N                   int                           `json:"n,omitempty"`
+	Stream              bool                          `json:"stream,omitempty"`
+	Stop                []string                      `json:"stop,omitempty"`
+	PresencePenalty     float32                       `json:"presence_penalty,omitempty"`
+	ResponseFormat      *ChatCompletionResponseFormat `json:"response_format,omitempty"`
+	Seed                *int                          `json:"seed,omitempty"`
+	FrequencyPenalty    float32                       `json:"frequency_penalty,omitempty"`
 	// LogitBias is must be a token id string (specified by their token ID in the tokenizer), not a word string.
 	// incorrect: `"logit_bias":{"You": 6}`, correct: `"logit_bias":{"1639": 6}`
 	// refs: https://platform.openai.com/docs/api-reference/chat/create#chat/create-logit_bias
@@ -243,6 +255,11 @@ type ChatCompletionRequest struct {
 	StreamOptions *StreamOptions `json:"stream_options,omitempty"`
 	// Disable the default behavior of parallel tool calls by setting it: false.
 	ParallelToolCalls any `json:"parallel_tool_calls,omitempty"`
+	// Store can be set to true to store the output of this completion request for use in distillations and evals.
+	// https://platform.openai.com/docs/api-reference/chat/create#chat-create-store
+	Store bool `json:"store,omitempty"`
+	// Metadata to store with the completion.
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 type StreamOptions struct {
@@ -338,19 +355,21 @@ type ChatCompletionChoice struct {
 	// function_call: The model decided to call a function
 	// content_filter: Omitted content due to a flag from our content filters
 	// null: API response still in progress or incomplete
-	FinishReason FinishReason `json:"finish_reason"`
-	LogProbs     *LogProbs    `json:"logprobs,omitempty"`
+	FinishReason         FinishReason         `json:"finish_reason"`
+	LogProbs             *LogProbs            `json:"logprobs,omitempty"`
+	ContentFilterResults ContentFilterResults `json:"content_filter_results,omitempty"`
 }
 
 // ChatCompletionResponse represents a response structure for chat completion API.
 type ChatCompletionResponse struct {
-	ID                string                 `json:"id"`
-	Object            string                 `json:"object"`
-	Created           int64                  `json:"created"`
-	Model             string                 `json:"model"`
-	Choices           []ChatCompletionChoice `json:"choices"`
-	Usage             Usage                  `json:"usage"`
-	SystemFingerprint string                 `json:"system_fingerprint"`
+	ID                  string                 `json:"id"`
+	Object              string                 `json:"object"`
+	Created             int64                  `json:"created"`
+	Model               string                 `json:"model"`
+	Choices             []ChatCompletionChoice `json:"choices"`
+	Usage               Usage                  `json:"usage"`
+	SystemFingerprint   string                 `json:"system_fingerprint"`
+	PromptFilterResults []PromptFilterResult   `json:"prompt_filter_results,omitempty"`
 
 	httpHeader
 }

@@ -5,8 +5,8 @@ import (
 )
 
 // MaxConcurrent middleware limits the total concurrency for a given requester
-func MaxConcurrent(max int) func(http.RoundTripper) http.RoundTripper {
-	sema := make(chan struct{}, max)
+func MaxConcurrent(maxLimit int) func(http.RoundTripper) http.RoundTripper {
+	sema := make(chan struct{}, maxLimit)
 	return func(next http.RoundTripper) http.RoundTripper {
 		fn := func(req *http.Request) (*http.Response, error) {
 			sema <- struct{}{}

@@ -32,7 +32,7 @@ github.com/go-pkgz/notify
 ## explicit; go 1.20
 github.com/go-pkgz/repeater
 github.com/go-pkgz/repeater/strategy
-# github.com/go-pkgz/requester v0.2.0
+# github.com/go-pkgz/requester v0.2.1
 ## explicit; go 1.19
 github.com/go-pkgz/requester
 github.com/go-pkgz/requester/middleware
@@ -132,7 +132,7 @@ golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.8.0
+# golang.org/x/time v0.9.0
 ## explicit; go 1.18
 golang.org/x/time/rate
 # gopkg.in/yaml.v3 v3.0.1

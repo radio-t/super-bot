@@ -26,7 +26,7 @@ type Reporter struct {
 }
 
 // NewLogger makes new reporter bot
-func NewLogger(logs string, delay time.Duration, chatID string, cl httpClient) (result Reporter) {
+func NewLogger(logs string, delay time.Duration, chatID string) (result Reporter) {
 	log.Printf("[INFO] new reporter, path=%s", logs)
 	if err := os.MkdirAll(logs, 0o750); err != nil {
 		log.Printf("[WARN] can't make logs dir %s, %v", logs, err)
@@ -35,8 +35,14 @@ func NewLogger(logs string, delay time.Duration, chatID string, cl httpClient) (
 		logsPath:  logs,
 		messages:  make(chan msgEntry, 1000),
 		saveDelay: delay,
-		httpCl:    cl,
-		chatID:    chatID,
+		httpCl: &http.Client{
+			Timeout: time.Second * 5,
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				// don't follow redirects, we need to check status code
+				return http.ErrUseLastResponse
+			},
+		},
+		chatID: chatID,
 	}
 	go result.activate()
 	return result

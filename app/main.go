@@ -212,7 +212,7 @@ func main() {
 		AllActivityTerm:        allActivityTerm,
 		BotsActivityTerm:       botsActivityTerm,
 		OverallBotActivityTerm: botsAllUsersActivityTerm,
-		MsgLogger:              reporter.NewLogger(opts.LogsPath, opts.MessageLogDelay, opts.Telegram.Group, httpClient),
+		MsgLogger:              reporter.NewLogger(opts.LogsPath, opts.MessageLogDelay, opts.Telegram.Group),
 		Bots:                   multiBot,
 		Group:                  opts.Telegram.Group,
 		Debug:                  opts.Dbg,

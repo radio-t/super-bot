@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"bytes"
+	"path"
 )
 
 var msg = bot.Message{ID: 101, Text: "1st"}
@@ -28,8 +29,8 @@ func TestNewLogger(t *testing.T) {
 
 		for i, tt := range tbl {
 			t.Run(strconv.Itoa(i), func(t *testing.T) {
-				path := os.TempDir() + "superbot_logs" + strconv.Itoa(i)
-				defer os.RemoveAll(path)
+				p := path.Join(os.TempDir(), "superbot_logs", strconv.Itoa(i))
+				defer os.RemoveAll(p)
 
 				clientMock := &httpClientMock{
 					GetFunc: func(url string) (*http.Response, error) {
@@ -41,16 +42,16 @@ func TestNewLogger(t *testing.T) {
 					},
 				}
 
-				reporter := NewLogger(path, 0, "radio_t_chat")
+				reporter := NewLogger(p, 0, "radio_t_chat")
 				reporter.httpCl = clientMock
 				assert.NotNil(t, reporter)
-				assert.DirExists(t, path)
+				assert.DirExists(t, p)
 
 				for i = 0; i < tt.count; i++ {
 					reporter.Save(&msg)
 				}
 				time.Sleep(tt.timeout)
-				logfile := fmt.Sprintf("%s/%s.log", path, time.Now().Format("20060102"))
+				logfile := fmt.Sprintf("%s/%s.log", p, time.Now().Format("20060102"))
 				assert.FileExists(t, logfile)
 				require.NoError(t, os.Remove(logfile))
 			})

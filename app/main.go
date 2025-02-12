@@ -30,8 +30,8 @@ import (
 
 var opts struct {
 	Telegram struct {
-		Token   string        `long:"token" env:"TOKEN" description:"telegram bot token" default:"test"`
-		Group   string        `long:"group" env:"GROUP" description:"group name/id" default:"test"`
+		Token   string        `long:"token" env:"TOKEN" description:"telegram bot token" required:"true"`
+		Group   string        `long:"group" env:"GROUP" description:"group name/id"      required:"true"`
 		Timeout time.Duration `long:"timeout" env:"TIMEOUT" description:"http client timeout for getting files from Telegram" default:"30s"`
 	} `group:"telegram" namespace:"telegram" env-namespace:"TELEGRAM"`
 

@@ -107,7 +107,7 @@ func (l Reporter) activate() {
 					log.Printf("[WARN] failed to write reporter buffer, %v", err)
 				}
 			}
-		case <-time.After(time.Second * 5): // flush on 5 seconds inactivity
+		case <-time.Tick(time.Second * 5): // flush on 5 seconds inactivity
 			if err := writeBuff(); err != nil {
 				log.Printf("[WARN] failed to write reporter buffer, %v", err)
 			}

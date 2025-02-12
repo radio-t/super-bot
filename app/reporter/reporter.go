@@ -71,6 +71,8 @@ func (l *Reporter) Save(msg *bot.Message) {
 func (l *Reporter) activate() {
 	log.Print("[INFO] activate reporter")
 	buffer := make([]string, 0, 100)
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
 
 	writeBuff := func() error {
 		if len(buffer) == 0 {
@@ -113,7 +115,7 @@ func (l *Reporter) activate() {
 					log.Printf("[WARN] failed to write reporter buffer, %v", err)
 				}
 			}
-		case <-time.Tick(time.Second * 5): // flush on 5 seconds inactivity
+		case <-ticker.C: // flush on 5 seconds inactivity
 			if err := writeBuff(); err != nil {
 				log.Printf("[WARN] failed to write reporter buffer, %v", err)
 			}

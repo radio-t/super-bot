@@ -8,19 +8,36 @@ import (
 	"time"
 
 	"github.com/radio-t/super-bot/app/bot"
+	"net/http"
 )
+
+type msgEntry struct {
+	MessageID int
+	Data      string
+}
 
 // Reporter collects all messages and saves to plain file
 type Reporter struct {
-	logsPath string
-	messages chan string
+	logsPath  string
+	messages  chan msgEntry
+	saveDelay time.Duration
+	httpCl    httpClient
+	chatID    string
 }
 
 // NewLogger makes new reporter bot
-func NewLogger(logs string) (result Reporter) {
+func NewLogger(logs string, delay time.Duration, chatID string, cl httpClient) (result Reporter) {
 	log.Printf("[INFO] new reporter, path=%s", logs)
-	_ = os.MkdirAll(logs, 0o750)
-	result = Reporter{logsPath: logs, messages: make(chan string, 1000)}
+	if err := os.MkdirAll(logs, 0o750); err != nil {
+		log.Printf("[WARN] can't make logs dir %s, %v", logs, err)
+	}
+	result = Reporter{
+		logsPath:  logs,
+		messages:  make(chan msgEntry, 1000),
+		saveDelay: delay,
+		httpCl:    cl,
+		chatID:    chatID,
+	}
 	go result.activate()
 	return result
 }
@@ -28,7 +45,7 @@ func NewLogger(logs string) (result Reporter) {
 // Save to log channel, non-blocking and skip if needed
 func (l Reporter) Save(msg *bot.Message) {
 	if msg.Text == "" && msg.Image == nil {
-		log.Print("[DEBUG] message not saved to log: no text or image = irrelevant")
+		log.Printf("[DEBUG] message not saved to log: no text or image = irrelevant, msg id: %d", msg.ID)
 		return
 	}
 
@@ -39,7 +56,7 @@ func (l Reporter) Save(msg *bot.Message) {
 	}
 
 	select {
-	case l.messages <- string(bdata) + "\n":
+	case l.messages <- msgEntry{MessageID: msg.ID, Data: string(bdata) + "\n"}:
 	default:
 		log.Printf("[WARN] can't buffer log entry %v", msg)
 	}
@@ -76,7 +93,15 @@ func (l Reporter) activate() {
 	for {
 		select {
 		case entry := <-l.messages:
-			buffer = append(buffer, entry)
+			// don't save right away, wait for antispam checks
+			time.Sleep(l.saveDelay)
+
+			if !l.messageExists(entry.MessageID) {
+				log.Printf("[DEBUG] message %d has been deleted, skipping", entry.MessageID)
+				continue
+			}
+
+			buffer = append(buffer, entry.Data)
 			if len(buffer) >= 100 { // forced flush every 100 records
 				if err := writeBuff(); err != nil {
 					log.Printf("[WARN] failed to write reporter buffer, %v", err)
@@ -88,4 +113,21 @@ func (l Reporter) activate() {
 			}
 		}
 	}
+}
+
+//go:generate moq -out mock_reporter.go . httpClient
+
+type httpClient interface {
+	Get(url string) (*http.Response, error)
+}
+
+func (l Reporter) messageExists(msgID int) bool {
+	resp, err := l.httpCl.Get(fmt.Sprintf("https://t.me/%s/%d?single", l.chatID, msgID))
+	if err != nil {
+		log.Printf("[WARN] failed to check message existence, %v", err)
+		return false
+	}
+	defer resp.Body.Close() // nolint
+
+	return resp.StatusCode == http.StatusFound
 }

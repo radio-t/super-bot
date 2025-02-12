@@ -26,12 +26,12 @@ type Reporter struct {
 }
 
 // NewLogger makes new reporter bot
-func NewLogger(logs string, delay time.Duration, chatID string) (result Reporter) {
+func NewLogger(logs string, delay time.Duration, chatID string) (result *Reporter) {
 	log.Printf("[INFO] new reporter, path=%s", logs)
 	if err := os.MkdirAll(logs, 0o750); err != nil {
 		log.Printf("[WARN] can't make logs dir %s, %v", logs, err)
 	}
-	result = Reporter{
+	result = &Reporter{
 		logsPath:  logs,
 		messages:  make(chan msgEntry, 1000),
 		saveDelay: delay,
@@ -49,7 +49,7 @@ func NewLogger(logs string, delay time.Duration, chatID string) (result Reporter
 }
 
 // Save to log channel, non-blocking and skip if needed
-func (l Reporter) Save(msg *bot.Message) {
+func (l *Reporter) Save(msg *bot.Message) {
 	if msg.Text == "" && msg.Image == nil {
 		log.Printf("[DEBUG] message not saved to log: no text or image = irrelevant, msg id: %d", msg.ID)
 		return
@@ -68,7 +68,7 @@ func (l Reporter) Save(msg *bot.Message) {
 	}
 }
 
-func (l Reporter) activate() {
+func (l *Reporter) activate() {
 	log.Print("[INFO] activate reporter")
 	buffer := make([]string, 0, 100)
 
@@ -127,7 +127,7 @@ type httpClient interface {
 	Get(url string) (*http.Response, error)
 }
 
-func (l Reporter) messageExists(msgID int) bool {
+func (l *Reporter) messageExists(msgID int) bool {
 	resp, err := l.httpCl.Get(fmt.Sprintf("https://t.me/%s/%d?single", l.chatID, msgID))
 	if err != nil {
 		log.Printf("[WARN] failed to check message existence, %v", err)

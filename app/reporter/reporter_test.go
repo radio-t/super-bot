@@ -14,26 +14,10 @@ import (
 	"bytes"
 )
 
-var logs = "logs"
 var msg = bot.Message{ID: 101, Text: "1st"}
 
 func TestNewLogger(t *testing.T) {
 	t.Run("logger saves messages", func(t *testing.T) {
-		defer os.RemoveAll(logs)
-		clientMock := &httpClientMock{
-			GetFunc: func(url string) (*http.Response, error) {
-				assert.Equal(t, "https://t.me/radio_t_chat/101?single", url)
-				return &http.Response{
-					StatusCode: 302,
-					Body:       io.NopCloser(bytes.NewBuffer([]byte(""))),
-				}, nil
-			},
-		}
-
-		reporter := NewLogger(logs, 500*time.Millisecond, "radio_t_chat", clientMock)
-		assert.NotNil(t, reporter)
-		assert.DirExists(t, logs)
-
 		tbl := []struct {
 			count   int
 			timeout time.Duration
@@ -44,19 +28,40 @@ func TestNewLogger(t *testing.T) {
 
 		for i, tt := range tbl {
 			t.Run(strconv.Itoa(i), func(t *testing.T) {
+				path := os.TempDir() + "superbot_logs" + strconv.Itoa(i)
+				defer os.RemoveAll(path)
+
+				clientMock := &httpClientMock{
+					GetFunc: func(url string) (*http.Response, error) {
+						assert.Equal(t, "https://t.me/radio_t_chat/101?single", url)
+						return &http.Response{
+							StatusCode: 302,
+							Body:       io.NopCloser(bytes.NewBuffer([]byte(""))),
+						}, nil
+					},
+				}
+
+				reporter := NewLogger(path, 0, "radio_t_chat")
+				reporter.httpCl = clientMock
+				assert.NotNil(t, reporter)
+				assert.DirExists(t, path)
+
 				for i = 0; i < tt.count; i++ {
 					reporter.Save(&msg)
 				}
 				time.Sleep(tt.timeout)
-				logfile := fmt.Sprintf("%s/%s.log", logs, time.Now().Format("20060102"))
+				logfile := fmt.Sprintf("%s/%s.log", path, time.Now().Format("20060102"))
 				assert.FileExists(t, logfile)
-				err := os.Remove(logfile)
-				assert.NoError(t, err)
+				require.NoError(t, os.Remove(logfile))
 			})
 		}
 	})
 
 	t.Run("logger skips deleted messages", func(t *testing.T) {
+		path, err := os.MkdirTemp("", "superbot_logs")
+		require.NoError(t, err)
+		defer os.RemoveAll(path)
+
 		var startedAt time.Time
 		clientMock := &httpClientMock{
 			GetFunc: func(url string) (*http.Response, error) {
@@ -70,15 +75,16 @@ func TestNewLogger(t *testing.T) {
 				}, nil
 			},
 		}
-		reporter := NewLogger(logs, 500*time.Millisecond, "radio_t_chat", clientMock)
+		reporter := NewLogger(path, 500*time.Millisecond, "radio_t_chat")
+		reporter.httpCl = clientMock
 		assert.NotNil(t, reporter)
-		assert.DirExists(t, logs)
+		assert.DirExists(t, path)
 
 		startedAt = time.Now()
 		reporter.Save(&bot.Message{ID: 101, Text: "something"})
 
 		time.Sleep(6 * time.Second) // wait for forced flush
-		logfile := fmt.Sprintf("%s/%s.log", logs, time.Now().Format("20060102"))
+		logfile := fmt.Sprintf("%s/%s.log", path, time.Now().Format("20060102"))
 		assert.FileExists(t, logfile)
 		require.NoError(t, os.Remove(logfile))
 	})

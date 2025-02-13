@@ -9,6 +9,8 @@ import (
 
 	"github.com/radio-t/super-bot/app/bot"
 	"net/http"
+	"github.com/go-pkgz/repeater"
+	"context"
 )
 
 type msgEntry struct {
@@ -21,8 +23,15 @@ type Reporter struct {
 	logsPath  string
 	messages  chan msgEntry
 	saveDelay time.Duration
-	httpCl    httpClient
 	chatID    string
+	httpCl    httpClient
+	repeater  *repeater.Repeater
+}
+
+//go:generate moq -out mock_reporter.go . httpClient
+
+type httpClient interface {
+	Get(url string) (*http.Response, error)
 }
 
 // NewLogger makes new reporter bot
@@ -42,7 +51,8 @@ func NewLogger(logs string, delay time.Duration, chatID string) (result *Reporte
 				return http.ErrUseLastResponse
 			},
 		},
-		chatID: chatID,
+		repeater: repeater.NewDefault(3, 2*time.Second),
+		chatID:   chatID,
 	}
 	go result.activate()
 	return result
@@ -123,19 +133,36 @@ func (l *Reporter) activate() {
 	}
 }
 
-//go:generate moq -out mock_reporter.go . httpClient
-
-type httpClient interface {
-	Get(url string) (*http.Response, error)
-}
-
+// messageExists checks if message wasn't deleted by a user, to prevent
+// spam being saved to logs.
+// It uses a hacky way to check if message exists, by
+// requesting a link to the message with "single" query parameter.
+// ref: https://core.telegram.org/api/links#message-links
+// telegram returns 302 redirect to the same page without query, if it exists
+// and 200 with the "download telegram" webpage, if it isn't
 func (l *Reporter) messageExists(msgID int) bool {
-	resp, err := l.httpCl.Get(fmt.Sprintf("https://t.me/%s/%d?single", l.chatID, msgID))
-	if err != nil {
+	var resp *http.Response
+	var err error
+
+	fn := func() error {
+		//nolint:bodyclose // for some reason it gives false positives
+		resp, err = l.httpCl.Get(fmt.Sprintf("https://t.me/%s/%d?single", l.chatID, msgID))
+		if err != nil {
+			return fmt.Errorf("get: %w", err)
+		}
+		defer resp.Body.Close() //nolint
+
+		if resp.StatusCode == http.StatusFound || resp.StatusCode == http.StatusOK {
+			return nil
+		}
+
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	if err = l.repeater.Do(context.TODO(), fn); err != nil {
 		log.Printf("[WARN] failed to check message existence, %v", err)
 		return false
 	}
-	defer resp.Body.Close() // nolint
 
 	return resp.StatusCode == http.StatusFound
 }

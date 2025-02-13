@@ -7,9 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/radio-t/super-bot/app/bot"
-	"net/http"
+	"context"
 	"github.com/go-pkgz/repeater"
+	"github.
+	"github.com/radio-t/super-bot/app/bot"
 	"context"
 )
 
@@ -135,16 +136,17 @@ func (l *Reporter) activate() {
 
 // messageExists checks if message wasn't deleted by a user, to prevent
 // spam being saved to logs.
-// It uses a hacky way to check if message exists, by
-// requesting a link to the message with "single" query parameter.
-// ref: https://core.telegram.org/api/links#message-links
-// telegram returns 302 redirect to the same page without query, if it exists
-// and 200 with the "download telegram" webpage, if it isn't
+// this doesn't use bot api, since bot api can't access messages, message ID
+// is there only for reply purposes.
 func (l *Reporter) messageExists(msgID int) bool {
 	var resp *http.Response
 	var err error
 
 	fn := func() error {
+		// a hacky way to check if message exists, by
+		// requesting a link to the message with "single" query parameter.
+		// ref: https://core.telegram.org/api/links#message-links
+
 		//nolint:bodyclose // for some reason it gives false positives
 		resp, err = l.httpCl.Get(fmt.Sprintf("https://t.me/%s/%d?single", l.chatID, msgID))
 		if err != nil {
@@ -152,6 +154,8 @@ func (l *Reporter) messageExists(msgID int) bool {
 		}
 		defer resp.Body.Close() //nolint
 
+		// telegram returns 302 redirect to the same page without query, if it exists
+		// and 200 with the "download telegram" webpage, if it isn't
 		if resp.StatusCode == http.StatusFound || resp.StatusCode == http.StatusOK {
 			return nil
 		}

@@ -30,13 +30,14 @@ import (
 
 var opts struct {
 	Telegram struct {
-		Token   string        `long:"token" env:"TOKEN" description:"telegram bot token" default:"test"`
-		Group   string        `long:"group" env:"GROUP" description:"group name/id" default:"test"`
+		Token   string        `long:"token" env:"TOKEN" description:"telegram bot token" required:"true"`
+		Group   string        `long:"group" env:"GROUP" description:"group name/id"      required:"true"`
 		Timeout time.Duration `long:"timeout" env:"TIMEOUT" description:"http client timeout for getting files from Telegram" default:"30s"`
 	} `group:"telegram" namespace:"telegram" env-namespace:"TELEGRAM"`
 
 	RtjcPort             int              `short:"p" long:"port" env:"RTJC_PORT" default:"18001" description:"rtjc port room"`
 	LogsPath             string           `short:"l" long:"logs" env:"TELEGRAM_LOGS" default:"logs" description:"path to logs"`
+	MessageLogDelay      time.Duration    `long:"msg-log-delay" env:"MSG_LOG_DELAY" default:"1s" description:"delay for message log"`
 	SuperUsers           events.SuperUser `long:"super" description:"super-users"`
 	MashapeToken         string           `long:"mashape" env:"MASHAPE_TOKEN" description:"mashape token"`
 	SysData              string           `long:"sys-data" env:"SYS_DATA" default:"data" description:"location of sys data"`
@@ -211,7 +212,7 @@ func main() {
 		AllActivityTerm:        allActivityTerm,
 		BotsActivityTerm:       botsActivityTerm,
 		OverallBotActivityTerm: botsAllUsersActivityTerm,
-		MsgLogger:              reporter.NewLogger(opts.LogsPath),
+		MsgLogger:              reporter.NewLogger(opts.LogsPath, opts.MessageLogDelay, opts.Telegram.Group),
 		Bots:                   multiBot,
 		Group:                  opts.Telegram.Group,
 		Debug:                  opts.Dbg,

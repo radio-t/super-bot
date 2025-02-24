@@ -34,8 +34,11 @@ func New(svc Service, opts ...func(m *Middleware)) *Middleware {
 // Middleware request logging
 func (m Middleware) Middleware(next http.RoundTripper) http.RoundTripper {
 	fn := func(req *http.Request) (resp *http.Response, err error) {
-		st := time.Now()
+		if m.Service == nil {
+			return next.RoundTrip(req)
+		}
 
+		st := time.Now()
 		logParts := []string{}
 		if m.prefix != "" {
 			logParts = append(logParts, m.prefix)
@@ -70,7 +73,6 @@ func (m Middleware) Middleware(next http.RoundTripper) http.RoundTripper {
 		logParts = append(logParts, fmt.Sprintf("time: %v", time.Since(st)))
 		m.Logf(strings.Join(logParts, " "))
 		return resp, err
-
 	}
 	return middleware.RoundTripperFunc(fn)
 }

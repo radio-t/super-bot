@@ -153,6 +153,9 @@ type Options struct {
 
 	// Add suffix to client name. Default is empty.
 	IdentitySuffix string
+
+	// UnstableResp3 enables Unstable mode for Redis Search module with RESP3.
+	UnstableResp3 bool
 }
 
 func (opt *Options) init() {

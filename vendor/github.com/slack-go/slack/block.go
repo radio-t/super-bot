@@ -18,6 +18,7 @@ const (
 	MBTInput    MessageBlockType = "input"
 	MBTHeader   MessageBlockType = "header"
 	MBTRichText MessageBlockType = "rich_text"
+	MBTCall     MessageBlockType = "call"
 	MBTVideo    MessageBlockType = "video"
 )
 
@@ -25,6 +26,7 @@ const (
 // to ensure consistency between blocks.
 type Block interface {
 	BlockType() MessageBlockType
+	ID() string
 }
 
 // Blocks is a convenience struct defined to allow dynamic unmarshalling of

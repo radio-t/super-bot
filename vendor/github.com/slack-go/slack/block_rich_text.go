@@ -16,6 +16,11 @@ func (b RichTextBlock) BlockType() MessageBlockType {
 	return b.Type
 }
 
+// ID returns the ID of the block
+func (s RichTextBlock) ID() string {
+	return s.BlockID
+}
+
 func (e *RichTextBlock) UnmarshalJSON(b []byte) error {
 	var raw struct {
 		Type        MessageBlockType  `json:"type"`
@@ -340,7 +345,8 @@ func NewRichTextSectionUserElement(userID string, style *RichTextSectionTextStyl
 type RichTextSectionEmojiElement struct {
 	Type     RichTextSectionElementType `json:"type"`
 	Name     string                     `json:"name"`
-	SkinTone int                        `json:"skin_tone"`
+	SkinTone int                        `json:"skin_tone,omitempty"`
+	Unicode  string                     `json:"unicode,omitempty"`
 	Style    *RichTextSectionTextStyle  `json:"style,omitempty"`
 }
 
@@ -414,16 +420,22 @@ func NewRichTextSectionUserGroupElement(usergroupID string) *RichTextSectionUser
 type RichTextSectionDateElement struct {
 	Type      RichTextSectionElementType `json:"type"`
 	Timestamp JSONTime                   `json:"timestamp"`
+	Format    string                     `json:"format"`
+	URL       *string                    `json:"url,omitempty"`
+	Fallback  *string                    `json:"fallback,omitempty"`
 }
 
 func (r RichTextSectionDateElement) RichTextSectionElementType() RichTextSectionElementType {
 	return r.Type
 }
 
-func NewRichTextSectionDateElement(timestamp int64) *RichTextSectionDateElement {
+func NewRichTextSectionDateElement(timestamp int64, format string, url *string, fallback *string) *RichTextSectionDateElement {
 	return &RichTextSectionDateElement{
 		Type:      RTSEDate,
 		Timestamp: JSONTime(timestamp),
+		Format:    format,
+		URL:       url,
+		Fallback:  fallback,
 	}
 }
 

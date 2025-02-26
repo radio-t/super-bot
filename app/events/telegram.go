@@ -454,10 +454,10 @@ func (l *TelegramListener) transform(msg *tbapi.Message) *bot.Message {
 	}
 
 	switch {
-	case msg.Entities != nil && len(msg.Entities) > 0:
+	case len(msg.Entities) > 0:
 		message.Entities = l.transformEntities(msg.Entities)
 
-	case msg.Photo != nil && len(msg.Photo) > 0:
+	case len(msg.Photo) > 0:
 		sizes := msg.Photo
 		lastSize := sizes[len(sizes)-1]
 		message.Image = &bot.Image{

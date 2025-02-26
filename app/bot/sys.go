@@ -53,9 +53,9 @@ func (p *Sys) OnMessage(msg Message) (response Response) {
 	}
 
 	if strings.EqualFold(msg.Text, "say!") {
-		if p.say != nil && len(p.say) > 0 {
+		if len(p.say) > 0 {
 			return Response{
-				Text: fmt.Sprintf("_%s_", EscapeMarkDownV1Text(p.say[rand.Intn(len(p.say))])), // nolint
+				Text: fmt.Sprintf("_%s_", EscapeMarkDownV1Text(p.say[rand.Intn(len(p.say))])), // #nosec G404 - not for security sensitive operations
 				Send: true,
 			}
 		}

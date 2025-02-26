@@ -1,6 +1,6 @@
 module github.com/radio-t/super-bot
 
-go 1.21
+go 1.24
 
 require (
 	github.com/go-pkgz/lcw/v2 v2.0.0

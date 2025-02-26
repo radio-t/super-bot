@@ -153,7 +153,6 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 
 	wg := syncs.NewSizedGroup(4)
 	for _, bot := range b {
-		bot := bot
 		wg.Go(func(context.Context) {
 			if resp := bot.OnMessage(msg); resp.Send {
 				resps <- resp.Text

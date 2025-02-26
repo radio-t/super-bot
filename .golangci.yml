@@ -27,7 +27,7 @@ linters:
     - ineffassign
     - stylecheck
     - gochecknoinits
-    - exportloopref
+    - copyloopvar  # Replaces exportloopref since Go 1.22
     - gocritic
     - nakedret
     - gosimple

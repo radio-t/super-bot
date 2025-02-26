@@ -84,7 +84,7 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 			return bot.Response{}
 		}
 
-		responseAI, err := o.chatGPTRequestWithHistory("You answer with no more than 50 words, should be in Russian language")
+		responseAI, err := o.chatGPTRequestWithHistory("You answer with no more than 50 words, should be in Russian language. Match the tone and style of the conversation. Be conversational and natural.")
 		if err != nil {
 			log.Printf("[WARN] failed to make context request to ChatGPT error=%v", err)
 			return bot.Response{}
@@ -106,7 +106,7 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 		}
 	}
 
-	responseAI, err := o.chatGPTRequest(reqText, o.params.Prompt, "You answer with no more than 50 words")
+	responseAI, err := o.chatGPTRequest(reqText, o.params.Prompt, "You answer with no more than 50 words. Match the tone and style of the conversation. Be conversational and natural.")
 	if err != nil {
 		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
 		return bot.Response{}

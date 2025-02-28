@@ -485,3 +485,100 @@ func TestOpenAI_UserNameOrDisplayName_NoUsernameOrDisplayName(t *testing.T) {
 	result := UserNameOrDisplayName(msg)
 	assert.Equal(t, "пользователь", result)
 }
+
+func TestOpenAI_chatGPTRequestWithHistoryAndFocus(t *testing.T) {
+	mockOpenAIClient := &mocks.OpenAIClient{
+		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+			jsonResponse, err := os.ReadFile("testdata/chat_completion_response.json")
+			require.NoError(t, err)
+			var response ai.ChatCompletionResponse
+			err = json.Unmarshal(jsonResponse, &response)
+			return response, err
+		},
+	}
+
+	su := &bmocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		return false
+	}}
+
+	o := NewOpenAI(getDefaultTestingConfig(), &http.Client{Timeout: 10 * time.Second}, su)
+	o.client = mockOpenAIClient
+
+	// Add some messages to history
+	o.history.Add(bot.Message{Text: "first message", ID: 1})
+	o.history.Add(bot.Message{Text: "second message", ID: 2})
+	o.history.Add(bot.Message{Text: "current question?", ID: 3})
+
+	// Test direct request handling with history
+	respText, err := o.chatGPTRequestWithHistoryAndFocus("current question?", "test prompt", "test system prompt")
+	require.NoError(t, err)
+	assert.Equal(t, "Mock response", respText)
+
+	// Verify the request sent to OpenAI
+	calls := mockOpenAIClient.CreateChatCompletionCalls()
+	require.Equal(t, 1, len(calls))
+	messages := calls[0].ChatCompletionRequest.Messages
+
+	// Should have system prompt and all history messages except the last one (which is the current request)
+	require.Equal(t, 3, len(messages))
+	
+	// Check system prompt has the history context instruction
+	assert.Equal(t, ai.ChatMessageRoleSystem, messages[0].Role)
+	assert.Contains(t, messages[0].Content, "Use the conversation history for context")
+	
+	// Check previous messages are included
+	assert.Equal(t, ai.ChatMessageRoleUser, messages[1].Role)
+	assert.Equal(t, "second message", messages[1].Content)
+	
+	// Check that the final message is the current request with prompt
+	assert.Equal(t, ai.ChatMessageRoleUser, messages[2].Role)
+	assert.Equal(t, "test prompt.\ncurrent question?", messages[2].Content)
+}
+
+func TestOpenAI_OnMessage_WithDirectHistoryUsage(t *testing.T) {
+	mockOpenAIClient := &mocks.OpenAIClient{
+		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+			jsonResponse, err := os.ReadFile("testdata/chat_completion_response.json")
+			require.NoError(t, err)
+			var response ai.ChatCompletionResponse
+			err = json.Unmarshal(jsonResponse, &response)
+			return response, err
+		},
+	}
+
+	su := &bmocks.SuperUser{IsSuperFunc: func(userName string) bool {
+		return false
+	}}
+
+	o := NewOpenAI(getDefaultTestingConfig(), &http.Client{Timeout: 10 * time.Second}, su)
+	o.client = mockOpenAIClient
+
+	// First message - indirect, should be stored but not trigger response
+	firstMsg := bot.Message{Text: "This is context message", ID: 1}
+	resp := o.OnMessage(firstMsg)
+	require.False(t, resp.Send)
+	assert.Equal(t, 1, len(o.history.messages))
+
+	// Second message - direct query with chat! prefix
+	secondMsg := bot.Message{Text: "chat! reference the previous message", ID: 2}
+	resp = o.OnMessage(secondMsg)
+	require.True(t, resp.Send)
+	assert.Equal(t, "Mock response", resp.Text)
+	assert.Equal(t, 2, resp.ReplyTo)
+	assert.Equal(t, 2, len(o.history.messages))
+
+	// Verify the API was called with both messages (the history and current query)
+	calls := mockOpenAIClient.CreateChatCompletionCalls()
+	require.Equal(t, 1, len(calls))
+	messages := calls[0].ChatCompletionRequest.Messages
+	
+	// Should have system prompt and history message and current request
+	assert.GreaterOrEqual(t, len(messages), 3)
+	
+	// System prompt should be first
+	assert.Equal(t, ai.ChatMessageRoleSystem, messages[0].Role)
+	
+	// Last message should be the current request
+	assert.Equal(t, ai.ChatMessageRoleUser, messages[len(messages)-1].Role)
+	assert.Contains(t, messages[len(messages)-1].Content, "reference the previous message")
+}

@@ -26,14 +26,14 @@ type openAIClient interface {
 type Params struct {
 	AuthToken string
 	// https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
-	MaxTokensResponse int // Hard limit for the number of tokens in the response
-	// The OpenAI has a limit for the number of tokens in the request + response (4097)
-	MaxTokensRequest        int // Max request length in tokens
-	MaxSymbolsRequest       int // Fallback: Max request length in symbols, if tokenizer was failed
+	MaxTokensResponse int // hard limit for the number of tokens in the response
+	// the OpenAI has a limit for the number of tokens in the request + response (4097)
+	MaxTokensRequest        int // max request length in tokens
+	MaxSymbolsRequest       int // fallback: Max request length in symbols, if tokenizer was failed
 	Prompt                  string
 	EnableAutoResponse      bool
 	HistorySize             int
-	HistoryReplyProbability int // Percentage of the probability to reply with history
+	HistoryReplyProbability int // percentage of the probability to reply with history
 	Model                   string
 }
 
@@ -69,6 +69,9 @@ func NewOpenAI(params Params, httpClient *http.Client, superUser bot.SuperUser) 
 
 // OnMessage pass msg to all bots and collects responses
 func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
+	// always add message to history for context tracking
+	o.history.Add(msg)
+
 	ok, reqText := o.request(msg.Text)
 	if !ok {
 		if !o.params.EnableAutoResponse || msg.Text == "idle" || len(msg.Text) < 8 {
@@ -76,10 +79,7 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 			return bot.Response{}
 		}
 
-		// All the non-matching requests processed for the reactions based on the history.
-		// save message to history and answer with ChatGPT if needed
-		o.history.Add(msg)
-
+		// all the non-matching requests processed for the reactions based on the history.
 		if !o.shouldAnswerWithHistory(msg) {
 			return bot.Response{}
 		}
@@ -106,7 +106,8 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 		}
 	}
 
-	responseAI, err := o.chatGPTRequest(reqText, o.params.Prompt, "You answer with no more than 50 words. Match the tone and style of the conversation. Be conversational and natural.")
+	// use chatGPTRequestWithHistoryAndFocus to include history while focusing on the current question
+	responseAI, err := o.chatGPTRequestWithHistoryAndFocus(reqText, o.params.Prompt, "You answer with no more than 50 words. Match the tone and style of the conversation. Be conversational and natural.")
 	if err != nil {
 		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
 		return bot.Response{}
@@ -192,10 +193,10 @@ func (o *OpenAI) Help() string {
 }
 
 func (o *OpenAI) chatGPTRequest(request, userPrompt, sysPrompt string) (response string, err error) {
-	// Reduce the request size with tokenizer and fallback to default reducer if it fails
-	// The API supports 4097 tokens ~16000 characters (<=4 per token) for request + result together
-	// The response is limited to 1000 tokens and OpenAI always reserved it for the result
-	// So the max length of the request should be 3000 tokens or ~12000 characters
+	// reduce the request size with tokenizer and fallback to default reducer if it fails
+	// the API supports 4097 tokens ~16000 characters (<=4 per token) for request + result together
+	// the response is limited to 1000 tokens and OpenAI always reserved it for the result
+	// so the max length of the request should be 3000 tokens or ~12000 characters
 	reduceRequest := func(text string) (result string) {
 		// defaultReducer is a fallback if tokenizer fails
 		defaultReducer := func(text string) (result string) {
@@ -275,6 +276,42 @@ func (o *OpenAI) chatGPTRequestWithHistory(sysPrompt string) (response string, e
 	return o.chatGPTRequestInternal(messages)
 }
 
+// chatGPTRequestWithHistoryAndFocus works like chatGPTRequest but includes conversation history
+// while making the current message more prominent for focused responses
+func (o *OpenAI) chatGPTRequestWithHistoryAndFocus(currentRequest, userPrompt, sysPrompt string) (response string, err error) {
+	messages := make([]openai.ChatCompletionMessage, 0, len(o.history.messages)+2)
+
+	// add system prompt
+	messages = append(messages, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: sysPrompt + " Use the conversation history for context, but focus on responding to the latest message.",
+	})
+
+	// add previous messages from history, except the last one which was just added
+	if len(o.history.messages) > 1 {
+		for _, message := range o.history.messages[:len(o.history.messages)-1] {
+			messages = append(messages, openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleUser,
+				Content: message.Text,
+			})
+		}
+	}
+
+	// process the current request with user prompt if provided
+	r := currentRequest
+	if userPrompt != "" {
+		r = userPrompt + ".\n" + currentRequest
+	}
+
+	// add current request as the final message to emphasize it
+	messages = append(messages, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleUser,
+		Content: r,
+	})
+
+	return o.chatGPTRequestInternal(messages)
+}
+
 func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage) (response string, err error) {
 	resp, err := o.client.CreateChatCompletion(
 		context.Background(),
@@ -289,7 +326,7 @@ func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage)
 		return "", err
 	}
 
-	// OpenAI platform supports to return multiple chat completion choices
+	// openAI platform supports to return multiple chat completion choices
 	// but we use only the first one
 	// https://platform.openai.com/docs/api-reference/chat/create#chat/create-n
 	if len(resp.Choices) == 0 {

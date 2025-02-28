@@ -1,11 +1,11 @@
 # Super-Bot Development Guide
 
 ## Build Commands
-- Build: `make build`
-- Test all: `make test`
+- Build: `make build` or `go build -v -o super-bot ./app`
+- Test all: `make test` or `go test ./app/...`
 - Test single: `go test -v ./app/bot/path/to/specific_test.go`
 - Run tests with coverage: `go test ./app/... -coverprofile cover.out`
-- Lint: `make lint` (requires golangci-lint)
+- Lint: `make lint` or `golangci-lint run ./app/...`
 - Run locally: `make run ARGS="--super=username --dbg"`
 - Generate mocks: `make generate`
 
@@ -25,3 +25,9 @@
 - Use Context for cancellation
 - Unit test coverage should be maintained
 - Error messages should be descriptive and actionable
+
+## OpenAI Bot Implementation Notes
+- The OpenAI bot maintains message history to track conversation context
+- Direct queries (with chat!/gpt!/ai!/чат! prefixes) use history while focusing on the current message
+- The `chatGPTRequestWithHistoryAndFocus` function balances context awareness with response relevance
+- History size is configurable via the `--history-size` flag (default: 5 messages)

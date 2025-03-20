@@ -34,7 +34,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/redis/go-redis/v9 v9.7.1 // indirect
+	github.com/redis/go-redis/v9 v9.7.3 // indirect
 	github.com/samber/lo v1.49.1 // indirect
 	github.com/slack-go/slack v0.16.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect

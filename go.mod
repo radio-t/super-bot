@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/go-pkgz/lcw/v2 v2.0.0
-	github.com/go-pkgz/lgr v0.11.1
+	github.com/go-pkgz/lgr v0.12.0
 	github.com/go-pkgz/notify v1.2.0
 	github.com/go-pkgz/repeater v1.2.0
 	github.com/go-pkgz/requester v0.3.0
@@ -12,10 +12,10 @@ require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/sandwich-go/gpt3-encoder v0.0.0-20230203030618-cd99729dd0dd
-	github.com/sashabaranov/go-openai v1.38.0
+	github.com/sashabaranov/go-openai v1.38.1
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/text v0.22.0
-	golang.org/x/time v0.10.0
+	golang.org/x/text v0.23.0
+	golang.org/x/time v0.11.0
 )
 
 require (

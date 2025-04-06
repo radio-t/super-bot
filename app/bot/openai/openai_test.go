@@ -625,9 +625,7 @@ func TestOpenAI_chatGPTRequestInternal_APIError(t *testing.T) {
 	// verify we get an error
 	require.Error(t, err)
 	// check that our error contains the original error info
-	assert.Contains(t, err.Error(), "OpenAI API error")
-	assert.Contains(t, err.Error(), "invalid_request_error")
-	assert.Contains(t, err.Error(), "model_not_found")
+	assert.Contains(t, err.Error(), "OpenAI request failed")
 
 	// verify API was called
 	calls := mockOpenAIClient.CreateChatCompletionCalls()

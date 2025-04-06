@@ -330,17 +330,10 @@ func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage)
 			Messages:  messages,
 		},
 	)
-
 	if err != nil {
-		// extract and log more detailed error information
-		if apiErr, ok := err.(*openai.APIError); ok {
-			log.Printf("[WARN] OpenAI API error: Type=%s, Code=%s, Message=%s", apiErr.Type, apiErr.Code, apiErr.Message)
-			return "", fmt.Errorf("OpenAI API error: Type=%s, Code=%s: %w", apiErr.Type, apiErr.Code, err)
-		}
-		log.Printf("[WARN] OpenAI request error details: %v", err)
-		return "", fmt.Errorf("OpenAI request failed: %w", err)
+		reqDetails := fmt.Sprintf("request: %v, model: %s, max_tokens: %d", messages, o.params.Model, o.params.MaxTokensResponse)
+		return "", fmt.Errorf("OpenAI request failed %s: %w", reqDetails, err)
 	}
-
 	// openAI platform supports to return multiple chat completion choices
 	// but we use only the first one
 	// https://platform.openai.com/docs/api-reference/chat/create#chat/create-n

@@ -153,7 +153,7 @@ func TestTelegramListener_DoWithRtjc(t *testing.T) {
 	})
 
 	err := l.Do(ctx)
-	assert.EqualError(t, err, "context deadline exceeded")
+	assert.Contains(t, err.Error(), "context deadline exceeded")
 	assert.Equal(t, 1, len(mockLogger.SaveCalls()))
 	assert.Equal(t, "rtjc message", mockLogger.SaveCalls()[0].Msg.Text)
 	assert.Equal(t, 1, len(mockAPI.SendCalls()))

@@ -39,7 +39,7 @@ func (t *Terminator) check(user bot.User, senderChat bot.SenderChat, sent time.T
 		log.Printf("[DEBUG] terminator with BanDuration=%v, BanPenalty=%d, excluded=%v", t.BanDuration, t.BanPenalty, t.Exclude)
 	}
 
-	// This userID is a bot which means that message was sent on behalf of the channel,
+	// this userID is a bot which means that message was sent on behalf of the channel,
 	// so we convert the user checked for bannable activity to the channel data.
 	// https://docs.python-telegram-bot.org/en/stable/telegram.constants.html#telegram.constants.FAKE_CHANNEL_ID
 	if user.ID == 136817688 {

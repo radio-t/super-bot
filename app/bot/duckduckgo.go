@@ -59,8 +59,8 @@ func (d *Duck) OnMessage(msg Message) (response Response) {
 	}
 
 	mdLink := func(inp string) string {
-		result := strings.Replace(inp, "(", "%28", -1)
-		result = strings.Replace(result, ")", "%29", -1)
+		result := strings.ReplaceAll(inp, "(", "%28")
+		result = strings.ReplaceAll(result, ")", "%29")
 		return result
 	}
 
@@ -82,7 +82,7 @@ func (d *Duck) request(text string) (react bool, reqText string) {
 
 	for _, prefix := range d.ReactOn() {
 		if strings.HasPrefix(text, prefix) {
-			return true, strings.Replace(strings.TrimSpace(strings.TrimPrefix(text, prefix)), " ", "+", -1)
+			return true, strings.ReplaceAll(strings.TrimSpace(strings.TrimPrefix(text, prefix)), " ", "+")
 		}
 	}
 	return false, ""

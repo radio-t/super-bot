@@ -10,17 +10,17 @@ import (
 func TestSys_OnMessage(t *testing.T) {
 	bot, err := NewSys("./../../data")
 	require.NoError(t, err)
-	
-	// Fixed responses don't use randomness
+
+	// fixed responses don't use randomness
 	assert.Equal(t, Response{Text: "_никто не знает. пока не надоест_", Send: true}, bot.OnMessage(Message{Text: "доколе?"}))
 	assert.Equal(t, Response{Text: "_понг_", Send: true}, bot.OnMessage(Message{Text: "пинг"}))
 	assert.Equal(t, Response{Text: "_pong_", Send: true}, bot.OnMessage(Message{Text: "ping"}))
-	
-	// For random responses, just verify it returns something valid
+
+	// for random responses, just verify it returns something valid
 	resp := bot.OnMessage(Message{Text: "Say!"})
 	assert.True(t, resp.Send)
 	assert.NotEmpty(t, resp.Text)
-	assert.Contains(t, resp.Text, "_")  // Should be wrapped in markdown
+	assert.Contains(t, resp.Text, "_") // should be wrapped in markdown
 }
 
 func TestSys_Help(t *testing.T) {

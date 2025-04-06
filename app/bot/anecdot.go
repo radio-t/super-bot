@@ -81,7 +81,7 @@ func (a Anecdote) categories() ([]string, error) {
 		return categories, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get categories from cache: %w", err)
 	}
 
 	cc := make([]string, 0, len(res))

@@ -92,13 +92,13 @@ type Entity struct {
 	Type   string
 	Offset int
 	Length int
-	URL    string `json:",omitempty"` // For “text_link” only, url that will be opened after user taps on the text
-	User   *User  `json:",omitempty"` // For “text_mention” only, the mentioned user
+	URL    string `json:",omitempty"` // for “text_link” only, url that will be opened after user taps on the text
+	User   *User  `json:",omitempty"` // for “text_mention” only, the mentioned user
 }
 
 // Image represents image
 type Image struct {
-	// FileID corresponds to Telegram file_id
+	// fileID corresponds to Telegram file_id
 	FileID   string
 	Width    int
 	Height   int
@@ -154,29 +154,37 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 	wg := syncs.NewSizedGroup(4)
 	for _, bot := range b {
 		wg.Go(func(context.Context) {
-			if resp := bot.OnMessage(msg); resp.Send {
-				resps <- resp.Text
-				if resp.Pin {
-					atomic.AddInt32(&pin, 1)
+			resp := bot.OnMessage(msg)
+			if !resp.Send {
+				return
+			}
+
+			resps <- resp.Text
+
+			// update flags based on response
+			if resp.Pin {
+				atomic.AddInt32(&pin, 1)
+			}
+			if resp.Unpin {
+				atomic.AddInt32(&unpin, 1)
+			}
+			if resp.ReplyTo > 0 {
+				replyTo = resp.ReplyTo
+			}
+
+			// handle ban information
+			if resp.BanInterval > 0 {
+				mutex.Lock()
+				if resp.BanInterval > banInterval {
+					banInterval = resp.BanInterval
 				}
-				if resp.Unpin {
-					atomic.AddInt32(&unpin, 1)
-				}
-				if resp.ReplyTo > 0 {
-					replyTo = resp.ReplyTo
-				}
-				if resp.BanInterval > 0 {
-					mutex.Lock()
-					if resp.BanInterval > banInterval {
-						banInterval = resp.BanInterval
-					}
-					user = resp.User
-					channelID = resp.ChannelID
-					mutex.Unlock()
-				}
-				if resp.DeleteReplyTo {
-					atomic.AddInt32(&deleteReplyTo, 1)
-				}
+				user = resp.User
+				channelID = resp.ChannelID
+				mutex.Unlock()
+			}
+
+			if resp.DeleteReplyTo {
+				atomic.AddInt32(&deleteReplyTo, 1)
 			}
 		})
 	}
@@ -246,7 +254,7 @@ func makeHTTPRequest(url string) (*http.Request, error) {
 func EscapeMarkDownV1Text(text string) string {
 	escSymbols := []string{"_", "*", "`", "["}
 	for _, esc := range escSymbols {
-		text = strings.Replace(text, esc, "\\"+esc, -1)
+		text = strings.ReplaceAll(text, esc, "\\"+esc)
 	}
 	return text
 }

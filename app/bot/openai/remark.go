@@ -36,7 +36,7 @@ func (c remarkComment) render() string {
 
 // getLink returns a first link from the comment text
 func (c remarkComment) getLink() string {
-	// Find only links in the comment
+	// find only links in the comment
 	reLink := regexp.MustCompile(`href="(https?://[^\s"'<>]+)"`)
 
 	parts := reLink.FindStringSubmatch(c.Text)
@@ -110,7 +110,7 @@ func (c RemarkClient) GetTopComments(remarkLink string) (comments, links []strin
 		if positiveComments[i].Score > positiveComments[j].Score {
 			return true
 		}
-		// Equal case
+		// equal case
 		return positiveComments[i].Timestamp.Before(positiveComments[j].Timestamp)
 	})
 

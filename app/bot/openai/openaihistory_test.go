@@ -23,7 +23,7 @@ func Test_LimitedMessageHistory(t *testing.T) {
 
 			history := NewLimitedMessageHistory(tt.limit)
 
-			// Add `limit` messages to the storage
+			// add `limit` messages to the storage
 			for i := 0; i < tt.limit; i++ {
 				history.Add(bot.Message{
 					ID:   i,
@@ -39,7 +39,7 @@ func Test_LimitedMessageHistory(t *testing.T) {
 				assert.Equal(t, fmt.Sprintf("test %d", i), history.messages[i].Text)
 			}
 
-			// Add messages to the storage. This should remove the oldest messages
+			// add messages to the storage. This should remove the oldest messages
 			for j := 0; j < 3; j++ {
 				newID := tt.limit + j
 				history.Add(bot.Message{

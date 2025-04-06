@@ -26,8 +26,8 @@ type Summarizer struct {
 	remark        remarkCommentsGetter
 	uKeeper       uKeeperGetter
 
-	// Cache is using to optimize `Summary` calls (generating summary by link)
-	// In debug mode cache is dumped to local file
+	// cache is using to optimize `Summary` calls (generating summary by link)
+	// in debug mode cache is dumped to local file
 	cache lcw.LoadingCache[summaryItem]
 
 	threads int
@@ -172,7 +172,7 @@ func (s Summarizer) GetSummariesByRemarkLink(remarkLink string) (messages []stri
 func (s Summarizer) Summary(link string) (summary string, err error) {
 	item, err := s.cache.Get(link, func() (summaryItem, error) { return s.summaryInternal(link) })
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get summary from cache: %w", err)
 	}
 
 	if s.debug {
@@ -275,8 +275,11 @@ func saveBackup(cache lcw.LoadingCache[summaryItem]) error {
 
 	data, err := json.Marshal(lc)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal cache: %w", err)
 	}
 
-	return os.WriteFile("cache_openai.json", data, 0o600)
+	if err := os.WriteFile("cache_openai.json", data, 0o600); err != nil {
+		return fmt.Errorf("failed to write cache file: %w", err)
+	}
+	return nil
 }

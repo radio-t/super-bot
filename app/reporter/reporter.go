@@ -94,7 +94,7 @@ func (l *Reporter) activate() {
 
 		if err != nil {
 			log.Printf("[WARN] failed to log, %v", err)
-			return err
+			return fmt.Errorf("failed to open log file: %w", err)
 		}
 		defer fh.Close() // nolint
 		for _, rec := range buffer {

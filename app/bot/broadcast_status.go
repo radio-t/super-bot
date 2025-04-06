@@ -19,8 +19,8 @@ const (
 // BroadcastParams defines parameters for broadcast detection
 type BroadcastParams struct {
 	URL          string        // URL for "ping"
-	PingInterval time.Duration // Ping interval
-	DelayToOff   time.Duration // State will be switched to off in no ok replies from URL in this interval
+	PingInterval time.Duration // ping interval
+	DelayToOff   time.Duration // state will be switched to off in no ok replies from URL in this interval
 	Client       http.Client   // http client
 }
 

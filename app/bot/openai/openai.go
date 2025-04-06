@@ -110,6 +110,15 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 	responseAI, err := o.chatGPTRequestWithHistoryAndFocus(reqText, o.params.Prompt, "You answer with no more than 50 words. Match the tone and style of the conversation. Be conversational and natural.")
 	if err != nil {
 		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
+		// return a more informative response about API errors to super users
+		if o.superUser.IsSuper(msg.From.Username) {
+			apiErrMsg := "OpenAI API error occurred. Please check logs for details."
+			return bot.Response{
+				Text:    apiErrMsg,
+				Send:    true,
+				ReplyTo: msg.ID,
+			}
+		}
 		return bot.Response{}
 	}
 
@@ -323,7 +332,13 @@ func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage)
 	)
 
 	if err != nil {
-		return "", err
+		// extract and log more detailed error information
+		if apiErr, ok := err.(*openai.APIError); ok {
+			log.Printf("[WARN] OpenAI API error: Type=%s, Code=%s, Message=%s", apiErr.Type, apiErr.Code, apiErr.Message)
+			return "", fmt.Errorf("OpenAI API error: Type=%s, Code=%s: %w", apiErr.Type, apiErr.Code, err)
+		}
+		log.Printf("[WARN] OpenAI request error details: %v", err)
+		return "", fmt.Errorf("OpenAI request failed: %w", err)
 	}
 
 	// openAI platform supports to return multiple chat completion choices
@@ -348,7 +363,11 @@ func (o *OpenAI) ReactOn() []string {
 
 // CreateChatCompletion exposes the underlying openai.CreateChatCompletion method
 func (o *OpenAI) CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
-	return o.client.CreateChatCompletion(ctx, req)
+	resp, err := o.client.CreateChatCompletion(ctx, req)
+	if err != nil {
+		return openai.ChatCompletionResponse{}, fmt.Errorf("failed to create chat completion: %w", err)
+	}
+	return resp, nil
 }
 
 // UserNameOrDisplayName username or display name or "пользователь"

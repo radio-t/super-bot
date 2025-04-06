@@ -76,7 +76,7 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 		select {
 
 		case <-ctx.Done():
-			return ctx.Err()
+			return fmt.Errorf("telegram listener canceled: %w", ctx.Err())
 
 		case update, ok := <-updates:
 			if !ok {
@@ -250,7 +250,7 @@ func (l *TelegramListener) sendBotResponse(resp bot.Response, chatID int64) erro
 	res, err := l.sendMdWithFallback(resp, chatID)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send message: %w", err)
 	}
 
 	l.saveBotMessage(&res, chatID)
@@ -285,7 +285,7 @@ func (l *TelegramListener) sendMdWithFallback(resp bot.Response, chatID int64) (
 	res, err := l.TbAPI.Send(tbMsg)
 
 	if err != nil {
-		// If it can't parse entities, try to send message as plain text
+		// if it can't parse entities, try to send message as plain text
 		if tbMsg.ParseMode == tbapi.ModeMarkdown && strings.Contains(err.Error(), "Bad Request: can't parse entities:") {
 			log.Printf("[WARN] failed to send message as markdown, retrying as plain text. Error: %v", err)
 			tbMsg.ParseMode = ""
@@ -308,7 +308,7 @@ func (l *TelegramListener) applyBan(msg bot.Message, duration time.Duration, cha
 	m := fmt.Sprintf("%s _тебя слишком много, отдохни..._", bot.EscapeMarkDownV1Text(mention))
 	banUserStr := fmt.Sprintf("%v", msg.From)
 	var channelID int64
-	// This userID is a bot which means that message was sent on behalf of the channel
+	// this userID is a bot which means that message was sent on behalf of the channel
 	// https://docs.python-telegram-bot.org/en/stable/telegram.constants.html#telegram.constants.FAKE_CHANNEL_ID
 	if msg.From.ID == 136817688 {
 		channelID = msg.SenderChat.ID
@@ -333,7 +333,7 @@ func (l *TelegramListener) Submit(ctx context.Context, text string, pin bool) er
 
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return fmt.Errorf("submit operation canceled: %w", ctx.Err())
 	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, Preview: true}:
 	}
 	return nil
@@ -341,13 +341,13 @@ func (l *TelegramListener) Submit(ctx context.Context, text string, pin bool) er
 
 // SubmitHTML message to telegram's group with HTML mode
 func (l *TelegramListener) SubmitHTML(ctx context.Context, text string, pin bool) error {
-	// Remove unsupported HTML tags
+	// remove unsupported HTML tags
 	text = notify.TelegramSupportedHTML(text)
 	l.msgs.once.Do(func() { l.msgs.ch = make(chan bot.Response, 100) })
 
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return fmt.Errorf("submit operation canceled: %w", ctx.Err())
 	case l.msgs.ch <- bot.Response{Text: text, Pin: pin, Send: true, ParseMode: tbapi.ModeHTML, Preview: false}:
 	}
 	return nil
@@ -378,12 +378,12 @@ func (l *TelegramListener) saveBotMessage(msg *tbapi.Message, fromChat int64) {
 // and must have the appropriate admin rights.
 // If channel is provided, it is banned instead of provided user, permanently.
 func (l *TelegramListener) banUserOrChannel(duration time.Duration, chatID, userID, channelID int64) error {
-	// From Telegram Bot API documentation:
+	// from Telegram Bot API documentation:
 	// > If user is restricted for more than 366 days or less than 30 seconds from the current time,
 	// > they are considered to be restricted forever
-	// Because the API query uses unix timestamp rather than "ban duration",
+	// because the API query uses unix timestamp rather than "ban duration",
 	// you do not want to accidentally get into this 30-second window of a lifetime ban.
-	// In practice BanDuration is equal to ten minutes,
+	// in practice BanDuration is equal to ten minutes,
 	// so this `if` statement is unlikely to be evaluated to true.
 	if duration < 30*time.Second {
 		duration = 1 * time.Minute
@@ -396,7 +396,7 @@ func (l *TelegramListener) banUserOrChannel(duration time.Duration, chatID, user
 			UntilDate:    int(time.Now().Add(duration).Unix()),
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to request channel ban: %w", err)
 		}
 		if !resp.Ok {
 			return fmt.Errorf("response is not Ok: %v", string(resp.Result))
@@ -418,7 +418,7 @@ func (l *TelegramListener) banUserOrChannel(duration time.Duration, chatID, user
 		},
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to request user ban: %w", err)
 	}
 	if !resp.Ok {
 		return fmt.Errorf("response is not Ok: %v", string(resp.Result))

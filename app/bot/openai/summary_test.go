@@ -347,7 +347,7 @@ func TestSummarizer_GetSummariesByRemarkLink(t *testing.T) {
 	assert.Equal(t, "[2/2] <b>+1</b> от <b>User2</b>\n<i>some message blah <a href=\"https://example.user2.com\">Link</a></i>\n\n<b>Title ABC</b>\n\nSummary: Title ABC - Content https://example.user2.com", summaries[1])
 
 	require.Equal(t, 2, len(uk.GetCalls()))
-	// Parallel execution may change order of calls
+	// parallel execution may change order of calls
 	expected := []string{
 		"https://example.user1.com",
 		"https://example.user2.com",
@@ -359,7 +359,7 @@ func TestSummarizer_GetSummariesByRemarkLink(t *testing.T) {
 	assert.ElementsMatch(t, expected, actual)
 
 	require.Equal(t, 2, len(os.SummaryCalls()))
-	// Parallel execution may change order of calls
+	// parallel execution may change order of calls
 	expected = []string{
 		"Title ABC - Content https://example.user1.com",
 		"Title ABC - Content https://example.user2.com",

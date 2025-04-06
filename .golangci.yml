@@ -1,59 +1,64 @@
-linters-settings:
-  misspell:
-    locale: US
-  gocritic:
-    enabled-tags:
-      - performance
-      - style
-      - experimental
-    disabled-checks:
-      - wrapperFunc
-      - hugeParam
-      - rangeValCopy
-
-linters:
-  disable-all: true
-  enable:
-    - bodyclose
-    - revive
-    - govet
-    - unconvert
-    - staticcheck
-    - unused
-    - gosec
-    - misspell
-    - unparam
-    - typecheck
-    - ineffassign
-    - stylecheck
-    - gochecknoinits
-    - copyloopvar  # Replaces exportloopref since Go 1.22
-    - gocritic
-    - nakedret
-    - gosimple
-    - prealloc
-
-  fast: false
-
+version: "2"
 run:
   concurrency: 4
   tests: false
-
-issues:
-  exclude-dirs:
-    - vendor
-  exclude-rules:
-    - text: "weak cryptographic primitive"
-      linters:
-        - gosec
-    - text: "package-comments: should have a package comment"
-      linters:
-        - revive
-    - text: "at least one file in a package should have a package comment"
-      linters:
-        - stylecheck
-    - text: 'Deferring unsafe method "Close" on type "io.ReadCloser"'
-      linters:
-        - gosec
-
-  exclude-use-default: false
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - copyloopvar
+    - gochecknoinits
+    - gocritic
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - prealloc
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - testifylint
+    - wrapcheck
+    - nestif
+  settings:
+    gocritic:
+      disabled-checks:
+        - wrapperFunc
+        - hugeParam
+        - rangeValCopy
+      enabled-tags:
+        - performance
+        - style
+        - experimental
+    misspell:
+      locale: US
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - gosec
+        text: weak cryptographic primitive
+      - linters:
+          - revive
+        text: 'package-comments: should have a package comment'
+      - linters:
+          - staticcheck
+        text: at least one file in a package should have a package comment
+      - linters:
+          - gosec
+        text: Deferring unsafe method "Close" on type "io.ReadCloser"
+    paths:
+      - vendor
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

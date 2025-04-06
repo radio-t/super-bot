@@ -523,7 +523,7 @@ func (w *WTFSteroidChecker) Contains() bool {
 
 	w.CleanUp()
 
-	// Straight and reverse order
+	// straight and reverse order
 	return contains([]string{"wtf!", "wtf?"}, w.Message) || contains([]string{"!ftw", "?ftw"}, w.Message)
 
 }

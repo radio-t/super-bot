@@ -74,17 +74,17 @@ func TestRtjc_ReadMessage(t *testing.T) {
 
 			sm := &mocks.Summarizer{
 				GetSummariesByMessageFunc: func(link string) (messages []string, err error) {
-					// Begin and end of stream
+					// begin and end of stream
 					if strings.Contains(link, "stream.radio-t.com") {
 						return []string{}, nil
 					}
 
-					// Remark link
+					// remark link
 					if strings.Contains(link, "radio-t.com/p/") {
 						return []string{"summary", "summary2"}, nil
 					}
 
-					// Regular link
+					// regular link
 					return []string{"summary"}, nil
 				},
 			}
@@ -97,7 +97,7 @@ func TestRtjc_ReadMessage(t *testing.T) {
 			rtjc.Swg.Wait()
 
 			require.Equal(t, tt.callsSubmit, len(sb.SubmitCalls()))
-			// If number of calls is 1, then this is regular message with link (non-remark)
+			// if number of calls is 1, then this is regular message with link (non-remark)
 			// so we should check the content of Submit call
 			if tt.callsSubmit == 1 {
 				assert.Contains(t, sb.SubmitCalls()[0].Text, tt.input)

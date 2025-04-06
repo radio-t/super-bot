@@ -113,7 +113,7 @@ func (b *Banhammer) parse(text string) (react bool, cmd, name string) {
 	for _, prefix := range b.ReactOn() {
 		if strings.HasPrefix(text, prefix) {
 			return true, strings.TrimSuffix(prefix, "!"),
-				strings.Replace(strings.TrimSpace(strings.TrimPrefix(text, prefix)), " ", "+", -1)
+				strings.ReplaceAll(strings.TrimSpace(strings.TrimPrefix(text, prefix)), " ", "+")
 		}
 	}
 	return false, "", ""

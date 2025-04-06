@@ -93,8 +93,8 @@ func (l Rtjc) sendSummary(ctx context.Context, msg string) {
 		summaryMsgs = summaryMsgs[:5]
 	}
 
-	// By default, rate limit to 15 messages per 2 minutes (1 per 8 sec)
-	// Telegram asks 30 sec of waiting after sending 20 messages
+	// by default, rate limit to 15 messages per 2 minutes (1 per 8 sec)
+	// telegram asks 30 sec of waiting after sending 20 messages
 	rl := rate.NewLimiter(l.SubmitRateLimit, l.SubmitRateBurst)
 	for i, sumMsg := range summaryMsgs {
 		if sumMsg == "" {

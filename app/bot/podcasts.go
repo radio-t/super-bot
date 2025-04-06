@@ -165,7 +165,7 @@ func (p *Podcasts) request(text string) (react bool, reqText string) {
 
 	for _, prefix := range p.ReactOn() {
 		if strings.HasPrefix(text, prefix) {
-			return true, strings.Replace(strings.TrimSpace(strings.TrimPrefix(text, prefix)), " ", "+", -1)
+			return true, strings.ReplaceAll(strings.TrimSpace(strings.TrimPrefix(text, prefix)), " ", "+")
 		}
 	}
 	return false, ""

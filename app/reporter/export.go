@@ -35,9 +35,9 @@ type ExporterParams struct {
 	TemplateFile   string
 	BotUsername    string
 	SuperUsers     SuperUser
-	BroadcastUsers SuperUser // Users who can send "bot.MsgBroadcastStarted" and "bot.MsgBroadcastStarted" messages.
+	BroadcastUsers SuperUser // users who can send "bot.MsgBroadcastStarted" and "bot.MsgBroadcastStarted" messages.
 	// it may be just bot, or bot + some or all SuperUsers.
-	// Cannot use SuperUsers field for same purpose because they used to mark messages as "from host" in template
+	// cannot use SuperUsers field for same purpose because they used to mark messages as "from host" in template
 }
 
 // SuperUser knows which user is a superuser
@@ -80,7 +80,7 @@ func (e *Exporter) Export(showNum, yyyymmdd int) error {
 	}
 	to := fmt.Sprintf("%s/radio-t-%d.html", e.OutputRoot, showNum)
 
-	messages, err := readMessages(from, e.ExporterParams.BroadcastUsers)
+	messages, err := readMessages(from, e.BroadcastUsers)
 	if err != nil {
 		return fmt.Errorf("failed to read messages from %s: %w", from, err)
 	}
@@ -218,7 +218,7 @@ func (e *Exporter) maybeDownloadFile(fileID string) error {
 func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) {
 	file, err := os.Open(path) // nolint
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open log file %s: %w", path, err)
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
@@ -276,7 +276,10 @@ func readMessages(path string, broadcastUsers SuperUser) ([]bot.Message, error) 
 
 	messages = messages[broadcastStartedIndex:broadcastFinishedIndex]
 
-	return messages, scanner.Err()
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to scan log file: %w", err)
+	}
+	return messages, nil
 }
 
 func filter(msg bot.Message) bool {

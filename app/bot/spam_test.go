@@ -118,7 +118,7 @@ func TestIsSpam(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			filter.SimilarityThreshold = test.threshold // Update threshold for each test case
+			filter.SimilarityThreshold = test.threshold // update threshold for each test case
 			assert.Equal(t, test.expected, filter.isSpamSimilarity(test.message))
 		})
 	}

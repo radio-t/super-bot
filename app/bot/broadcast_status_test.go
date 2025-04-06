@@ -68,25 +68,25 @@ func TestBroadcast_StatusTransitions(t *testing.T) {
 		Client:       http.Client{},
 	})
 
-	// Test reacts on first message
+	// test reacts on first message
 	require.Equal(t, Response{}, b.OnMessage(Message{}))
 
-	// Test do not react on second message because status not changed
+	// test do not react on second message because status not changed
 	require.Equal(t, Response{}, b.OnMessage(Message{}))
 
-	// Wait for off->on
+	// wait for off->on
 	time.Sleep(20 * time.Millisecond)
 	require.Equal(t, Response{Text: MsgBroadcastStarted, Send: true, Pin: false}, b.OnMessage(Message{}))
 	require.True(t, b.getStatus())
 
 	// off
 	setStatus(false)
-	// Still on, no deadline reached
+	// still on, no deadline reached
 	time.Sleep(20 * time.Millisecond)
 	require.Equal(t, Response{}, b.OnMessage(Message{}))
 	require.True(t, b.getStatus())
 
-	// Deadline reached on->off
+	// deadline reached on->off
 	time.Sleep(110 * time.Millisecond)
 	require.Equal(t, Response{Text: MsgBroadcastFinished, Send: true, Unpin: true}, b.OnMessage(Message{}))
 	require.False(t, b.getStatus())

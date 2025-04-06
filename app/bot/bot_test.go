@@ -20,8 +20,8 @@ func TestMultiBotHelp(t *testing.T) {
 		return "b2 help"
 	}}
 
-	// Must return concatenated b1 and b2 without space
-	// Line formatting only in GenHelpMsg()
+	// must return concatenated b1 and b2 without space
+	// line formatting only in GenHelpMsg()
 	require.Equal(t, "b1 help\nb2 help\n", MultiBot{b1, b2}.Help())
 }
 

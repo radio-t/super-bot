@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -16,7 +17,7 @@ func NewLocal(filesPath, publicPath string) (*Local, error) {
 	if _, err := os.Stat(filesPath); os.IsNotExist(err) {
 		err = os.MkdirAll(filesPath, 0755) // nolint
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to create directory %s: %w", filesPath, err)
 		}
 	}
 
@@ -31,7 +32,7 @@ func (l *Local) FileExists(fileName string) (bool, error) {
 			return false, nil
 		}
 
-		return false, err
+		return false, fmt.Errorf("failed to check if file %s exists: %w", fileName, err)
 	}
 
 	return true, nil
@@ -41,7 +42,7 @@ func (l *Local) FileExists(fileName string) (bool, error) {
 func (l *Local) CreateFile(fileName string, body []byte) (string, error) {
 	err := os.WriteFile(l.filesPath+"/"+fileName, body, 0644) // nolint
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to write file %s: %w", fileName, err)
 	}
 
 	return l.BuildLink(fileName), nil

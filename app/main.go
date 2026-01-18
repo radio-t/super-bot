@@ -145,6 +145,7 @@ func main() {
 		bot.NewWTF(time.Hour*24, 7*time.Hour*24, opts.SuperUsers),
 		bot.NewBanhammer(tbAPI, opts.SuperUsers, 5000),
 		bot.NewWhen(),
+		bot.NewDefaultSayNoMore(opts.SuperUsers),
 		openAIBot,
 	}
 

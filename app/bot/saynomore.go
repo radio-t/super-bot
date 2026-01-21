@@ -30,6 +30,7 @@ type SayNoMore struct {
 	categories  []compiledCategory
 }
 
+// NewDefaultSayNoMore creates a new stop words bot with default categories
 func NewDefaultSayNoMore(superUser SuperUser) *SayNoMore {
 	return NewSayNoMore(1*time.Hour, 12*time.Hour, superUser, []SayNoMoreCategory{
 		{
@@ -114,10 +115,12 @@ func (s *SayNoMore) OnMessage(msg Message) Response {
 	}
 }
 
+// ReactOn returns nil as this bot matches patterns, not specific commands
 func (s *SayNoMore) ReactOn() []string {
 	return nil
 }
 
+// Help returns help message
 func (s *SayNoMore) Help() string {
 	return "Боремся за чистоту чата"
 }

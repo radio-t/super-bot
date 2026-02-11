@@ -14,7 +14,7 @@ require (
 	github.com/sandwich-go/gpt3-encoder v0.0.0-20230203030618-cd99729dd0dd
 	github.com/sashabaranov/go-openai v1.38.1
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/text v0.23.0
+	golang.org/x/text v0.24.0
 	golang.org/x/time v0.11.0
 )
 

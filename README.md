@@ -51,7 +51,7 @@
 Запустить бота можно через Docker Compose:
 
 ```bash
-docker-compose up telegram-bot
+docker compose up telegram-bot
 ```
 
 Или с помощью Make:
@@ -63,7 +63,7 @@ make run ARGS="--super=umputun --super=bobuk --super=grayru --super=ksenks"
 Для построения HTML отчета необходимо передать дополнительные флаги:
 
 ```bash
-docker-compose exec telegram-bot ./telegram-rt-bot \
+docker compose exec telegram-bot ./telegram-rt-bot \
   --super=umputun \
   --super=bobuk \
   --super=grayru \

@@ -111,6 +111,80 @@ func TestSayNoMore_OnMessage(t *testing.T) {
 	})
 }
 
+func TestSayNoMore_CyrillicMatching(t *testing.T) {
+	mockSuperUser := &mocks.SuperUser{IsSuperFunc: func(userName string) bool { return false }}
+
+	bot := NewDefaultSayNoMore(mockSuperUser)
+	bot.rand = func(n int64) int64 { return 0 }
+
+	t.Run("cyrillic phrase in sentence triggers", func(t *testing.T) {
+		resp := bot.OnMessage(Message{
+			Text: "а когда крайний выпуск?",
+			From: User{Username: "user1"},
+		})
+		assert.True(t, resp.Send)
+	})
+
+	t.Run("cyrillic exact match triggers", func(t *testing.T) {
+		resp := bot.OnMessage(Message{
+			Text: "ихний",
+			From: User{Username: "user1"},
+		})
+		assert.True(t, resp.Send)
+	})
+
+	t.Run("cyrillic case insensitive triggers", func(t *testing.T) {
+		resp := bot.OnMessage(Message{
+			Text: "ИХНИЙ",
+			From: User{Username: "user1"},
+		})
+		assert.True(t, resp.Send)
+	})
+
+	t.Run("cyrillic embedded word does not trigger", func(t *testing.T) {
+		resp := bot.OnMessage(Message{
+			Text: "поихнийму",
+			From: User{Username: "user1"},
+		})
+		assert.False(t, resp.Send)
+	})
+
+	t.Run("cyrillic word with punctuation triggers", func(t *testing.T) {
+		resp := bot.OnMessage(Message{
+			Text: "это ихний!",
+			From: User{Username: "user1"},
+		})
+		assert.True(t, resp.Send)
+	})
+}
+
+func TestSayNoMore_EmptyResponses(t *testing.T) {
+	mockSuperUser := &mocks.SuperUser{IsSuperFunc: func(userName string) bool { return false }}
+	categories := []SayNoMoreCategory{
+		{Words: []string{"badword"}, Responses: []string{}},
+		{Words: []string{"rude"}, Responses: []string{"грубиян"}},
+	}
+
+	bot := NewSayNoMore(time.Minute, time.Hour, mockSuperUser, categories)
+	bot.rand = func(n int64) int64 { return 0 }
+
+	t.Run("category with empty responses is skipped", func(t *testing.T) {
+		resp := bot.OnMessage(Message{
+			Text: "badword",
+			From: User{Username: "user1"},
+		})
+		assert.False(t, resp.Send)
+	})
+
+	t.Run("category with responses still works", func(t *testing.T) {
+		resp := bot.OnMessage(Message{
+			Text: "rude",
+			From: User{Username: "user1"},
+		})
+		assert.True(t, resp.Send)
+	})
+}
+
 func TestSayNoMore_ReactOn(t *testing.T) {
 	bot := NewSayNoMore(time.Minute, time.Hour, nil, nil)
 	assert.Nil(t, bot.ReactOn())

@@ -56,13 +56,17 @@ func NewDefaultSayNoMore(superUser SuperUser) *SayNoMore {
 func NewSayNoMore(minDuration, maxDuration time.Duration, superUser SuperUser, categories []SayNoMoreCategory) *SayNoMore {
 	log.Printf("[INFO] SayNoMore bot with %d categories, %v-%v interval", len(categories), minDuration, maxDuration)
 
-	compiled := make([]compiledCategory, len(categories))
-	for i, cat := range categories {
+	compiled := make([]compiledCategory, 0, len(categories))
+	for _, cat := range categories {
+		if len(cat.Responses) == 0 {
+			log.Printf("[WARN] SayNoMore category with words %v has no responses, skipped", cat.Words)
+			continue
+		}
 		patterns := make([]*regexp.Regexp, len(cat.Words))
 		for j, word := range cat.Words {
-			patterns[j] = regexp.MustCompile(`\b` + regexp.QuoteMeta(strings.ToLower(word)) + `\b`)
+			patterns[j] = regexp.MustCompile(`(?:^|[^\p{L}])` + regexp.QuoteMeta(strings.ToLower(word)) + `(?:[^\p{L}]|$)`)
 		}
-		compiled[i] = compiledCategory{patterns: patterns, responses: cat.Responses}
+		compiled = append(compiled, compiledCategory{patterns: patterns, responses: cat.Responses})
 	}
 
 	return &SayNoMore{

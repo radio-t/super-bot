@@ -45,6 +45,10 @@ func NewDefaultSayNoMore(superUser SuperUser) *SayNoMore {
 			Words:     []string{"доброго времени суток"},
 			Responses: []string{"Что дозволено Юпитеру - не дозволено быку", "Quod licet Iovi, non licet bovi"},
 		},
+		{
+			Words:     []string{"имеет место быть"},
+			Responses: []string{"более лучше"},
+		},
 	})
 }
 

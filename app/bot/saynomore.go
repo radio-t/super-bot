@@ -39,7 +39,7 @@ func NewDefaultSayNoMore(superUser SuperUser) *SayNoMore {
 		},
 		{
 			Words:     []string{"ихний"},
-			Responses: []string{"евонный"},
+			Responses: []string{"Евонный"},
 		},
 		{
 			Words:     []string{"доброго времени суток"},
@@ -47,7 +47,11 @@ func NewDefaultSayNoMore(superUser SuperUser) *SayNoMore {
 		},
 		{
 			Words:     []string{"имеет место быть"},
-			Responses: []string{"более лучше"},
+			Responses: []string{"Более лучше"},
+		},
+		{
+			Words:     []string{"учавствовать"},
+			Responses: []string{"Присувствовать"},
 		},
 	})
 }

@@ -75,8 +75,7 @@ var opts struct {
 	} `group:"openai" namespace:"openai" env-namespace:"OPENAI"`
 
 	RemarkAPI            string `long:"remark-api" env:"REMARK_API" default:"https://remark42.radio-t.com/api/v1/find" description:"Remark API"`
-	UreadabilityAPI      string `long:"ur-api" env:"UREADABILITY_API" default:"https://ureadability.radio-t.com/api/content/v1/parser" description:"uReadability API"`
-	UreadabilityToken    string `long:"ur-token" env:"UREADABILITY_TOKEN" default:"undefined" description:"uReadability token"`
+	MarkdownNewAPI       string `long:"mdnew-api" env:"MDNEW_API" default:"https://markdown.new" description:"markdown.new API for content extraction"`
 	SummarizerThreadsNum int    `long:"summarizer-threads" env:"SUMMARIZER_THREADS" default:"5" description:"Number of threads in summarizer"`
 
 	RtjcParams struct {
@@ -225,16 +224,15 @@ func main() {
 		API:    opts.RemarkAPI,
 	}
 
-	uKeeperClient := openai.UKeeperClient{
+	mdNewClient := openai.MarkdownNewClient{
 		Client: httpClient,
-		API:    opts.UreadabilityAPI,
-		Token:  opts.UreadabilityToken,
+		API:    opts.MarkdownNewAPI,
 	}
 
 	summarizer := openai.NewSummarizer(
 		openAIBot,
 		remarkClient,
-		uKeeperClient,
+		mdNewClient,
 		opts.SummarizerThreadsNum,
 		opts.Dbg,
 	)

@@ -97,7 +97,7 @@ func (b *Banhammer) OnMessage(msg Message) (response Response) {
 }
 
 func (b *Banhammer) cleanup() {
-	users := make([]userInfo, len(b.recentUsers))
+	users := make([]userInfo, 0, len(b.recentUsers))
 	for _, u := range b.recentUsers {
 		users = append(users, u)
 	}

@@ -63,7 +63,7 @@ func (m Middleware) Middleware(next http.RoundTripper) http.RoundTripper {
 				if len(bodyLog) > 1024 {
 					bodyLog = bodyLog[:1024] + "..."
 				}
-				bodyLog = strings.Replace(bodyLog, "\n", " ", -1)
+				bodyLog = strings.ReplaceAll(bodyLog, "\n", " ")
 			}
 		}
 		if bodyLog != "" {
@@ -72,7 +72,10 @@ func (m Middleware) Middleware(next http.RoundTripper) http.RoundTripper {
 		resp, err = next.RoundTrip(req)
 		logParts = append(logParts, fmt.Sprintf("time: %v", time.Since(st)))
 		m.Logf(strings.Join(logParts, " "))
-		return resp, err
+		if err != nil {
+			return resp, fmt.Errorf("logger: %w", err)
+		}
+		return resp, nil
 	}
 	return middleware.RoundTripperFunc(fn)
 }
@@ -106,4 +109,4 @@ type Func func(format string, args ...interface{})
 func (f Func) Logf(format string, args ...interface{}) { f(format, args...) }
 
 // Std logger sends to std default logger directly
-var Std = Func(func(format string, args ...interface{}) { log.Printf(format, args...) })
+var Std = Func(func(format string, args ...interface{}) { log.Printf(format, args...) }) //nolint

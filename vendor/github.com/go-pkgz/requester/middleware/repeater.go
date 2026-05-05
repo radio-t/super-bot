@@ -27,7 +27,7 @@ func Repeater(repeater RepeaterSvc, failOnCodes ...int) RoundTripperHandler {
 			e := repeater.Do(req.Context(), func() error {
 				resp, err = next.RoundTrip(req)
 				if err != nil {
-					return err
+					return err //nolint:wrapcheck // error is wrapped at the outer level
 				}
 				// no explicit codes provided, fail on any 4xx or 5xx
 				if len(failOnCodes) == 0 && resp.StatusCode >= 400 {
@@ -42,7 +42,7 @@ func Repeater(repeater RepeaterSvc, failOnCodes ...int) RoundTripperHandler {
 				return nil
 			})
 			if e != nil {
-				return nil, fmt.Errorf("repeater: %w", e)
+				return resp, fmt.Errorf("repeater: %w", e)
 			}
 			return resp, nil
 		}

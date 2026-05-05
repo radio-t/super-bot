@@ -79,6 +79,8 @@ rq := requester.New(http.Client{}, middleware.Retry(3, 100*time.Millisecond,
     middleware.RetryWithJitter(0.1),                          // add 10% randomization
     middleware.RetryOnCodes(503, 502),                        // retry only on specific codes
     // or middleware.RetryExcludeCodes(404, 401),             // alternatively, retry on all except these codes
+    middleware.RetryBufferBodies(true),                       // enable body buffering for retries
+    middleware.RetryMaxBufferSize(50*1024*1024),             // set max buffer size to 50MB
 ))
 ```
 
@@ -89,6 +91,20 @@ Default configuration:
 - Exponential backoff
 - 10% jitter
 - Retries on 5xx status codes
+- Body buffering: disabled (preserves streaming behavior)
+
+#### Request Body Handling
+
+For requests with bodies (POST, PUT, PATCH), the retry middleware handles body replay as follows:
+
+- If `req.GetBody` is set (automatic for `strings.Reader`, `bytes.Buffer`, `bytes.Reader`), it uses that for retries
+- If `req.GetBody` is nil and body buffering is disabled (default), requests won't be retried to preserve streaming
+- If body buffering is enabled with `RetryBufferBodies(true)`:
+  - Bodies up to `maxBufferSize` are buffered and can be retried
+  - Bodies exceeding `maxBufferSize` fail immediately with an error
+- Use `RetryMaxBufferSize(size)` to adjust the buffer limit (default: 10MB when enabled)
+
+This default behavior ensures large file uploads work without memory issues, while you can opt-in to buffering for API requests that need retries.
 
 Retry Options:
 - `RetryWithBackoff(t BackoffType)` - set backoff strategy (Constant, Linear, or Exponential)
@@ -96,6 +112,8 @@ Retry Options:
 - `RetryWithJitter(f float64)` - add randomization to delays (0-1.0 factor)
 - `RetryOnCodes(codes ...int)` - retry only on specific status codes
 - `RetryExcludeCodes(codes ...int)` - retry on all codes except specified
+- `RetryBufferBodies(enabled bool)` - enable or disable automatic body buffering for retries
+- `RetryMaxBufferSize(size int64)` - set maximum size of request bodies that will be buffered
 
 Note: `RetryOnCodes` and `RetryExcludeCodes` are mutually exclusive and can't be used together.
 

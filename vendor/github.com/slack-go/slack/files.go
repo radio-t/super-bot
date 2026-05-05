@@ -94,12 +94,23 @@ type File struct {
 	To      []EmailFileUserInfo `json:"to"`
 	From    []EmailFileUserInfo `json:"from"`
 	Cc      []EmailFileUserInfo `json:"cc"`
+	Headers EmailHeaders        `json:"headers"`
+
+	PlainText        string `json:"plain_text"`
+	PreviewPlainText string `json:"preview_plain_text"`
 }
 
 type EmailFileUserInfo struct {
 	Address  string `json:"address"`
 	Name     string `json:"name"`
 	Original string `json:"original"`
+}
+
+type EmailHeaders struct {
+	Date      string `json:"date"`
+	InReplyTo string `json:"in_reply_to"`
+	ReplyTo   string `json:"reply_to"`
+	MessageID string `json:"message_id"`
 }
 
 type Share struct {
@@ -116,24 +127,6 @@ type ShareFileInfo struct {
 	LatestReply     string   `json:"latest_reply"`
 	ChannelName     string   `json:"channel_name"`
 	TeamID          string   `json:"team_id"`
-}
-
-// FileUploadParameters contains all the parameters necessary (including the optional ones) for an UploadFile() request.
-//
-// There are three ways to upload a file. You can either set Content if file is small, set Reader if file is large,
-// or provide a local file path in File to upload it from your filesystem.
-//
-// Note that when using the Reader option, you *must* specify the Filename, otherwise the Slack API isn't happy.
-type FileUploadParameters struct {
-	File            string
-	Content         string
-	Reader          io.Reader
-	Filetype        string
-	Filename        string
-	Title           string
-	InitialComment  string
-	Channels        []string
-	ThreadTimestamp string
 }
 
 // GetFilesParameters contains all the parameters necessary (including the optional ones) for a GetFiles() request
@@ -159,7 +152,7 @@ type ListFilesParameters struct {
 	Cursor  string
 }
 
-type UploadFileV2Parameters struct {
+type UploadFileParameters struct {
 	File            string
 	FileSize        int
 	Content         string
@@ -167,26 +160,27 @@ type UploadFileV2Parameters struct {
 	Filename        string
 	Title           string
 	InitialComment  string
+	Blocks          Blocks
 	Channel         string
 	ThreadTimestamp string
 	AltTxt          string
-	SnippetText     string
+	SnippetType     string
 }
 
-type getUploadURLExternalParameters struct {
-	altText     string
-	fileSize    int
-	fileName    string
-	snippetText string
+type GetUploadURLExternalParameters struct {
+	AltTxt      string
+	FileSize    int
+	FileName    string
+	SnippetType string
 }
 
-type getUploadURLExternalResponse struct {
+type GetUploadURLExternalResponse struct {
 	UploadURL string `json:"upload_url"`
 	FileID    string `json:"file_id"`
 	SlackResponse
 }
 
-type uploadToURLParameters struct {
+type UploadToURLParameters struct {
 	UploadURL string
 	Reader    io.Reader
 	File      string
@@ -199,14 +193,15 @@ type FileSummary struct {
 	Title string `json:"title"`
 }
 
-type completeUploadExternalParameters struct {
-	title           string
-	channel         string
-	initialComment  string
-	threadTimestamp string
+type CompleteUploadExternalParameters struct {
+	Files           []FileSummary
+	Blocks          Blocks
+	Channel         string
+	InitialComment  string
+	ThreadTimestamp string
 }
 
-type completeUploadExternalResponse struct {
+type CompleteUploadExternalResponse struct {
 	SlackResponse
 	Files []FileSummary `json:"files"`
 }
@@ -315,6 +310,7 @@ func (api *Client) GetFilesContext(ctx context.Context, params GetFilesParameter
 	if params.Page != DEFAULT_FILES_PAGE {
 		values.Add("page", strconv.Itoa(params.Page))
 	}
+	//lint:ignore S1002 - we want to explicitly check against the constant
 	if params.ShowHidden != DEFAULT_FILES_SHOW_HIDDEN {
 		values.Add("show_files_hidden_by_limit", strconv.FormatBool(params.ShowHidden))
 	}
@@ -363,65 +359,6 @@ func (api *Client) ListFilesContext(ctx context.Context, params ListFilesParamet
 	params.Cursor = response.Metadata.Cursor
 
 	return response.Files, &params, nil
-}
-
-// UploadFile uploads a file.
-//
-// Deprecated: Use [Client.UploadFileV2] instead. This will stop functioning on March 11, 2025.
-// For more details, see: https://api.slack.com/methods/files.upload#markdown
-func (api *Client) UploadFile(params FileUploadParameters) (file *File, err error) {
-	return api.UploadFileContext(context.Background(), params)
-}
-
-// UploadFileContext uploads a file and setting a custom context.
-//
-// Deprecated: Use [Client.UploadFileV2Context] instead. This will stop functioning on March 11, 2025.
-// For more details, see: https://api.slack.com/methods/files.upload#markdown
-func (api *Client) UploadFileContext(ctx context.Context, params FileUploadParameters) (file *File, err error) {
-	// Test if user token is valid. This helps because client.Do doesn't like this for some reason. XXX: More
-	// investigation needed, but for now this will do.
-	_, err = api.AuthTestContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	response := &fileResponseFull{}
-	values := url.Values{}
-	if params.Filetype != "" {
-		values.Add("filetype", params.Filetype)
-	}
-	if params.Filename != "" {
-		values.Add("filename", params.Filename)
-	}
-	if params.Title != "" {
-		values.Add("title", params.Title)
-	}
-	if params.InitialComment != "" {
-		values.Add("initial_comment", params.InitialComment)
-	}
-	if params.ThreadTimestamp != "" {
-		values.Add("thread_ts", params.ThreadTimestamp)
-	}
-	if len(params.Channels) != 0 {
-		values.Add("channels", strings.Join(params.Channels, ","))
-	}
-	if params.Content != "" {
-		values.Add("content", params.Content)
-		values.Add("token", api.token)
-		err = api.postMethod(ctx, "files.upload", values, response)
-	} else if params.File != "" {
-		err = postLocalWithMultipartResponse(ctx, api.httpclient, api.endpoint+"files.upload", params.File, "file", api.token, values, response, api)
-	} else if params.Reader != nil {
-		if params.Filename == "" {
-			return nil, fmt.Errorf("files.upload: FileUploadParameters.Filename is mandatory when using FileUploadParameters.Reader")
-		}
-		err = postWithMultipartResponse(ctx, api.httpclient, api.endpoint+"files.upload", params.Filename, "file", api.token, values, params.Reader, response, api)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &response.File, response.Err()
 }
 
 // DeleteFileComment deletes a file's comment.
@@ -506,20 +443,28 @@ func (api *Client) ShareFilePublicURLContext(ctx context.Context, fileID string)
 	return &response.File, response.Comments, &response.Paging, nil
 }
 
-// getUploadURLExternal gets a URL and fileID from slack which can later be used to upload a file.
-func (api *Client) getUploadURLExternal(ctx context.Context, params getUploadURLExternalParameters) (*getUploadURLExternalResponse, error) {
+// GetUploadURLExternalContext gets a URL and fileID from slack which can later be used to upload a file.
+// Slack API docs: https://api.slack.com/methods/files.getUploadURLExternal
+func (api *Client) GetUploadURLExternalContext(ctx context.Context, params GetUploadURLExternalParameters) (*GetUploadURLExternalResponse, error) {
+	if params.FileName == "" {
+		return nil, fmt.Errorf("FileName cannot be empty")
+	}
+	if params.FileSize == 0 {
+		return nil, fmt.Errorf("FileSize cannot be 0")
+	}
+
 	values := url.Values{
 		"token":    {api.token},
-		"filename": {params.fileName},
-		"length":   {strconv.Itoa(params.fileSize)},
+		"filename": {params.FileName},
+		"length":   {strconv.Itoa(params.FileSize)},
 	}
-	if params.altText != "" {
-		values.Add("initial_comment", params.altText)
+	if params.AltTxt != "" {
+		values.Add("alt_txt", params.AltTxt)
 	}
-	if params.snippetText != "" {
-		values.Add("thread_ts", params.snippetText)
+	if params.SnippetType != "" {
+		values.Add("snippet_type", params.SnippetType)
 	}
-	response := &getUploadURLExternalResponse{}
+	response := &GetUploadURLExternalResponse{}
 	err := api.postMethod(ctx, "files.getUploadURLExternal", values, response)
 	if err != nil {
 		return nil, err
@@ -528,8 +473,9 @@ func (api *Client) getUploadURLExternal(ctx context.Context, params getUploadURL
 	return response, response.Err()
 }
 
-// uploadToURL uploads the file to the provided URL using post method
-func (api *Client) uploadToURL(ctx context.Context, params uploadToURLParameters) (err error) {
+// UploadToURL uploads the file to the provided URL using post method
+// This is not a Slack API method, but a helper function to upload files to the URL
+func (api *Client) UploadToURL(ctx context.Context, params UploadToURLParameters) (err error) {
 	values := url.Values{}
 	if params.Content != "" {
 		contentReader := strings.NewReader(params.Content)
@@ -542,28 +488,36 @@ func (api *Client) uploadToURL(ctx context.Context, params uploadToURLParameters
 	return err
 }
 
-// completeUploadExternal once files are uploaded, this completes the upload and shares it to the specified channel
-func (api *Client) completeUploadExternal(ctx context.Context, fileID string, params completeUploadExternalParameters) (file *completeUploadExternalResponse, err error) {
-	request := []FileSummary{{ID: fileID, Title: params.title}}
-	requestBytes, err := json.Marshal(request)
+// CompleteUploadExternalContext once files are uploaded, this completes the upload and shares it to the specified channel
+// Slack API docs: https://api.slack.com/methods/files.completeUploadExternal
+func (api *Client) CompleteUploadExternalContext(ctx context.Context, params CompleteUploadExternalParameters) (file *CompleteUploadExternalResponse, err error) {
+	filesBytes, err := json.Marshal(params.Files)
 	if err != nil {
 		return nil, err
 	}
+
 	values := url.Values{
 		"token": {api.token},
-		"files": {string(requestBytes)},
+		"files": {string(filesBytes)},
 	}
 
-	if params.channel != "" {
-		values.Add("channel_id", params.channel)
+	if params.Channel != "" {
+		values.Add("channel_id", params.Channel)
 	}
-	if params.initialComment != "" {
-		values.Add("initial_comment", params.initialComment)
+	if params.InitialComment != "" {
+		values.Add("initial_comment", params.InitialComment)
 	}
-	if params.threadTimestamp != "" {
-		values.Add("thread_ts", params.threadTimestamp)
+	if params.Blocks.BlockSet != nil && params.InitialComment == "" {
+		blocksBytes, err := json.Marshal(params.Blocks)
+		if err != nil {
+			return nil, err
+		}
+		values.Add("blocks", string(blocksBytes))
 	}
-	response := &completeUploadExternalResponse{}
+	if params.ThreadTimestamp != "" {
+		values.Add("thread_ts", params.ThreadTimestamp)
+	}
+	response := &CompleteUploadExternalResponse{}
 	err = api.postMethod(ctx, "files.completeUploadExternal", values, response)
 	if err != nil {
 		return nil, err
@@ -574,19 +528,19 @@ func (api *Client) completeUploadExternal(ctx context.Context, fileID string, pa
 	return response, nil
 }
 
-// UploadFileV2 uploads file to a given slack channel using 3 steps.
-// For more details, see UploadFileV2Context documentation.
-func (api *Client) UploadFileV2(params UploadFileV2Parameters) (*FileSummary, error) {
-	return api.UploadFileV2Context(context.Background(), params)
+// UploadFile uploads file to a given slack channel using 3 steps.
+// For more details, see UploadFileContext documentation.
+func (api *Client) UploadFile(params UploadFileParameters) (*FileSummary, error) {
+	return api.UploadFileContext(context.Background(), params)
 }
 
-// UploadFileV2Context uploads file to a given slack channel using 3 steps -
+// UploadFileContext uploads file to a given slack channel using 3 steps -
 //  1. Get an upload URL using files.getUploadURLExternal API
 //  2. Send the file as a post to the URL provided by slack
 //  3. Complete the upload and share it to the specified channel using files.completeUploadExternal
 //
 // Slack Docs: https://api.slack.com/messaging/files#uploading_files
-func (api *Client) UploadFileV2Context(ctx context.Context, params UploadFileV2Parameters) (file *FileSummary, err error) {
+func (api *Client) UploadFileContext(ctx context.Context, params UploadFileParameters) (file *FileSummary, err error) {
 	if params.Filename == "" {
 		return nil, fmt.Errorf("file.upload.v2: filename cannot be empty")
 	}
@@ -594,17 +548,17 @@ func (api *Client) UploadFileV2Context(ctx context.Context, params UploadFileV2P
 		return nil, fmt.Errorf("file.upload.v2: file size cannot be 0")
 	}
 
-	u, err := api.getUploadURLExternal(ctx, getUploadURLExternalParameters{
-		altText:     params.AltTxt,
-		fileName:    params.Filename,
-		fileSize:    params.FileSize,
-		snippetText: params.SnippetText,
+	u, err := api.GetUploadURLExternalContext(ctx, GetUploadURLExternalParameters{
+		AltTxt:      params.AltTxt,
+		FileName:    params.Filename,
+		FileSize:    params.FileSize,
+		SnippetType: params.SnippetType,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetUploadURLExternal: %w", err)
 	}
 
-	err = api.uploadToURL(ctx, uploadToURLParameters{
+	err = api.UploadToURL(ctx, UploadToURLParameters{
 		UploadURL: u.UploadURL,
 		Reader:    params.Reader,
 		File:      params.File,
@@ -612,17 +566,21 @@ func (api *Client) UploadFileV2Context(ctx context.Context, params UploadFileV2P
 		Filename:  params.Filename,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("UploadToURL: %w", err)
 	}
 
-	c, err := api.completeUploadExternal(ctx, u.FileID, completeUploadExternalParameters{
-		title:           params.Title,
-		channel:         params.Channel,
-		initialComment:  params.InitialComment,
-		threadTimestamp: params.ThreadTimestamp,
+	c, err := api.CompleteUploadExternalContext(ctx, CompleteUploadExternalParameters{
+		Files: []FileSummary{{
+			ID:    u.FileID,
+			Title: params.Title,
+		}},
+		Channel:         params.Channel,
+		InitialComment:  params.InitialComment,
+		ThreadTimestamp: params.ThreadTimestamp,
+		Blocks:          params.Blocks,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CompleteUploadExternal: %w", err)
 	}
 	if len(c.Files) != 1 {
 		return nil, fmt.Errorf("file.upload.v2: something went wrong; received %d files instead of 1", len(c.Files))

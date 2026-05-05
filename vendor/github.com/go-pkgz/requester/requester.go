@@ -5,6 +5,7 @@
 package requester
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-pkgz/requester/middleware"
@@ -52,5 +53,9 @@ func (r *Requester) Client() *http.Client {
 
 // Do runs http request with optional middleware handlers wrapping the request
 func (r *Requester) Do(req *http.Request) (*http.Response, error) {
-	return r.Client().Do(req)
+	resp, err := r.Client().Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("requester: failed to execute request: %w", err)
+	}
+	return resp, nil
 }

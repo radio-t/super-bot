@@ -31,7 +31,7 @@ type CacheMiddleware struct {
 	allowedMethods []string
 
 	cache map[string]CacheEntry
-	keys  []string // Maintains insertion order
+	keys  []string // maintains insertion order
 	mu    sync.Mutex
 }
 
@@ -46,7 +46,11 @@ func (c *CacheMiddleware) RoundTrip(req *http.Request) (*http.Response, error) {
 		}
 	}
 	if !methodAllowed {
-		return c.next.RoundTrip(req)
+		resp, err := c.next.RoundTrip(req)
+		if err != nil {
+			return resp, fmt.Errorf("cache: transport error: %w", err)
+		}
+		return resp, nil
 	}
 
 	key := c.makeKey(req) // generate cache key based on request
@@ -56,7 +60,7 @@ func (c *CacheMiddleware) RoundTrip(req *http.Request) (*http.Response, error) {
 	for len(c.keys) > 0 {
 		oldestKey := c.keys[0]
 		if time.Since(c.cache[oldestKey].createdAt) < c.ttl {
-			break // Stop once we find a non-expired entry
+			break // stop once we find a non-expired entry
 		}
 		delete(c.cache, oldestKey)
 		c.keys = c.keys[1:]
@@ -83,7 +87,7 @@ func (c *CacheMiddleware) RoundTrip(req *http.Request) (*http.Response, error) {
 	// fetch fresh response
 	resp, err := c.next.RoundTrip(req)
 	if err != nil {
-		return resp, err
+		return resp, fmt.Errorf("cache: transport error: %w", err)
 	}
 
 	// check if response code is allowed for caching
@@ -94,7 +98,7 @@ func (c *CacheMiddleware) RoundTrip(req *http.Request) (*http.Response, error) {
 	// read and store response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return resp, err
+		return resp, fmt.Errorf("cache: failed to read response body: %w", err)
 	}
 	_ = resp.Body.Close()
 	resp.Body = io.NopCloser(bytes.NewReader(body))

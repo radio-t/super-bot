@@ -491,6 +491,34 @@ func TestOpenAI_UserNameOrDisplayName_NoUsernameOrDisplayName(t *testing.T) {
 	assert.Equal(t, "пользователь", result)
 }
 
+func TestIsReasoningModel(t *testing.T) {
+	tests := []struct {
+		model string
+		want  bool
+	}{
+		{"gpt-4o-mini", false},
+		{"gpt-4o", false},
+		{"gpt-4-turbo", false},
+		{"gpt-3.5-turbo", false},
+		{"", false},
+		{"gpt-5", true},
+		{"gpt-5-mini", true},
+		{"GPT-5-MINI", true},
+		{"gpt-5-nano-2025", true},
+		{"o1", true},
+		{"o1-mini", true},
+		{"o3", true},
+		{"o3-mini", true},
+		{"o4", true},
+		{"o4-mini", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.model, func(t *testing.T) {
+			assert.Equal(t, tt.want, isReasoningModel(tt.model))
+		})
+	}
+}
+
 func TestOpenAI_chatGPTRequestWithHistoryAndFocus(t *testing.T) {
 	mockOpenAIClient := &mocks.OpenAIClient{
 		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {

@@ -326,14 +326,17 @@ func (o *OpenAI) chatGPTRequestWithHistoryAndFocus(currentRequest, userPrompt, s
 }
 
 func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage) (response string, err error) {
-	resp, err := o.client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model:     o.params.Model,
-			MaxTokens: o.params.MaxTokensResponse,
-			Messages:  messages,
-		},
-	)
+	req := openai.ChatCompletionRequest{
+		Model:    o.params.Model,
+		Messages: messages,
+	}
+	// reasoning models (o1, o3, o4, gpt-5) require max_completion_tokens; others use max_tokens
+	if isReasoningModel(o.params.Model) {
+		req.MaxCompletionTokens = o.params.MaxTokensResponse
+	} else {
+		req.MaxTokens = o.params.MaxTokensResponse
+	}
+	resp, err := o.client.CreateChatCompletion(context.Background(), req)
 	if err != nil {
 		reqDetails := fmt.Sprintf("request: %v, model: %s, max_tokens: %d", messages, o.params.Model, o.params.MaxTokensResponse)
 		return "", fmt.Errorf("OpenAI request failed %s: %w", reqDetails, err)
@@ -365,6 +368,16 @@ func (o *OpenAI) CreateChatCompletion(ctx context.Context, req openai.ChatComple
 		return openai.ChatCompletionResponse{}, fmt.Errorf("failed to create chat completion: %w", err)
 	}
 	return resp, nil
+}
+
+// isReasoningModel reports whether the model requires max_completion_tokens
+// instead of max_tokens. Covers o1/o3/o4 reasoning models and the gpt-5 family.
+func isReasoningModel(model string) bool {
+	m := strings.ToLower(model)
+	return strings.HasPrefix(m, "o1") ||
+		strings.HasPrefix(m, "o3") ||
+		strings.HasPrefix(m, "o4") ||
+		strings.Contains(m, "gpt-5")
 }
 
 // UserNameOrDisplayName username or display name or "пользователь"

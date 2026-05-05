@@ -84,9 +84,13 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 			return bot.Response{}
 		}
 
-		responseAI, err := o.chatGPTRequestWithHistory("You answer with no more than 50 words, should be in Russian language. Match the tone and style of the conversation. Be conversational and natural.")
+		responseAI, err := o.chatGPTRequestWithHistory("Reply in Russian, at most 50 words. Add only one concrete, substantive remark about the topic — a specific fact, detail, or trade-off. Do not greet, do not praise, do not give generic opinions, do not ask questions, do not invite chat. No emojis, no exclamations, neutral tone. If you have nothing concrete to add, reply with an empty string.")
 		if err != nil {
 			log.Printf("[WARN] failed to make context request to ChatGPT error=%v", err)
+			return bot.Response{}
+		}
+		if strings.TrimSpace(responseAI) == "" {
+			log.Printf("[DEBUG] OpenAI bot has nothing substantive to add, skipping")
 			return bot.Response{}
 		}
 		log.Printf("[DEBUG] OpenAI bot answer with history: %q", responseAI)
@@ -107,7 +111,7 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 	}
 
 	// use chatGPTRequestWithHistoryAndFocus to include history while focusing on the current question
-	responseAI, err := o.chatGPTRequestWithHistoryAndFocus(reqText, o.params.Prompt, "You answer with no more than 50 words. Match the tone and style of the conversation. Be conversational and natural.")
+	responseAI, err := o.chatGPTRequestWithHistoryAndFocus(reqText, o.params.Prompt, "Answer the question directly in at most 50 words. Provide concrete information only. Do not praise, do not editorialize, do not add follow-up questions, do not invite further chat. No emojis, neutral tone.")
 	if err != nil {
 		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
 		// return a more informative response about API errors to super users

@@ -51,10 +51,22 @@ func (l Rtjc) Listen(ctx context.Context) {
 	if err != nil {
 		log.Fatalf("[ERROR] can't listen on %d, %v", l.Port, err)
 	}
+	defer func() { _ = ln.Close() }()
+
+	go func() {
+		<-ctx.Done()
+		_ = ln.Close()
+	}()
 
 	for {
+		if ctx.Err() != nil {
+			return
+		}
 		conn, e := ln.Accept()
 		if e != nil {
+			if ctx.Err() != nil {
+				return
+			}
 			log.Printf("[WARN] can't accept, %v", e)
 			time.Sleep(time.Second * 1)
 			continue

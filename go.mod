@@ -34,7 +34,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/redis/go-redis/v9 v9.19.0 // indirect
 	github.com/samber/lo v1.53.0 // indirect
-	github.com/slack-go/slack v0.23.0 // indirect
+	github.com/slack-go/slack v0.23.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/net v0.53.0 // indirect

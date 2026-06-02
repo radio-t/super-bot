@@ -104,7 +104,7 @@ github.com/sandwich-go/gpt3-encoder
 github.com/sashabaranov/go-openai
 github.com/sashabaranov/go-openai/internal
 github.com/sashabaranov/go-openai/jsonschema
-# github.com/slack-go/slack v0.23.0
+# github.com/slack-go/slack v0.23.1
 ## explicit; go 1.25
 github.com/slack-go/slack
 github.com/slack-go/slack/internal/backoff

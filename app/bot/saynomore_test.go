@@ -156,6 +156,31 @@ func TestSayNoMore_CyrillicMatching(t *testing.T) {
 		})
 		assert.True(t, resp.Send)
 	})
+
+	t.Run("nonsense nuance form triggers", func(t *testing.T) {
+		resp := bot.OnMessage(Message{
+			Text: "есть один ньюанс",
+			From: User{Username: "user1"},
+		})
+		assert.True(t, resp.Send)
+		assert.Contains(t, resp.Text, "Полиция Нью-Ансов уже выехала")
+	})
+
+	t.Run("nonsense nuance plural form triggers", func(t *testing.T) {
+		resp := bot.OnMessage(Message{
+			Text: "такие ньюансы",
+			From: User{Username: "user1"},
+		})
+		assert.True(t, resp.Send)
+	})
+
+	t.Run("nonsense nuance embedded word does not trigger", func(t *testing.T) {
+		resp := bot.OnMessage(Message{
+			Text: "суперньюансы",
+			From: User{Username: "user1"},
+		})
+		assert.False(t, resp.Send)
+	})
 }
 
 func TestSayNoMore_EmptyResponses(t *testing.T) {

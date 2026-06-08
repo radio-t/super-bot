@@ -35,6 +35,7 @@ type Params struct {
 	HistorySize             int
 	HistoryReplyProbability int // percentage of the probability to reply with history
 	Model                   string
+	ReasoningEffort         string // reasoning_effort for reasoning models (minimal, low, medium, high); empty means API default
 }
 
 // OpenAI bot, returns responses from ChatGPT via OpenAI API
@@ -333,6 +334,9 @@ func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage)
 	// reasoning models (o1, o3, o4, gpt-5) require max_completion_tokens; others use max_tokens
 	if isReasoningModel(o.params.Model) {
 		req.MaxCompletionTokens = o.params.MaxTokensResponse
+		if o.params.ReasoningEffort != "" {
+			req.ReasoningEffort = o.params.ReasoningEffort
+		}
 	} else {
 		req.MaxTokens = o.params.MaxTokensResponse
 	}

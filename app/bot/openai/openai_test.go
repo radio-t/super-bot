@@ -519,6 +519,49 @@ func TestIsReasoningModel(t *testing.T) {
 	}
 }
 
+func TestOpenAI_chatGPTRequestInternal_ReasoningEffort(t *testing.T) {
+	tests := []struct {
+		name           string
+		model          string
+		effort         string
+		wantEffort     string
+		wantCompletion bool // true expects max_completion_tokens, false expects max_tokens
+	}{
+		{"reasoning model with effort", "gpt-5-mini", "low", "low", true},
+		{"reasoning model without effort", "gpt-5-mini", "", "", true},
+		{"non-reasoning model ignores effort", "gpt-4o-mini", "low", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := &mocks.OpenAIClient{
+				CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+					return ai.ChatCompletionResponse{Choices: []ai.ChatCompletionChoice{{Message: ai.ChatCompletionMessage{Content: "ok"}}}}, nil
+				},
+			}
+			su := &bmocks.SuperUser{IsSuperFunc: func(string) bool { return false }}
+			params := getDefaultTestingConfig()
+			params.Model, params.ReasoningEffort = tt.model, tt.effort
+			o := NewOpenAI(params, &http.Client{Timeout: 10 * time.Second}, su)
+			o.client = mockClient
+
+			_, err := o.chatGPTRequestInternal([]ai.ChatCompletionMessage{{Role: ai.ChatMessageRoleUser, Content: "hi"}})
+			require.NoError(t, err)
+
+			calls := mockClient.CreateChatCompletionCalls()
+			require.Equal(t, 1, len(calls))
+			req := calls[0].ChatCompletionRequest
+			assert.Equal(t, tt.wantEffort, req.ReasoningEffort)
+			if tt.wantCompletion {
+				assert.Equal(t, params.MaxTokensResponse, req.MaxCompletionTokens)
+				assert.Zero(t, req.MaxTokens)
+				return
+			}
+			assert.Equal(t, params.MaxTokensResponse, req.MaxTokens)
+			assert.Zero(t, req.MaxCompletionTokens)
+		})
+	}
+}
+
 func TestOpenAI_chatGPTRequestWithHistoryAndFocus(t *testing.T) {
 	mockOpenAIClient := &mocks.OpenAIClient{
 		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {

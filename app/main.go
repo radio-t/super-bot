@@ -61,6 +61,7 @@ var opts struct {
 
 	OpenAI struct {
 		Model             string `long:"model" env:"MODEL" default:"gpt-4o-mini" description:"OpenAI model"`
+		ReasoningEffort   string `long:"reasoning-effort" env:"REASONING_EFFORT" default:"" description:"OpenAI reasoning_effort for reasoning models (minimal, low, medium, high)"`
 		AuthToken         string `long:"token" env:"AUTH_TOKEN" description:"OpenAI auth token"`
 		MaxTokensResponse int    `long:"max-tokens" env:"MAX_TOKENS" default:"1000" description:"OpenAI max_tokens in response"`
 		MaxTokensRequest  int    `long:"max-tokens-request" env:"MAX_TOKENS_REQUEST" default:"3000" description:"OpenAI max tokens in request"`
@@ -118,6 +119,7 @@ func main() {
 	httpClientOpenAI := makeOpenAIHttpClient()
 	openAIBot := openai.NewOpenAI(openai.Params{
 		Model:                   opts.OpenAI.Model,
+		ReasoningEffort:         opts.OpenAI.ReasoningEffort,
 		AuthToken:               opts.OpenAI.AuthToken,
 		MaxTokensResponse:       opts.OpenAI.MaxTokensResponse,
 		MaxTokensRequest:        opts.OpenAI.MaxTokensRequest,

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 )
 
 // RepeaterSvc defines repeater interface
@@ -34,10 +35,8 @@ func Repeater(repeater RepeaterSvc, failOnCodes ...int) RoundTripperHandler {
 					return errors.New(resp.Status)
 				}
 				// fail on provided codes only
-				for _, fc := range failOnCodes {
-					if resp.StatusCode == fc {
-						return errors.New(resp.Status)
-					}
+				if slices.Contains(failOnCodes, resp.StatusCode) {
+					return errors.New(resp.Status)
 				}
 				return nil
 			})

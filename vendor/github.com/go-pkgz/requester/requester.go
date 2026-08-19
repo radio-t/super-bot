@@ -7,6 +7,7 @@ package requester
 import (
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/go-pkgz/requester/middleware"
 )
@@ -21,7 +22,7 @@ type Requester struct {
 func New(client http.Client, middlewares ...middleware.RoundTripperHandler) *Requester {
 	return &Requester{
 		client:      client,
-		middlewares: middlewares,
+		middlewares: slices.Clone(middlewares),
 	}
 }
 
@@ -30,13 +31,13 @@ func (r *Requester) Use(middlewares ...middleware.RoundTripperHandler) {
 	r.middlewares = append(r.middlewares, middlewares...)
 }
 
-// With makes a new Requested with inherited middlewares and add passed middleware(s) to the chain
+// With makes a new Requested with inherited middlewares and add passed middleware(s) to the chain.
+// The chain is copied, so the new requester never shares the backing array with the parent.
 func (r *Requester) With(middlewares ...middleware.RoundTripperHandler) *Requester {
-	res := &Requester{
-		client:      r.client,
-		middlewares: append(r.middlewares, middlewares...),
-	}
-	return res
+	combined := make([]middleware.RoundTripperHandler, 0, len(r.middlewares)+len(middlewares))
+	combined = append(combined, r.middlewares...)
+	combined = append(combined, middlewares...)
+	return &Requester{client: r.client, middlewares: combined}
 }
 
 // Client returns http.Client with all middlewares injected

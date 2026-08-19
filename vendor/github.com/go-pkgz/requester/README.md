@@ -12,7 +12,7 @@ _Please note: this is not a replacement for `http.Client`, but rather a companio
         http.Client{Timeout: 5*time.Second},    // set http client
         requester.MaxConcurrent(8),             // maximum number of concurrent requests
         requester.JSON,                         // set json headers
-        requester.Header("X-AUTH", "123456789"),// set some auth header
+        requester.SecretHeader("X-AUTH", "123456789"), // set some auth header, kept on the original host and its subdomains
         requester.Logger(requester.StdLogger),  // enable logging to stdout
     )
     
@@ -31,10 +31,11 @@ _Please note: this is not a replacement for `http.Client`, but rather a companio
 *Built-in middlewares:*
 
 - `Header` - appends user-defined headers to all requests. 
+- `SecretHeader` - appends a user-defined header carrying a credential, kept on the original host only
 - `MaxConcurrent` - sets maximum concurrency
 - `Retry` - sets retry on errors and status codes
 - `JSON` - sets headers `"Content-Type": "application/json"` and `"Accept": "application/json"`
-- `BasicAuth(user, passwd string)` - adds HTTP Basic Authentication
+- `BasicAuth(user, passwd string)` - adds HTTP Basic Authentication, kept on the original host only
 
 *Interfaces for external middlewares:*
 
@@ -53,7 +54,17 @@ See examples of the usage in [_example](https://github.com/go-pkgz/requester/tre
 `Header` middleware adds user-defined headers to all requests. It expects a map of headers to be added. For example:
 
 ```go
-rq := requester.New(http.Client{}, middleware.Header("X-Auth", "123456789"))
+rq := requester.New(http.Client{}, middleware.Header("X-Trace", "6f1a2b"))
+```
+
+Headers carrying credentials, i.e. `Authorization`, `Www-Authenticate`, `Cookie`, `Cookie2`, `Proxy-Authorization` and `Proxy-Authenticate`, are not set once a followed redirect leaves the host the request started from, the same way `http.Client` treats them. Any other header is set on every hop. Hosts are compared as they are written, so the unicode and the punycode form of an internationalised host count as two hosts and the credential stays behind.
+
+### SecretHeader middleware
+
+`SecretHeader` adds a header the same way `Header` does, but treats it as a credential regardless of its name. The header is set while the redirect chain stays on the host the request started from, or on one of its subdomains, and removed once the chain leaves it. Since `http.Client` copies a header it doesn't recognise as a credential to every hop, the removal covers the whole header, so a value the caller set on the request, or one a `CheckRedirect` hook set for the destination, goes with it. Use it for custom headers carrying a secret:
+
+```go
+rq := requester.New(http.Client{}, middleware.SecretHeader("X-Auth", "123456789"))
 ```
 ### MaxConcurrent middleware
 
@@ -154,6 +165,7 @@ By default, the cache key is generated using:
 
 - HTTP **method**
 - Full **URL**
+- Effective **host**, i.e. `Request.Host` when set, falling back to the host of the URL
 - (Optional) **Headers** (if `CacheWithHeaders` is enabled)
 - (Optional) **Body** (if `CacheWithBody` is enabled)
 
@@ -188,6 +200,8 @@ rq := requester.New(http.Client{}, middleware.JSON)
 rq := requester.New(http.Client{}, middleware.BasicAuth("user", "passwd"))
 ```
 
+Credentials are set while the redirect chain stays on the host the request started from, or on one of its subdomains, and left out once the chain leaves it. A credential the client itself puts in for the destination, through a `CheckRedirect` hook or a cookie jar, is not touched.
+
 ----
 
 ### Logging middleware interface
@@ -217,7 +231,7 @@ Cache expects the `LoadingCache` interface to implement a single method: `Get(ke
 
 #### Caching Key and Allowed Requests
 
-By default, only `GET` calls are cached. This can be changed with the `Methods(methods ...string)` option. The default key is composed of the full URL.
+By default, only `GET` calls are cached. This can be changed with the `Methods(methods ...string)` option. The default key is composed of the full URL, the effective host (`Request.Host` when set, otherwise the host of the URL) and the method.
 
 Several options define what part of the request will be used for the key:
 

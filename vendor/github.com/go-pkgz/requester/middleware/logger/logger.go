@@ -48,7 +48,7 @@ func (m Middleware) Middleware(next http.RoundTripper) http.RoundTripper {
 		headerLog := []byte{} // nolint
 		if m.headers {
 			if headerLog, err = json.Marshal(req.Header); err != nil {
-				headerLog = []byte(fmt.Sprintf("headers: %v", req.Header))
+				headerLog = fmt.Appendf(nil, "headers: %v", req.Header)
 			}
 			logParts = append(logParts, string(headerLog)+",")
 		}
@@ -99,14 +99,14 @@ func WithHeaders(m *Middleware) {
 
 // Service defined logger interface used everywhere in the package
 type Service interface {
-	Logf(format string, args ...interface{})
+	Logf(format string, args ...any)
 }
 
 // Func type is an adapter to allow the use of ordinary functions as Service.
-type Func func(format string, args ...interface{})
+type Func func(format string, args ...any)
 
 // Logf calls f(id)
-func (f Func) Logf(format string, args ...interface{}) { f(format, args...) }
+func (f Func) Logf(format string, args ...any) { f(format, args...) }
 
 // Std logger sends to std default logger directly
-var Std = Func(func(format string, args ...interface{}) { log.Printf(format, args...) }) //nolint
+var Std = Func(func(format string, args ...any) { log.Printf(format, args...) }) //nolint

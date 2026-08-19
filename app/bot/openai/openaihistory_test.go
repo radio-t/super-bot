@@ -40,7 +40,7 @@ func Test_LimitedMessageHistory(t *testing.T) {
 			}
 
 			// add messages to the storage. This should remove the oldest messages
-			for j := 0; j < 3; j++ {
+			for j := range 3 {
 				newID := tt.limit + j
 				history.Add(bot.Message{
 					ID:   newID,

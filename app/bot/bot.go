@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -71,7 +71,7 @@ type SenderChat struct {
 type Message struct {
 	ID         int
 	From       User
-	SenderChat SenderChat `json:"sender_chat,omitempty"`
+	SenderChat SenderChat `json:"sender_chat"`
 	ChatID     int64
 	Sent       time.Time
 	HTML       string    `json:",omitempty"`
@@ -82,8 +82,8 @@ type Message struct {
 		From       User
 		Text       string `json:",omitempty"`
 		Sent       time.Time
-		SenderChat SenderChat `json:"sender_chat,omitempty"`
-	} `json:",omitempty"`
+		SenderChat SenderChat `json:"sender_chat"`
+	}
 }
 
 // Entity represents one special entity in a text message.
@@ -200,9 +200,7 @@ func (b MultiBot) OnMessage(msg Message) (response Response) {
 		lines = append(lines, r)
 	}
 
-	sort.Slice(lines, func(i, j int) bool {
-		return lines[i] < lines[j]
-	})
+	slices.Sort(lines)
 
 	if len(lines) > 0 {
 		log.Printf("[DEBUG] answers %d, send %v", len(lines), len(lines) > 0)

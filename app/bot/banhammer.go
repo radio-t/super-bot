@@ -111,9 +111,9 @@ func (b *Banhammer) cleanup() {
 func (b *Banhammer) parse(text string) (react bool, cmd, name string) {
 
 	for _, prefix := range b.ReactOn() {
-		if strings.HasPrefix(text, prefix) {
+		if after, ok := strings.CutPrefix(text, prefix); ok {
 			return true, strings.TrimSuffix(prefix, "!"),
-				strings.ReplaceAll(strings.TrimSpace(strings.TrimPrefix(text, prefix)), " ", "+")
+				strings.ReplaceAll(strings.TrimSpace(after), " ", "+")
 		}
 	}
 	return false, "", ""

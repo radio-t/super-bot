@@ -85,7 +85,7 @@ func TestPrepPost_checkDuration(t *testing.T) {
 	}}
 	pp := NewPrepPost(mockHTTP, "http://example.com", time.Millisecond*50)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		pp.OnMessage(Message{})
 		time.Sleep(6 * time.Millisecond)
 	}

@@ -128,7 +128,7 @@ func (s *SpamFilter) isCasSpam(msgID int64) bool {
 		return false
 	}
 	if respData.OK {
-		log.Printf("[INFO] user %q detected as spammer: %s", msgID, respData.Description)
+		log.Printf("[INFO] user %d detected as spammer: %s", msgID, respData.Description)
 	}
 	return respData.OK
 }

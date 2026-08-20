@@ -100,7 +100,7 @@ func (p *Podcasts) makeBotResponse(sr []siteAPIResp, reqText string) string {
 		return fmt.Sprintf("ничего не нашел на запрос %q", reqText)
 	}
 
-	var res string
+	var res strings.Builder
 	for _, s := range sr {
 		nls := p.notesWithLinks(s)
 		nlsStr := ""
@@ -118,12 +118,12 @@ func (p *Podcasts) makeBotResponse(sr []siteAPIResp, reqText string) string {
 		}
 
 		if nlsStr != "" {
-			res += fmt.Sprintf("[Радио-Т #%d](%s) _%s_\n", s.ShowNum, s.URL, s.Date.Format("02 Jan 06"))
-			res += nlsStr
-			res += "\n"
+			fmt.Fprintf(&res, "[Радио-Т #%d](%s) _%s_\n", s.ShowNum, s.URL, s.Date.Format("02 Jan 06"))
+			res.WriteString(nlsStr)
+			res.WriteString("\n")
 		}
 	}
-	return res
+	return res.String()
 }
 
 type noteWithLink struct {
@@ -139,7 +139,7 @@ func (p *Podcasts) notesWithLinks(s siteAPIResp) (res []noteWithLink) {
 
 	// show notes may start with multiple \n, strip them all
 	showNotes := s.ShowNotes
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		showNotes = strings.TrimPrefix(showNotes, "\n")
 	}
 
@@ -164,8 +164,8 @@ func (p *Podcasts) notesWithLinks(s siteAPIResp) (res []noteWithLink) {
 func (p *Podcasts) request(text string) (react bool, reqText string) {
 
 	for _, prefix := range p.ReactOn() {
-		if strings.HasPrefix(text, prefix) {
-			return true, strings.ReplaceAll(strings.TrimSpace(strings.TrimPrefix(text, prefix)), " ", "+")
+		if after, ok := strings.CutPrefix(text, prefix); ok {
+			return true, strings.ReplaceAll(strings.TrimSpace(after), " ", "+")
 		}
 	}
 	return false, ""

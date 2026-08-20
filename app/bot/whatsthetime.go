@@ -65,16 +65,16 @@ func (w *WhatsTheTime) OnMessage(msg Message) (response Response) {
 }
 
 func buildResponseText(now time.Time, hosts []Host) string {
-	responseString := ""
+	var responseString strings.Builder
 	for _, host := range hosts {
 		location, err := time.LoadLocation(host.Timezone)
 		if err != nil {
 			log.Printf("[DEBUG] can't load location for %s: %s", host.Timezone, err)
 			continue
 		}
-		responseString += fmt.Sprintf("У %s сейчас %s\n", host.Name, now.In(location).Format("15:04"))
+		fmt.Fprintf(&responseString, "У %s сейчас %s\n", host.Name, now.In(location).Format("15:04"))
 	}
-	return responseString
+	return responseString.String()
 }
 
 // ReactOn returns reaction keys

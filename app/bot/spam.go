@@ -206,8 +206,8 @@ func (s *SpamFilter) tokenize(inp string) map[string]int {
 	}
 
 	tokenFrequency := make(map[string]int)
-	tokens := strings.Fields(inp)
-	for _, token := range tokens {
+	tokens := strings.FieldsSeq(inp)
+	for token := range tokens {
 		if isExcludedToken(token) {
 			continue
 		}

@@ -81,8 +81,8 @@ func (d *Duck) OnMessage(msg Message) (response Response) {
 func (d *Duck) request(text string) (react bool, reqText string) {
 
 	for _, prefix := range d.ReactOn() {
-		if strings.HasPrefix(text, prefix) {
-			return true, strings.ReplaceAll(strings.TrimSpace(strings.TrimPrefix(text, prefix)), " ", "+")
+		if after, ok := strings.CutPrefix(text, prefix); ok {
+			return true, strings.ReplaceAll(strings.TrimSpace(after), " ", "+")
 		}
 	}
 	return false, ""

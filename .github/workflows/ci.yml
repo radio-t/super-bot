@@ -1,5 +1,9 @@
 name: build
 on: [push, pull_request]
+
+permissions:
+  contents: read
+
 jobs:
 
   build:
@@ -15,6 +19,8 @@ jobs:
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v7
+      with:
+        persist-credentials: false
 
     - name: build and test
       run: |

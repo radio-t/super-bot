@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"slices"
 	"time"
 )
 
@@ -199,21 +200,11 @@ func (r *RetryMiddleware) calcDelay(attempt int) time.Duration {
 
 func (r *RetryMiddleware) shouldRetry(resp *http.Response) bool {
 	if len(r.retryCodes) > 0 {
-		for _, code := range r.retryCodes {
-			if resp.StatusCode == code {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(r.retryCodes, resp.StatusCode)
 	}
 
 	if len(r.excludeCodes) > 0 {
-		for _, code := range r.excludeCodes {
-			if resp.StatusCode == code {
-				return false
-			}
-		}
-		return true
+		return !slices.Contains(r.excludeCodes, resp.StatusCode)
 	}
 
 	return resp.StatusCode >= 500

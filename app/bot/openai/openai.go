@@ -338,7 +338,9 @@ func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage)
 			req.ReasoningEffort = o.params.ReasoningEffort
 		}
 	} else {
-		req.MaxTokens = o.params.MaxTokensResponse
+		// max_tokens is deprecated upstream but still accepted for non-reasoning models;
+		// switching to max_completion_tokens would change the request the bot sends
+		req.MaxTokens = o.params.MaxTokensResponse //nolint:staticcheck // deliberate, see above
 	}
 	resp, err := o.client.CreateChatCompletion(context.Background(), req)
 	if err != nil {

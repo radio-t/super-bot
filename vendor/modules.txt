@@ -5,37 +5,37 @@ github.com/aymerick/douceur/parser
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/davecgh/go-spew v1.1.1
-## explicit
-github.com/davecgh/go-spew/spew
 # github.com/dlclark/regexp2 v1.12.0
 ## explicit; go 1.13
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
-# github.com/go-pkgz/email v0.6.0
+# github.com/go-pkgz/email v0.8.0
 ## explicit; go 1.19
 github.com/go-pkgz/email
-# github.com/go-pkgz/lcw/v2 v2.0.0
+# github.com/go-pkgz/lcw/v2 v2.1.0
 ## explicit; go 1.21
 github.com/go-pkgz/lcw/v2
 github.com/go-pkgz/lcw/v2/eventbus
-# github.com/go-pkgz/lgr v0.12.3
+# github.com/go-pkgz/lgr v0.12.4
 ## explicit; go 1.21
 github.com/go-pkgz/lgr
-# github.com/go-pkgz/notify v1.3.0
-## explicit; go 1.24.0
+# github.com/go-pkgz/notify v1.4.0
+## explicit; go 1.25.0
 github.com/go-pkgz/notify
 # github.com/go-pkgz/repeater v1.2.0
 ## explicit; go 1.20
 github.com/go-pkgz/repeater
 github.com/go-pkgz/repeater/strategy
-# github.com/go-pkgz/requester v0.4.0
-## explicit; go 1.21
+# github.com/go-pkgz/repeater/v2 v2.2.0
+## explicit; go 1.23
+github.com/go-pkgz/repeater/v2
+# github.com/go-pkgz/requester v0.5.0
+## explicit; go 1.23
 github.com/go-pkgz/requester
 github.com/go-pkgz/requester/middleware
 github.com/go-pkgz/requester/middleware/logger
-# github.com/go-pkgz/syncs v1.3.2
-## explicit; go 1.20
+# github.com/go-pkgz/syncs v1.3.3
+## explicit; go 1.22
 github.com/go-pkgz/syncs
 # github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 ## explicit; go 1.16
@@ -49,12 +49,6 @@ github.com/gorilla/css/scanner
 # github.com/gorilla/websocket v1.5.3
 ## explicit; go 1.12
 github.com/gorilla/websocket
-# github.com/hashicorp/errwrap v1.1.0
-## explicit
-github.com/hashicorp/errwrap
-# github.com/hashicorp/go-multierror v1.1.1
-## explicit; go 1.13
-github.com/hashicorp/go-multierror
 # github.com/hashicorp/golang-lru/v2 v2.0.7
 ## explicit; go 1.18
 github.com/hashicorp/golang-lru/v2
@@ -68,10 +62,7 @@ github.com/jessevdk/go-flags
 ## explicit; go 1.19
 github.com/microcosm-cc/bluemonday
 github.com/microcosm-cc/bluemonday/css
-# github.com/pmezard/go-difflib v1.0.0
-## explicit
-github.com/pmezard/go-difflib/difflib
-# github.com/redis/go-redis/v9 v9.19.0
+# github.com/redis/go-redis/v9 v9.22.0
 ## explicit; go 1.24
 github.com/redis/go-redis/v9
 github.com/redis/go-redis/v9/auth
@@ -84,7 +75,6 @@ github.com/redis/go-redis/v9/internal/maintnotifications/logs
 github.com/redis/go-redis/v9/internal/otel
 github.com/redis/go-redis/v9/internal/pool
 github.com/redis/go-redis/v9/internal/proto
-github.com/redis/go-redis/v9/internal/rand
 github.com/redis/go-redis/v9/internal/routing
 github.com/redis/go-redis/v9/internal/util
 github.com/redis/go-redis/v9/maintnotifications
@@ -99,38 +89,41 @@ github.com/samber/lo/mutable
 # github.com/sandwich-go/gpt3-encoder v0.0.0-20230203030618-cd99729dd0dd
 ## explicit; go 1.18
 github.com/sandwich-go/gpt3-encoder
-# github.com/sashabaranov/go-openai v1.41.2
+# github.com/sashabaranov/go-openai v1.42.0
 ## explicit; go 1.18
 github.com/sashabaranov/go-openai
 github.com/sashabaranov/go-openai/internal
 github.com/sashabaranov/go-openai/jsonschema
-# github.com/slack-go/slack v0.23.1
+# github.com/slack-go/slack v0.29.0
 ## explicit; go 1.25
 github.com/slack-go/slack
 github.com/slack-go/slack/internal/backoff
 github.com/slack-go/slack/internal/errorsx
 github.com/slack-go/slack/internal/timex
 github.com/slack-go/slack/slackutilsx
-# github.com/stretchr/objx v0.5.2
+# github.com/stretchr/objx v0.5.3
 ## explicit; go 1.20
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.11.1
+# github.com/stretchr/testify v1.12.0
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
+github.com/stretchr/testify/internal/difflib
+github.com/stretchr/testify/internal/spew
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/require
 # go.uber.org/atomic v1.11.0
 ## explicit; go 1.18
 go.uber.org/atomic
-# golang.org/x/net v0.53.0
+# golang.org/x/net v0.58.0
 ## explicit; go 1.25.0
 golang.org/x/net/html
 golang.org/x/net/html/atom
-# golang.org/x/sys v0.43.0
+# golang.org/x/sys v0.47.0
 ## explicit; go 1.25.0
+golang.org/x/sys/cpu
 golang.org/x/sys/unix
-# golang.org/x/text v0.36.0
+# golang.org/x/text v0.41.0
 ## explicit; go 1.25.0
 golang.org/x/text/cases
 golang.org/x/text/internal

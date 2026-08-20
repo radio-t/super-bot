@@ -15,7 +15,7 @@ func CircuitBreaker(svc CircuitBreakerSvc) RoundTripperHandler {
 				return next.RoundTrip(req)
 			}
 
-			resp, e := svc.Execute(func() (interface{}, error) {
+			resp, e := svc.Execute(func() (any, error) {
 				return next.RoundTrip(req)
 			})
 			if e != nil {
@@ -30,13 +30,13 @@ func CircuitBreaker(svc CircuitBreakerSvc) RoundTripperHandler {
 // CircuitBreakerSvc is an interface wrapping any function to send a request with circuit breaker.
 // can be used with github.com/sony/gobreaker or any similar implementations
 type CircuitBreakerSvc interface {
-	Execute(req func() (interface{}, error)) (interface{}, error)
+	Execute(req func() (any, error)) (any, error)
 }
 
 // CircuitBreakerFunc is an adapter to allow the use of ordinary functions as CircuitBreakerSvc.
-type CircuitBreakerFunc func(req func() (interface{}, error)) (interface{}, error)
+type CircuitBreakerFunc func(req func() (any, error)) (any, error)
 
 // Execute CircuitBreakerFunc
-func (c CircuitBreakerFunc) Execute(req func() (interface{}, error)) (interface{}, error) {
+func (c CircuitBreakerFunc) Execute(req func() (any, error)) (any, error) {
 	return c(req)
 }

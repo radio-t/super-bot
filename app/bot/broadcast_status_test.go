@@ -39,8 +39,7 @@ func TestBroadcast_OnMessage(t *testing.T) {
 
 // Kind of integration test to check all workflow
 func TestBroadcast_StatusTransitions(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	status := true // hold here ping status
 	statusMx := sync.Mutex{}
@@ -93,8 +92,7 @@ func TestBroadcast_StatusTransitions(t *testing.T) {
 }
 
 func TestBroadcast_StatusOffToOn(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -111,8 +109,7 @@ func TestBroadcast_StatusOffToOn(t *testing.T) {
 }
 
 func TestBroadcast_StatusOffToOff(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -130,8 +127,7 @@ func TestBroadcast_StatusOffToOff(t *testing.T) {
 }
 
 func TestBroadcast_StatusOnToOffNoDeadline(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -150,8 +146,7 @@ func TestBroadcast_StatusOnToOffNoDeadline(t *testing.T) {
 }
 
 func TestBroadcast_StatusOnToOffWithDeadline(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -198,8 +193,7 @@ func TestBroadcast_OnMessageReturnsReplyOnChange(t *testing.T) {
 }
 
 func TestBroadcast_PingReturnsTrueOn200Status(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -210,8 +204,7 @@ func TestBroadcast_PingReturnsTrueOn200Status(t *testing.T) {
 }
 
 func TestBroadcast_PingReturnsFalseOnNot200Status(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -222,8 +215,7 @@ func TestBroadcast_PingReturnsFalseOnNot200Status(t *testing.T) {
 }
 
 func TestBroadcast_PingReturnsFalseOnUnableToDoRequest(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	require.False(t, ping(ctx, http.Client{}, "http://localhost:9873"))
 }
 

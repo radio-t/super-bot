@@ -308,7 +308,7 @@ func format(text string, entities *[]bot.Entity) (out template.HTML) {
 	}
 
 	runes := []rune(text)
-	result := ""
+	var result strings.Builder
 	pos := 0
 
 	for _, entity := range *entities {
@@ -326,19 +326,19 @@ func format(text string, entities *[]bot.Entity) (out template.HTML) {
 			continue
 		}
 
-		result += html.EscapeString(string(runes[pos:entity.Offset])) +
+		result.WriteString(html.EscapeString(string(runes[pos:entity.Offset])) +
 			before +
 			html.EscapeString(string(runes[entity.Offset:entity.Offset+entity.Length])) +
-			after
+			after)
 
 		pos = entity.Offset + entity.Length
 	}
 
 	if len(runes) > pos {
-		result += html.EscapeString(string(runes[pos:]))
+		result.WriteString(html.EscapeString(string(runes[pos:])))
 	}
 
-	return template.HTML(strings.ReplaceAll(result, "\n", "<br>")) // nolint
+	return template.HTML(strings.ReplaceAll(result.String(), "\n", "<br>")) // nolint
 }
 
 // getDecoration returns a pair of HTML tags (decorations) for Telegram Entity

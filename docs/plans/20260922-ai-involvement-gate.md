@@ -314,23 +314,23 @@ Standalone helpers planned (justification why NOT a method):
 Exports (justification per item: who outside the package calls this?):
 - none
 
-- [ ] write failing tests for `snapshot`: current is `cur` even when it was never recorded;
+- [x] write failing tests for `snapshot`: current is `cur` even when it was never recorded;
   preceding entries come only from `cur.ChatID`; the entry equal to `cur` is not duplicated;
   age boundary at exactly 30 minutes; per-entry cap truncates and marks preceding entries and
   quotes; total cap drops the oldest first; a current message whose decisive part sits past rune
   1000 arrives intact
-- [ ] write failing tests for `chatMessages`: system prompt first, `author: text` rendering with
+- [x] write failing tests for `chatMessages`: system prompt first, `author: text` rendering with
   the label fallback chain and snapshot-local aliases (no numeric IDs), image marker, reply quote
   with an empty parent marked unavailable, current message last with the caller-given text
   (stripped request for direct)
-- [ ] write failing tests: a direct query from a private chat sends its own stripped question and
+- [x] write failing tests: a direct query from a private chat sends its own stripped question and
   reply parent with no group context (inspect the request messages); two group chats do not see
   each other's history; update the rendering assertions at `openai_test.go:283-284`
-- [ ] run tests, confirm they fail
-- [ ] implement the snapshot types and methods with the constants from Technical Details; move
+- [x] run tests, confirm they fail
+- [x] implement the snapshot types and methods with the constants from Technical Details; move
   both builders onto the snapshot, removing the bare-text loops and the tail assumption; the
   direct path keeps `Params.Prompt` and the stripped request text
-- [ ] run tests - must pass before next task
+- [x] run tests - must pass before next task
 
 ### Task 5: Involvement gate and auto-reply limits, wired into OnMessage
 

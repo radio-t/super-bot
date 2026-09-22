@@ -1,13 +1,19 @@
 package openai
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
+	"os"
+	"sort"
 	"strings"
 	"testing"
+	"testing/iotest"
 	"time"
 
 	ai "github.com/sashabaranov/go-openai"
@@ -333,4 +339,606 @@ func TestOpenAI_PrivateDirectSharesCooldown(t *testing.T) {
 	assert.Equal(t, 2, response.ReplyTo)
 	assert.Len(t, client.CreateChatCompletionCalls(), 1)
 	assert.Empty(t, gate.AskCalls())
+}
+
+func syntheticReplayCase(id int, at time.Time) gateReplayCase {
+	return gateReplayCase{Version: 1, CaseID: fmt.Sprintf("case-%d", id), ConversationID: fmt.Sprintf("thread-%d", id),
+		ChatID: -100, At: at, HistorySize: 10, Context: []bot.Message{},
+		Current: bot.Message{ID: id, ChatID: -100, Sent: at, Text: "Please explain how a compiler works", From: bot.User{ID: 99111999, Username: "asker"}},
+		Stratum: "random", Split: "dev", Label: "yes", Reason: "A self-contained request", EvidenceNeeded: []string{"none"}}
+}
+
+func TestLoadGateReplayCases(t *testing.T) {
+	now := time.Date(2026, 9, 22, 12, 0, 0, 0, time.UTC)
+	valid := syntheticReplayCase(10, now)
+	for _, change := range []string{"valid", "version", "missing context", "chat mismatch", "private", "time mismatch", "future context", "self context", "future parent", "duplicate context", "unsorted context", "too much context", "bad size", "bad label", "bad stratum", "bad split", "missing reason", "bad evidence", "source gap", "source truncation", "direct command", "duplicate case", "duplicate current", "conversation split", "day split", "context split"} {
+		t.Run(change, func(t *testing.T) {
+			item := valid
+			second := syntheticReplayCase(20, now.Add(24*time.Hour))
+			records := []gateReplayCase{}
+			switch change {
+			case "version":
+				item.Version = 2
+			case "missing context":
+				item.Context = nil
+			case "chat mismatch":
+				item.ChatID = -200
+			case "private":
+				item.ChatID, item.Current.ChatID = 100, 100
+			case "time mismatch":
+				item.At = now.Add(time.Second)
+			case "future context":
+				item.Context = []bot.Message{{ID: 1, ChatID: -100, Sent: now.Add(time.Second)}}
+			case "self context":
+				item.Context = []bot.Message{item.Current}
+			case "future parent":
+				item.Current.ReplyTo.Sent = now.Add(time.Second)
+			case "duplicate context":
+				msg := bot.Message{ID: 1, ChatID: -100, Sent: now.Add(-time.Minute)}
+				item.Context = []bot.Message{msg, msg}
+			case "unsorted context":
+				item.Context = []bot.Message{{ID: 1, ChatID: -100, Sent: now.Add(-time.Minute)}, {ID: 2, ChatID: -100, Sent: now.Add(-2 * time.Minute)}}
+			case "too much context":
+				item.HistorySize = 1
+				item.Context = []bot.Message{{ID: 1}, {ID: 2}}
+			case "bad size":
+				item.HistorySize = 0
+			case "bad label":
+				item.Label = "positive"
+			case "bad stratum":
+				item.Stratum = "baseline"
+			case "bad split":
+				item.Split = "test"
+			case "missing reason":
+				item.Reason = ""
+			case "bad evidence":
+				item.EvidenceNeeded = []string{"none", "history"}
+			case "source gap":
+				item.SourceMissing = []string{"missing incoming message"}
+			case "source truncation":
+				item.SourceTruncated = true
+			case "direct command":
+				item.Current.Text = "chat! explain compilers"
+			case "duplicate case":
+				second.CaseID = item.CaseID
+				records = append(records, second)
+			case "duplicate current":
+				second.Current = item.Current
+				second.ChatID, second.At = item.ChatID, item.At
+				records = append(records, second)
+			case "conversation split":
+				second.ConversationID, second.Split = item.ConversationID, "holdout"
+				records = append(records, second)
+			case "day split":
+				second.At, second.Current.Sent, second.Split = now.Add(time.Hour), now.Add(time.Hour), "holdout"
+				records = append(records, second)
+			case "context split":
+				item.At = time.Date(2026, 9, 22, 23, 55, 0, 0, time.UTC)
+				item.Current.Sent = item.At
+				second.At, second.Current.Sent, second.Split = item.At.Add(10*time.Minute), item.At.Add(10*time.Minute), "holdout"
+				second.Context = []bot.Message{item.Current}
+				records = append(records, second)
+			}
+			records = append(records, item)
+			var input bytes.Buffer
+			input.WriteString("\n")
+			for _, record := range records {
+				require.NoError(t, json.NewEncoder(&input).Encode(record))
+			}
+			loaded, err := loadGateReplayCases(&input)
+			if change != "valid" {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, loaded, 1)
+			assert.Equal(t, valid, loaded[0])
+		})
+	}
+}
+
+func TestLoadGateReplayCases_BadInput(t *testing.T) {
+	for _, input := range []string{"", "{}", "{", "{} {}", `{"unexpected":true}`, strings.Repeat("x", 1024*1024+1)} {
+		_, err := loadGateReplayCases(strings.NewReader(input))
+		require.Error(t, err)
+	}
+	_, err := loadGateReplayCases(iotest.ErrReader(io.ErrUnexpectedEOF))
+	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
+}
+
+func TestLoadGateReplayCases_UnjudgeableAndExpiredContext(t *testing.T) {
+	now := time.Date(2026, 9, 22, 12, 0, 0, 0, time.UTC)
+	first := syntheticReplayCase(10, now)
+	first.Label, first.SourceTruncated = "unjudgeable", true
+	first.SourceMissing = []string{"known gap in incoming log"}
+	first.EvidenceNeeded = []string{"unknown"}
+	second := syntheticReplayCase(20, now.Add(24*time.Hour))
+	second.Split, second.Stratum = "holdout", "past_reply"
+	second.Context = []bot.Message{first.Current}
+	var input bytes.Buffer
+	for _, item := range []gateReplayCase{first, second} {
+		require.NoError(t, json.NewEncoder(&input).Encode(item))
+	}
+	cases, err := loadGateReplayCases(&input)
+	require.NoError(t, err)
+	require.Len(t, cases, 2)
+	assert.Equal(t, first, cases[0])
+	assert.Empty(t, cases[1].blindView().State.History)
+}
+
+func TestGateReplay_ProductionPipeline(t *testing.T) {
+	o, client, openaiClient := newGateTestBot()
+	item := syntheticReplayCase(10, o.nowFn())
+	item.HistorySize = 2
+	item.Context = []bot.Message{
+		{ID: 1, ChatID: -100, Sent: item.At.Add(-2 * time.Minute), Text: "evicted-before-snapshot"},
+		{ID: 2, ChatID: -100, Sent: item.At.Add(-time.Minute), Text: strings.Repeat("я", 1200)},
+	}
+	item.Current.ReplyTo.From = bot.User{Username: "parent"}
+	item.Current.ReplyTo.Text = "quoted context"
+	replay := gateReplay{client: client}
+	result, err := replay.run(item)
+	require.NoError(t, err)
+	assert.True(t, result.Join)
+	assert.Empty(t, result.Error)
+	assert.Equal(t, "jev-test", result.Model)
+	assert.InDelta(t, 1, *result.Invites, 0.0001)
+	require.Len(t, client.AskCalls(), 1)
+	state := client.AskCalls()[0].State.(jevState)
+	require.Len(t, state.History, 1)
+	assert.True(t, state.History[0].Truncated)
+	assert.Equal(t, item.Current.Text, state.Message.Text)
+	assert.Equal(t, "quoted context", state.Message.ReplyTo.Text)
+	assert.Empty(t, openaiClient.CreateChatCompletionCalls())
+
+	view := item.blindView()
+	data, err := json.Marshal(view)
+	require.NoError(t, err)
+	for _, hidden := range []string{`"label"`, `"stratum"`, `"split"`, `"reason"`, `"evidence_needed"`, "99111999", "evicted-before-snapshot"} {
+		assert.NotContains(t, string(data), hidden)
+	}
+	assert.Equal(t, state, view.State)
+
+	client.AskFunc = func(context.Context, any, map[string]jev.Question) (jev.Response, error) {
+		return testGateResponse(0.799, 1, 0), nil
+	}
+	result, err = replay.run(item)
+	require.NoError(t, err)
+	assert.False(t, result.Join)
+	assert.Empty(t, result.Error)
+	client.AskFunc = func(context.Context, any, map[string]jev.Question) (jev.Response, error) {
+		return jev.Response{}, context.DeadlineExceeded
+	}
+	result, err = replay.run(item)
+	require.NoError(t, err)
+	assert.NotEmpty(t, result.Error)
+	client.AskFunc = func(context.Context, any, map[string]jev.Question) (jev.Response, error) { return jev.Response{}, nil }
+	result, err = replay.run(item)
+	require.NoError(t, err)
+	assert.NotEmpty(t, result.Error)
+
+	item.Current.Text = strings.Repeat("x", 8001)
+	before := len(client.AskCalls())
+	result, err = replay.run(item)
+	require.NoError(t, err)
+	assert.False(t, result.Join)
+	assert.Equal(t, "oversized", result.Skipped)
+	assert.Empty(t, result.Error)
+	assert.Len(t, client.AskCalls(), before)
+}
+
+func TestGateReplayMetrics(t *testing.T) {
+	stats := map[string]*gateReplayStats{}
+	for _, result := range []gateReplayResult{
+		{Split: "dev", Stratum: "random", Label: "yes", Join: true},
+		{Split: "dev", Stratum: "random", Label: "no", Join: true},
+		{Split: "dev", Stratum: "random", Label: "no"},
+		{Split: "dev", Stratum: "random", Label: "yes"},
+		{Split: "dev", Stratum: "random", Label: "unjudgeable", Join: true},
+		{Split: "dev", Stratum: "random", Label: "no", Error: "timeout"},
+		{Split: "holdout", Stratum: "spam", Label: "no"},
+	} {
+		key := result.Split + "/" + result.Stratum
+		if stats[key] == nil {
+			stats[key] = &gateReplayStats{Split: result.Split, Stratum: result.Stratum}
+		}
+		stats[key].add(result)
+	}
+	require.Len(t, stats, 2)
+	random := stats["dev/random"].summary()
+	assert.Equal(t, 6, random.Cases)
+	assert.Equal(t, 1, random.Errors)
+	assert.Equal(t, 1, random.Unjudgeable)
+	assert.Equal(t, 1, random.Nuisance)
+	assert.InDelta(t, 0.5, *random.Precision, 0.0001)
+	assert.InDelta(t, 0.5, *random.ReplyRate, 0.0001)
+	spam := stats["holdout/spam"].summary()
+	assert.Nil(t, spam.Precision)
+	assert.Zero(t, *spam.ReplyRate)
+	empty := (&gateReplayStats{}).summary()
+	assert.Nil(t, empty.Precision)
+	assert.Nil(t, empty.ReplyRate)
+}
+
+type gateReplayCase struct {
+	Version         int           `json:"version"`
+	CaseID          string        `json:"case_id"`
+	ConversationID  string        `json:"conversation_id"`
+	ChatID          int64         `json:"chat_id"`
+	At              time.Time     `json:"at"`
+	HistorySize     int           `json:"history_size"`
+	Current         bot.Message   `json:"current"`
+	Context         []bot.Message `json:"context"`
+	SourceMissing   []string      `json:"source_missing,omitempty"`
+	SourceTruncated bool          `json:"source_truncated,omitempty"`
+	Stratum         string        `json:"stratum"`
+	Split           string        `json:"split"`
+	Label           string        `json:"label"`
+	Reason          string        `json:"reason"`
+	EvidenceNeeded  []string      `json:"evidence_needed"`
+}
+
+type gateReplayIndex struct {
+	cases   map[string]bool
+	current map[string]bool
+	splits  map[string]string
+}
+
+func loadGateReplayCases(input io.Reader) ([]gateReplayCase, error) {
+	scanner := bufio.NewScanner(input)
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024+1)
+	index := gateReplayIndex{cases: map[string]bool{}, current: map[string]bool{}, splits: map[string]string{}}
+	var cases []gateReplayCase
+	line := 0
+	for scanner.Scan() {
+		line++
+		if len(scanner.Bytes()) > 1024*1024 {
+			return nil, fmt.Errorf("case line %d exceeds 1 MiB", line)
+		}
+		if len(bytes.TrimSpace(scanner.Bytes())) == 0 {
+			continue
+		}
+		decoder := json.NewDecoder(bytes.NewReader(scanner.Bytes()))
+		decoder.DisallowUnknownFields()
+		var item gateReplayCase
+		if err := decoder.Decode(&item); err != nil {
+			return nil, fmt.Errorf("case line %d: %w", line, err)
+		}
+		var extra any
+		if err := decoder.Decode(&extra); err != io.EOF {
+			return nil, fmt.Errorf("case line %d must contain one object", line)
+		}
+		if err := item.validate(); err != nil {
+			return nil, fmt.Errorf("case line %d: %w", line, err)
+		}
+		if err := index.add(item); err != nil {
+			return nil, fmt.Errorf("case line %d: %w", line, err)
+		}
+		cases = append(cases, item)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("read cases: %w", err)
+	}
+	if len(cases) == 0 {
+		return nil, fmt.Errorf("case file is empty")
+	}
+	return cases, nil
+}
+
+func (c gateReplayCase) validate() error {
+	if c.Version != 1 || strings.TrimSpace(c.CaseID) == "" || strings.TrimSpace(c.ConversationID) == "" {
+		return fmt.Errorf("version 1 and nonempty case/conversation IDs are required")
+	}
+	if c.ChatID >= 0 || c.Current.ChatID != c.ChatID || c.Current.ID <= 0 || c.At.IsZero() || !c.At.Equal(c.Current.Sent) {
+		return fmt.Errorf("current message must have a positive ID, matching group chat and decision timestamp")
+	}
+	if c.HistorySize < 1 || c.HistorySize > 1000 || c.Context == nil || len(c.Context) > c.HistorySize {
+		return fmt.Errorf("history_size must be 1..1000 and context must be an array no longer than history_size")
+	}
+	if direct, _ := (&OpenAI{}).request(c.Current.Text); direct || len(c.Current.Text) < 8 || c.Current.Text == "idle" {
+		return fmt.Errorf("current message is not an automatic-reply candidate")
+	}
+	if c.Stratum != "random" && c.Stratum != "past_reply" && c.Stratum != "spam" {
+		return fmt.Errorf("invalid stratum")
+	}
+	if c.Split != "dev" && c.Split != "holdout" {
+		return fmt.Errorf("invalid split")
+	}
+	if c.Label != "yes" && c.Label != "no" && c.Label != "unjudgeable" {
+		return fmt.Errorf("invalid label")
+	}
+	if strings.TrimSpace(c.Reason) == "" || len(c.EvidenceNeeded) == 0 {
+		return fmt.Errorf("reason and evidence_needed are required")
+	}
+	for _, evidence := range c.EvidenceNeeded {
+		switch evidence {
+		case "none":
+			if len(c.EvidenceNeeded) != 1 {
+				return fmt.Errorf("none cannot be combined with other evidence")
+			}
+		case "history", "media", "private", "live", "unknown":
+		default:
+			return fmt.Errorf("invalid evidence_needed value")
+		}
+	}
+	if (len(c.SourceMissing) > 0 || c.SourceTruncated) && c.Label != "unjudgeable" {
+		return fmt.Errorf("incomplete source requires an unjudgeable label")
+	}
+	for _, missing := range c.SourceMissing {
+		if strings.TrimSpace(missing) == "" {
+			return fmt.Errorf("source_missing entries must be nonempty")
+		}
+	}
+	if c.Current.ReplyTo.Sent.After(c.Current.Sent) {
+		return fmt.Errorf("current reply parent is from the future")
+	}
+	return c.validateContext()
+}
+
+func (c gateReplayCase) validateContext() error {
+	seen := map[string]bool{}
+	var previous time.Time
+	for _, msg := range c.Context {
+		if msg.ID <= 0 || msg.ChatID >= 0 || msg.Sent.IsZero() || msg.Sent.After(c.At) || msg.Sent.Before(previous) {
+			return fmt.Errorf("context must contain chronological preceding group messages")
+		}
+		if msg.ChatID == c.ChatID && msg.ID >= c.Current.ID {
+			return fmt.Errorf("context includes current or later message")
+		}
+		if msg.ReplyTo.Sent.After(msg.Sent) {
+			return fmt.Errorf("context reply parent is from the future")
+		}
+		key := fmt.Sprintf("%d/%d", msg.ChatID, msg.ID)
+		if seen[key] {
+			return fmt.Errorf("duplicate context message")
+		}
+		seen[key] = true
+		previous = msg.Sent
+	}
+	return nil
+}
+
+func (c gateReplayCase) buffer() LimitedMessageHistory {
+	history := NewLimitedMessageHistory(c.HistorySize)
+	for _, msg := range c.Context {
+		history.Add(msg)
+	}
+	history.Add(c.Current)
+	return history
+}
+
+func (i *gateReplayIndex) add(c gateReplayCase) error {
+	key := fmt.Sprintf("%d/%d", c.ChatID, c.Current.ID)
+	if i.cases[c.CaseID] {
+		return fmt.Errorf("duplicate case ID %q", c.CaseID)
+	}
+	if i.current[key] {
+		return fmt.Errorf("duplicate current message")
+	}
+	i.cases[c.CaseID], i.current[key] = true, true
+	keys := []string{"conversation/" + c.ConversationID, fmt.Sprintf("day/%d/%s", c.ChatID, c.At.UTC().Format("2006-01-02"))}
+	history := c.buffer()
+	for _, msg := range history.messages {
+		if msg.ChatID == c.ChatID && c.At.Sub(msg.Sent) <= historyMaxAge {
+			keys = append(keys, fmt.Sprintf("message/%d/%d", msg.ChatID, msg.ID))
+		}
+	}
+	for _, key := range keys {
+		if split, ok := i.splits[key]; ok && split != c.Split {
+			return fmt.Errorf("conversation, day or recent context crosses splits")
+		}
+		i.splits[key] = c.Split
+	}
+	return nil
+}
+
+type gateReplayView struct {
+	CaseID          string   `json:"case_id"`
+	State           jevState `json:"state"`
+	SourceMissing   []string `json:"source_missing,omitempty"`
+	SourceTruncated bool     `json:"source_truncated,omitempty"`
+}
+
+func (c gateReplayCase) blindView() gateReplayView {
+	history := c.buffer()
+	return gateReplayView{CaseID: c.CaseID, State: history.snapshot(c.Current, c.At).jevState(), SourceMissing: c.SourceMissing, SourceTruncated: c.SourceTruncated}
+}
+
+type gateReplay struct{ client jevClient }
+
+type gateReplayClient struct {
+	next     jevClient
+	response jev.Response
+	err      error
+	called   bool
+}
+
+func (c *gateReplayClient) Ask(ctx context.Context, state any, questions map[string]jev.Question) (jev.Response, error) {
+	c.called = true
+	c.response, c.err = c.next.Ask(ctx, state, questions)
+	return c.response, c.err
+}
+
+type gateReplayResult struct {
+	CaseID     string   `json:"case_id"`
+	Split      string   `json:"split"`
+	Stratum    string   `json:"stratum"`
+	Label      string   `json:"label"`
+	Join       bool     `json:"join"`
+	Model      string   `json:"model,omitempty"`
+	Invites    *float64 `json:"invites,omitempty"`
+	Answerable *float64 `json:"answerable,omitempty"`
+	Spam       *float64 `json:"spam,omitempty"`
+	Error      string   `json:"error,omitempty"`
+	Skipped    string   `json:"skipped,omitempty"`
+}
+
+func (r gateReplay) run(c gateReplayCase) (gateReplayResult, error) {
+	if err := c.validate(); err != nil {
+		return gateReplayResult{}, err
+	}
+	if r.client == nil {
+		return gateReplayResult{}, fmt.Errorf("replay requires a Jev client")
+	}
+	client := &gateReplayClient{next: r.client}
+	o := &OpenAI{params: Params{Jev: client}}
+	history := c.buffer()
+	snapshot := history.snapshot(c.Current, c.At)
+	result := gateReplayResult{CaseID: c.CaseID, Split: c.Split, Stratum: c.Stratum, Label: c.Label}
+	result.Join = o.shouldJoin(snapshot)
+	if !client.called {
+		result.Skipped = "oversized"
+		return result, nil
+	}
+	if client.err != nil {
+		result.Error = client.err.Error()
+		return result, nil
+	}
+	if _, err := o.gateScores(client.response); err != nil {
+		result.Error = err.Error()
+		return result, nil
+	}
+	result.Model = client.response.Model
+	result.Invites = client.response.Answers["invites"].Noul
+	result.Answerable = client.response.Answers["answerable"].Noul
+	result.Spam = client.response.Answers["spam"].Noul
+	return result, nil
+}
+
+type gateReplayStats struct {
+	Split               string `json:"split"`
+	Stratum             string `json:"stratum"`
+	Cases               int    `json:"cases"`
+	Errors              int    `json:"errors"`
+	Unjudgeable         int    `json:"unjudgeable"`
+	AcceptedUnjudgeable int    `json:"accepted_unjudgeable"`
+	TP                  int    `json:"tp"`
+	FP                  int    `json:"fp"`
+	TN                  int    `json:"tn"`
+	FN                  int    `json:"fn"`
+}
+
+func (s *gateReplayStats) add(r gateReplayResult) {
+	s.Cases++
+	if r.Label == "unjudgeable" {
+		s.Unjudgeable++
+	}
+	if r.Error != "" {
+		s.Errors++
+		return
+	}
+	if r.Label == "unjudgeable" {
+		if r.Join {
+			s.AcceptedUnjudgeable++
+		}
+		return
+	}
+	switch {
+	case r.Join && r.Label == "yes":
+		s.TP++
+	case r.Join:
+		s.FP++
+	case r.Label == "yes":
+		s.FN++
+	default:
+		s.TN++
+	}
+}
+
+type gateReplaySummary struct {
+	gateReplayStats
+	Precision *float64 `json:"precision"`
+	ReplyRate *float64 `json:"reply_rate"`
+	Nuisance  int      `json:"nuisance"`
+}
+
+func (s *gateReplayStats) summary() gateReplaySummary {
+	result := gateReplaySummary{gateReplayStats: *s, Nuisance: s.FP}
+	if accepted := s.TP + s.FP; accepted > 0 {
+		precision := float64(s.TP) / float64(accepted)
+		result.Precision = &precision
+	}
+	if scored := s.TP + s.FP + s.TN + s.FN; scored > 0 {
+		rate := float64(s.TP+s.FP) / float64(scored)
+		result.ReplyRate = &rate
+	}
+	return result
+}
+
+func TestGateReplayViews(t *testing.T) {
+	path := os.Getenv("JEV_REPLAY_CASES")
+	if path == "" {
+		t.Skip("set JEV_REPLAY_CASES to render blinded views without API calls")
+	}
+	file, err := os.Open(path)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = file.Close() })
+	cases, err := loadGateReplayCases(file)
+	require.NoError(t, err)
+	for _, item := range cases {
+		data, err := json.Marshal(item.blindView())
+		require.NoError(t, err)
+		t.Logf("view %s", data)
+	}
+}
+
+func TestJevLiveReplay(t *testing.T) {
+	path := os.Getenv("JEV_LIVE_CASES")
+	if path == "" {
+		t.Skip("set JEV_LIVE_CASES to opt into live Jev replay")
+	}
+	file, err := os.Open(path)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = file.Close() })
+	cases, err := loadGateReplayCases(file)
+	require.NoError(t, err)
+	split := os.Getenv("JEV_LIVE_SPLIT")
+	if split == "" {
+		split = "dev"
+	}
+	require.Contains(t, []string{"dev", "holdout"}, split)
+	key := os.Getenv("JEV_KEY")
+	require.NotEmpty(t, key, "JEV_KEY must be supplied privately")
+	model := os.Getenv("JEV_MODEL")
+	if model == "" {
+		model = "jev-1.13.0"
+	}
+	timeout := 2 * time.Second
+	if value := os.Getenv("JEV_TIMEOUT"); value != "" {
+		timeout, err = time.ParseDuration(value)
+		require.NoError(t, err)
+	}
+	require.Positive(t, timeout)
+	replay := gateReplay{client: jev.New(jev.Params{Key: key, Model: model, Timeout: timeout})}
+	stats := map[string]*gateReplayStats{}
+	t.Logf("config split=%s requested_model=%s invites=%g answerable=%g spam=%g", split, model, invitesThreshold, answerableThreshold, spamThreshold)
+	for _, item := range cases {
+		if item.Split != split {
+			continue
+		}
+		result, err := replay.run(item)
+		require.NoError(t, err)
+		data, err := json.Marshal(result)
+		require.NoError(t, err)
+		t.Logf("case %s", data)
+		group := item.Split + "/" + item.Stratum
+		if stats[group] == nil {
+			stats[group] = &gateReplayStats{Split: item.Split, Stratum: item.Stratum}
+		}
+		stats[group].add(result)
+		if result.Error != "" {
+			t.Errorf("case %q could not be scored", item.CaseID)
+		}
+	}
+	require.NotEmpty(t, stats, "no cases in selected split")
+	groups := make([]string, 0, len(stats))
+	for group := range stats {
+		groups = append(groups, group)
+	}
+	sort.Strings(groups)
+	for _, group := range groups {
+		data, err := json.Marshal(stats[group].summary())
+		require.NoError(t, err)
+		t.Logf("summary %s", data)
+	}
 }

@@ -152,7 +152,7 @@ If a previous task shipped a violation (spotted later by user, reviewer, or your
 
 ## Technical Details
 
-**Initial constants** (tuned or confirmed in Task 9):
+**Initial constants** (tuned or confirmed in Task 8):
 - history max age 30 minutes; per-entry text cap 1000 runes for preceding messages and reply
   quotes, each truncation marked; total snapshot text cap 8000 runes, oldest entries dropped first.
   The current message is never truncated: if it alone exceeds the total cap, the auto path
@@ -209,7 +209,7 @@ elapsed time. Failures at WARN with status plus the error type and message field
 key or the state
 
 ## What Goes Where
-- **Implementation Steps** (`[ ]` checkboxes): code, tests, docs in this repo; the Task 9 case
+- **Implementation Steps** (`[ ]` checkboxes): code, tests, docs in this repo; the Task 8 case
   data stays outside the repo
 - **Post-Completion** (no checkboxes): deployment env in `master-node`, production observation
 
@@ -433,16 +433,109 @@ Standalone helpers planned: `setJev`, `redactedOpts`, as above. Exports: none
 **Files:**
 - Modify: `app/bot/openai/gate_test.go`
 
-- [ ] define the case file format (JSON lines, stored outside the repo): case ID, chat, time,
+**Case file contract, version 1:** UTF-8 JSONL outside the repository, one object per line,
+at most 1 MiB per line. Blank lines are ignored. Unknown fields, malformed records, duplicate
+case IDs or duplicate current messages are errors; the loader never silently drops cases.
+
+| Field | Type and meaning |
+| --- | --- |
+| `version` | integer, exactly `1` |
+| `case_id` | nonempty opaque string, unique in the file; do not encode the stratum or label |
+| `conversation_id` | nonempty curation identifier grouping related/overlapping conversations |
+| `chat_id` | negative integer, equal to `current.ChatID` |
+| `at` | RFC3339 timestamp, equal to `current.Sent`; used as the replay decision clock |
+| `history_size` | integer 1..1000; use `10` for this rollout |
+| `current` | original `bot.Message` JSON object for the candidate, as defined below |
+| `context` | required array, oldest first, containing up to `history_size` preceding incoming group messages |
+| `source_missing` | optional array of nonempty strings describing known gaps in reconstruction; defaults to `[]` |
+| `source_truncated` | optional boolean: extraction lost original text, not the production snapshot's normal truncation; defaults to `false` |
+| `stratum` | exactly `random`, `past_reply`, or `spam` |
+| `split` | exactly `dev` or `holdout` |
+| `label` | exactly `yes`, `no`, or `unjudgeable` |
+| `reason` | nonempty explanation of the label |
+| `evidence_needed` | nonempty array drawn from `none`, `history`, `media`, `private`, `live`, `unknown`; `none` must stand alone |
+
+Minimal synthetic line (not production data):
+
+```json
+{"version":1,"case_id":"synthetic-a","conversation_id":"synthetic-thread","chat_id":-100,"at":"2026-09-22T12:00:00Z","history_size":10,"current":{"ID":10,"ChatID":-100,"Sent":"2026-09-22T12:00:00Z","From":{"ID":123,"Username":"asker"},"Text":"Please explain how a compiler works"},"context":[],"stratum":"random","split":"dev","label":"yes","reason":"A self-contained request","evidence_needed":["none"]}
+```
+
+`current` and each `context` item use the existing reporter schema, preserving its capitalization:
+`ID` (positive integer), `ChatID` (negative integer), `Sent` (RFC3339), `Text` (string), and
+`From: {ID: integer, Username: string, DisplayName: string}`. Optional `sender_chat` uses
+`{id: integer, username: string}`. `Image`, when present, uses `{FileID: string, Width: integer,
+Height: integer, Caption: string}`; retain it even though the model cannot see the image.
+Other existing `bot.Message` fields (`HTML`, `Entities`, image entities) are accepted but not
+used by the snapshot. Omitted optional fields take their normal Go zero values.
+
+The quoted parent is nested inside the relevant message as
+`ReplyTo: {From: {ID, Username, DisplayName}, Text: string, Sent: RFC3339,
+sender_chat: {id, username}}`. Omit `ReplyTo` when absent. If the parent exists but its content is
+unavailable, preserve its available author/time and use empty `Text`; do not invent a parent ID
+or recover a chain by matching text. Original text is never pre-truncated for this file.
+
+For each candidate, reconstruct the last `history_size` messages that would have entered the
+new group-only in-memory recorder **before** this candidate. Include all incoming groups in
+that one buffer, not just the candidate's chat; production snapshot filtering selects its chat.
+Exclude private messages, synthetic idle ticks, messages filtered before `OnMessage`, and the
+bot's own outbound messages (the reporter also logs outbound messages, but `OnMessage` does not
+record them). The replay adds `current` through `LimitedMessageHistory.Add`, just like production;
+a full context therefore loses its oldest item before snapshot construction. Do not include
+`current` in `context` or append its historical bot answer. A quoted parent supplied by the
+current message is allowed even if older than the history window.
+
+Context must be chronological and not later than `at`; within the candidate's chat its IDs must
+be smaller than the candidate's ID. Same-second entries retain original arrival order. The
+loader also rejects a parent timestamp later than its own message. Reporter logs are lossy;
+use incoming debug records to recover known gaps. Cases with `source_missing` or
+`source_truncated=true` must be labeled `unjudgeable`, rather than claiming a faithful replay.
+Actual unavailable media is represented in the message and `evidence_needed`, not as a source
+gap. `unjudgeable` cases remain visible in counts but are excluded from correctness metrics.
+
+Split before tuning. Every conversation, every `(chat_id, UTC calendar day)`, and same-chat
+messages shared by recent (30-minute) recorder windows must stay in one split. The loader checks
+these constraints after applying the recorder's size limit; expired or other-chat entries do
+not connect splits. Assign each unique candidate to one stratum; retain random-sample membership when it overlaps the
+challenge set and remove that duplicate from the challenge set. The `past_reply` stratum is
+challenge provenance only, never a positive label. Before labels are complete, use
+`label: "unjudgeable"`, `reason: "unlabeled"`, `evidence_needed: ["unknown"]`; those rows provide
+no accuracy evidence.
+
+The key-free `TestGateReplayViews` test reads `JEV_REPLAY_CASES` and emits only opaque case ID,
+the production `snapshot.jevState()` view, and source-quality markers. Use those views for
+independent labeling; hide labels, reasons, evidence-needed annotations, strata and splits.
+It is skipped when its file variable is unset and never creates a Jev client.
+
+Live replay defaults to the `dev` split; `JEV_LIVE_SPLIT=holdout` is an explicit opt-in after
+freezing the questions and thresholds. It uses `JEV_KEY`, `JEV_MODEL` (default `jev-1.13.0`) and
+`JEV_TIMEOUT` (default `2s`) from the caller's environment. Only Claude runs live calls. Invoke
+with `-v -count=1` to show reports and avoid cached results; never export the case variables into
+routine checks. For example, with the key already supplied privately:
+
+```sh
+JEV_REPLAY_CASES=/tmp/private-cases.jsonl go test -v -run '^TestGateReplayViews$' -count=1 ./app/bot/openai
+JEV_LIVE_CASES=/tmp/private-cases.jsonl JEV_LIVE_SPLIT=dev go test -v -run '^TestJevLiveReplay$' -count=1 ./app/bot/openai
+```
+
+Each case runs independently through production `snapshot` and `shouldJoin`; it does not
+simulate cooldown/day/hour limits or generate/send an OpenAI reply. Report per `(split,stratum)`:
+case count, errors, unjudgeable count, TP/FP/TN/FN, precision, gate reply rate and nuisance count
+(FP). Precision is `TP/(TP+FP)`; reply rate is `(TP+FP)/(TP+FP+TN+FN)`, so it is a gate acceptance
+rate on successfully scored judgeable cases, **not** delivered production replies per day.
+Undefined ratios are JSON `null`. Provider errors and invalid responses are counted separately,
+excluded from correctness metrics, and make the live test fail. Never pool strata.
+
+- [x] define the case file format (JSON lines, stored outside the repo): case ID, chat, time,
   current message, strictly preceding context as the production recorder would hold it, quoted
   parent, missing-context and truncation markers, stratum and split (hidden from labelers), label
   yes/no/unjudgeable, reason and evidence needed
-- [ ] write failing synthetic-case tests for the loader and replay, then the loader and replay
+- [x] write failing synthetic-case tests for the loader and replay, then the loader and replay
   that feed cases through the production `snapshot` and `shouldJoin`
-- [ ] write the live replay test in `gate_test.go`, skipped unless `JEV_LIVE_CASES` names a case
+- [x] write the live replay test in `gate_test.go`, skipped unless `JEV_LIVE_CASES` names a case
   file; it calls the real jev API and reports precision, reply rate and nuisance counts per
-  stratum, never pooled; run it only on demand as `JEV_LIVE_CASES=<file> go test -run <name> -count=1 ./app/bot/openai`, never exported into routine gates
-- [ ] run tests - must pass before next task
+  stratum, never pooled; run it only on demand as `JEV_LIVE_CASES=<file> go test -v -run '^TestJevLiveReplay$' -count=1 ./app/bot/openai`, never exported into routine gates
+- [x] run tests - must pass before next task
 
 ### Task 8: Label cases and tune thresholds
 

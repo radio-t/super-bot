@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -13,13 +12,19 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/radio-t/super-bot/app/bot"
+	"github.com/radio-t/super-bot/app/bot/openai/jev"
 )
 
 //go:generate moq --out mocks/openai_client.go --pkg mocks --skip-ensure . openAIClient:OpenAIClient
+//go:generate moq --out mocks/jev_client.go --pkg mocks --skip-ensure . jevClient:JevClient
 
 // openAIClient is interface for OpenAI client with the possibility to mock it
 type openAIClient interface {
 	CreateChatCompletion(context.Context, openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
+}
+
+type jevClient interface {
+	Ask(ctx context.Context, state any, questions map[string]jev.Question) (jev.Response, error)
 }
 
 // Params contains parameters for OpenAI bot
@@ -36,6 +41,8 @@ type Params struct {
 	HistoryReplyProbability int // percentage of the probability to reply with history
 	Model                   string
 	ReasoningEffort         string // reasoning_effort for reasoning models (minimal, low, medium, high); empty means API default
+	// Jev decides whether to reply automatically; nil disables unsolicited replies.
+	Jev jevClient
 }
 
 // OpenAI bot, returns responses from ChatGPT via OpenAI API
@@ -45,8 +52,8 @@ type OpenAI struct {
 	params    Params
 	superUser bot.SuperUser
 
-	history LimitedMessageHistory
-	rand    func(n int64) int64 // tests may change it
+	history    LimitedMessageHistory
+	autoLimits autoReplyLimits
 
 	nowFn  func() time.Time // for testing
 	lastDT time.Time
@@ -65,7 +72,7 @@ func NewOpenAI(params Params, httpClient *http.Client, superUser bot.SuperUser) 
 	history := NewLimitedMessageHistory(params.HistorySize)
 
 	return &OpenAI{client: client, params: params, superUser: superUser,
-		history: history, rand: rand.Int63n, nowFn: time.Now}
+		history: history, nowFn: time.Now}
 }
 
 // OnMessage pass msg to all bots and collects responses
@@ -75,33 +82,42 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 	}
 
 	ok, reqText := o.request(msg.Text)
-	if !ok {
-		if msg.ChatID >= 0 || !o.params.EnableAutoResponse || msg.Text == "idle" || len(msg.Text) < 8 {
-			// don't answer on short messages or "idle" command or if auto response is disabled
-			return bot.Response{}
-		}
-
-		// all the non-matching requests processed for the reactions based on the history.
-		if !o.shouldAnswerWithHistory(msg) {
-			return bot.Response{}
-		}
-
-		responseAI, err := o.chatGPTRequestWithHistory(o.history.snapshot(msg, o.nowFn()), "Reply in Russian, at most 50 words. Add only one concrete, substantive remark about the topic — a specific fact, detail, or trade-off. Do not greet, do not praise, do not give generic opinions, do not ask questions, do not invite chat. No emojis, no exclamations, neutral tone. If you have nothing concrete to add, reply with an empty string.")
-		if err != nil {
-			log.Printf("[WARN] failed to make context request to ChatGPT error=%v", err)
-			return bot.Response{}
-		}
-		if strings.TrimSpace(responseAI) == "" {
-			log.Printf("[DEBUG] OpenAI bot has nothing substantive to add, skipping")
-			return bot.Response{}
-		}
-		log.Printf("[DEBUG] OpenAI bot answer with history: %q", responseAI)
-		return bot.Response{
-			Text: responseAI,
-			Send: true,
-		}
+	if ok {
+		return o.answerDirect(msg, reqText)
 	}
+	return o.autoReply(msg)
+}
 
+func (o *OpenAI) autoReply(msg bot.Message) bot.Response {
+	if !o.params.EnableAutoResponse || o.params.Jev == nil || msg.ChatID >= 0 || msg.Text == "idle" || len(msg.Text) < 8 {
+		return bot.Response{}
+	}
+	now := o.nowFn()
+	if !o.autoLimits.allowed(now) {
+		return bot.Response{}
+	}
+	snapshot := o.history.snapshot(msg, now)
+	if snapshot.oversized {
+		return bot.Response{}
+	}
+	o.autoLimits.noteJevCall(now)
+	if !o.shouldJoin(snapshot) {
+		return bot.Response{}
+	}
+	response, err := o.chatGPTRequestWithHistory(snapshot, autoReplyPrompt)
+	if err != nil {
+		log.Printf("[WARN] failed to make context request to ChatGPT error=%v", err)
+		return bot.Response{}
+	}
+	if strings.TrimSpace(response) == "" {
+		return bot.Response{}
+	}
+	o.autoLimits.mark(o.nowFn())
+	log.Printf("[DEBUG] OpenAI bot answer with history: %q", response)
+	return bot.Response{Text: response, Send: true, ReplyTo: msg.ID}
+}
+
+func (o *OpenAI) answerDirect(msg bot.Message, reqText string) bot.Response {
 	if ok, banMessage := o.checkRequest(msg, reqText); !ok {
 		return bot.Response{
 			Text:        banMessage,
@@ -258,19 +274,6 @@ func (o *OpenAI) chatGPTRequest(request, userPrompt, sysPrompt string) (response
 			Content: r,
 		},
 	})
-}
-
-func (o *OpenAI) shouldAnswerWithHistory(msg bot.Message) bool {
-	if o.history.count < o.history.limit {
-		return false
-	}
-
-	if msg.Text != "" && msg.Text[len(msg.Text)-1:] != "?" { // don't try to answer to short messages, like wtf?
-		return false
-	}
-
-	// by default 10% chance to answer with ChatGPT for question
-	return o.rand(100) < int64(o.params.HistoryReplyProbability)
 }
 
 func (o *OpenAI) chatGPTRequestWithHistory(s historySnapshot, sysPrompt string) (response string, err error) {

@@ -45,8 +45,9 @@ func (l *LimitedMessageHistory) Add(message bot.Message) {
 }
 
 type historySnapshot struct {
-	current  historyEntry
-	previous []historyEntry
+	current   historyEntry
+	previous  []historyEntry
+	oversized bool
 }
 
 type historyEntry struct {
@@ -95,6 +96,7 @@ func (l *LimitedMessageHistory) snapshot(cur bot.Message, now time.Time) history
 		snapshot.previous = append(snapshot.previous, l.entry(msg, authors, true))
 	}
 	snapshot.current = l.entry(cur, authors, false)
+	snapshot.oversized = snapshot.current.text.size() > historySnapshotRunes
 	if snapshot.current.reply != nil {
 		snapshot.current.reply.text.limit(max(0, historySnapshotRunes-snapshot.current.text.size()))
 	}

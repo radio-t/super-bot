@@ -155,7 +155,8 @@ If a previous task shipped a violation (spotted later by user, reviewer, or your
 **Initial constants** (tuned or confirmed in Task 9):
 - history max age 30 minutes; per-entry text cap 1000 runes for preceding messages and reply
   quotes, each truncation marked; total snapshot text cap 8000 runes, oldest entries dropped first.
-  The current message is never truncated: if it alone exceeds the total cap, the bot abstains
+  The current message is never truncated: if it alone exceeds the total cap, the auto path
+  abstains. Direct requests retain their inherited size handling
 - auto-reply cooldown 15 minutes; daily cap 10 (today ~0.9 a day); the day resets at local
   midnight in the container's time zone
 - jev calls capped at 150 per clock hour. Eligible messages per hour since June: median 3,
@@ -163,7 +164,8 @@ If a previous task shipped a violation (spotted later by user, reviewer, or your
   message loop with one jev call per message
 - nothing in this change adds an uncapped path: unsolicited replies never run in private chats,
   direct queries keep the shared 5-minute cooldown and ban (super users exempt, as today), replies
-  to the bot go through the unsolicited limits, and request size is bounded by the snapshot caps
+  to the bot go through the unsolicited limits, and automatic request size is bounded by the
+  snapshot caps
 - noul thresholds: `invites` >= 0.8, `answerable` >= 0.7, `spam` < 0.3
 
 **jev request** (`POST https://api.typesafe.ai/v1/systemone`, model pinned to `jev-1.13.0`):
@@ -338,6 +340,7 @@ Exports (justification per item: who outside the package calls this?):
 - Create: `app/bot/openai/gate.go`
 - Create: `app/bot/openai/gate_test.go`
 - Modify: `app/bot/openai/openai.go`
+- Modify: `app/bot/openai/openaihistory.go`
 - Modify: `app/bot/openai/openai_test.go`
 - Create: `app/bot/openai/mocks/jev_client.go` (generated)
 
@@ -367,33 +370,33 @@ Standalone helpers planned (justification why NOT a method):
 Exports (justification per item: who outside the package calls this?):
 - `Params.Jev jevClient`: set from `app/main.go`; godoc says nil disables unsolicited replies
 
-- [ ] add `//go:generate` for `jevClient` next to the existing one and generate the mock
-- [ ] run the existing suite green, then extract `answerDirect` unchanged (behavior-preserving)
-- [ ] write failing tests for `jevState`: same labels and aliases as `chatMessages`, no numeric
+- [x] add `//go:generate` for `jevClient` next to the existing one and generate the mock
+- [x] run the existing suite green, then extract `answerDirect` unchanged (behavior-preserving)
+- [x] write failing tests for `jevState`: same labels and aliases as `chatMessages`, no numeric
   IDs, image marker, reply parent with empty text marked unavailable; a current message over the
   total cap sets `oversized` and is carried whole
-- [ ] write failing table tests for `shouldJoin`: each noul at and around its threshold, spam veto
+- [x] write failing table tests for `shouldJoin`: each noul at and around its threshold, spam veto
   overriding high `invites`/`answerable`, jev error, missing answer, nil client, oversized snapshot
-- [ ] write failing tests for `allowed`/`mark`/`noteJevCall`: cooldown boundary, daily cap,
+- [x] write failing tests for `allowed`/`mark`/`noteJevCall`: cooldown boundary, daily cap,
   reset at local midnight, the 151st jev call in an hour is refused and the budget resets on the
   next clock hour
-- [ ] write failing tests for the limits end to end: a burst of eligible messages past the hourly
+- [x] write failing tests for the limits end to end: a burst of eligible messages past the hourly
   jev budget makes no further jev calls; a direct query from a private chat within the 5-minute
   cooldown is refused like a group one; a reply to the bot's own message cannot bypass the
   cooldown or daily cap
-- [ ] write failing integration tests: an unpunctuated request accepted by jev calls jev and
+- [x] write failing integration tests: an unpunctuated request accepted by jev calls jev and
   OpenAI once each and replies to the triggering message (`ReplyTo: msg.ID`); the first genuine
   group message can qualify without a full buffer; jev rejection, error or nil client makes zero
   OpenAI calls; cooldown and cap skip the jev call; empty or failed OpenAI output does not mark;
   a nonempty auto reply marks once; auto replies never change `lastDT` or issue a ban; a direct
   query bypasses jev and the auto limits
-- [ ] run tests, confirm the new ones fail
-- [ ] put question texts, criteria and thresholds as constants in `gate.go`; implement
+- [x] run tests, confirm the new ones fail
+- [x] put question texts, criteria and thresholds as constants in `gate.go`; implement
   `shouldJoin` with DEBUG decision log and WARN on failure; implement `autoReply` with the
   requests-only system prompt
-- [ ] remove `shouldAnswerWithHistory`, the `?` rule, the `rand` field, and the dice tests
+- [x] remove `shouldAnswerWithHistory`, the `?` rule, the `rand` field, and the dice tests
   (`openai_test.go:289,333,376`) with their `rand` overrides (`:253,310,354,417`)
-- [ ] run tests - must pass before next task
+- [x] run tests - must pass before next task
 
 ### Task 6: Config wiring
 

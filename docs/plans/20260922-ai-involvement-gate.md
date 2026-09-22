@@ -559,7 +559,7 @@ excluded from correctness metrics, and make the live test fail. Never pool strat
 **Files:**
 - Create: `docs/backlog/ai-reply-tool-harness.md`
 
-- [ ] record the postponed harness idea with codex's notes: count retrieval need across socially
+- [x] record the postponed harness idea with codex's notes: count retrieval need across socially
   eligible requests, before any gate filters them; try archive search offline first; reuse
   `TelegramListener.Submit` for delayed replies with a narrow envelope (reply target, expiry,
   outcome); reporter logs lack parent message IDs

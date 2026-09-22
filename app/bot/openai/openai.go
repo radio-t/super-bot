@@ -130,7 +130,7 @@ func (o *OpenAI) answerDirect(msg bot.Message, reqText string) bot.Response {
 	// use chatGPTRequestWithHistoryAndFocus to include history while focusing on the current question
 	responseAI, err := o.chatGPTRequestWithHistoryAndFocus(o.history.snapshot(msg, o.nowFn()), reqText, "Answer the question directly in at most 50 words. Provide concrete information only. Do not praise, do not editorialize, do not add follow-up questions, do not invite further chat. No emojis, neutral tone.")
 	if err != nil {
-		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
+		log.Printf("[WARN] failed to make request to ChatGPT, error=%v", err)
 		// return a more informative response about API errors to super users
 		if o.superUser.IsSuper(msg.From.Username) {
 			apiErrMsg := "OpenAI API error occurred. Please check logs for details."
@@ -307,8 +307,9 @@ func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage)
 	}
 	resp, err := o.client.CreateChatCompletion(context.Background(), req)
 	if err != nil {
-		reqDetails := fmt.Sprintf("request: %v, model: %s, max_tokens: %d", messages, o.params.Model, o.params.MaxTokensResponse)
-		return "", fmt.Errorf("OpenAI request failed %s: %w", reqDetails, err)
+		// message content stays out of the error: callers log it, and it carries chat text and authors
+		return "", fmt.Errorf("OpenAI request failed, model: %s, messages: %d, max_tokens: %d: %w",
+			o.params.Model, len(messages), o.params.MaxTokensResponse, err)
 	}
 	// openAI platform supports to return multiple chat completion choices
 	// but we use only the first one

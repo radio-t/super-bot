@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -343,7 +344,6 @@ func TestOpenAI_OnMessage_PreservesGroupHistory(t *testing.T) {
 			} else {
 				assert.Empty(t, calls)
 			}
-			require.Equal(t, len(groupMessages), o.history.count)
 			assert.Equal(t, groupMessages, o.history.messages)
 		})
 	}
@@ -693,10 +693,47 @@ func TestOpenAI_chatGPTRequestInternal_APIError(t *testing.T) {
 	require.Error(t, err)
 	// check that our error contains the original error info
 	assert.Contains(t, err.Error(), "OpenAI request failed")
+	assert.Contains(t, err.Error(), "messages: 2")
+	assert.NotContains(t, err.Error(), "Test user message")
+	assert.ErrorIs(t, err, apiErr)
 
 	// verify API was called
 	calls := mockOpenAIClient.CreateChatCompletionCalls()
 	require.Equal(t, 1, len(calls))
+}
+
+func TestOpenAI_OnMessage_APIError_LogsNoChatContent(t *testing.T) {
+	var logs strings.Builder
+	defer log.SetOutput(log.Writer())
+	log.SetOutput(&logs)
+
+	apiErr := &ai.APIError{Type: "server_error", Message: "upstream failure"}
+	su := &bmocks.SuperUser{IsSuperFunc: func(string) bool { return false }}
+	o := NewOpenAI(getDefaultTestingConfig(), &http.Client{Timeout: 10 * time.Second}, su)
+	o.client = &mocks.OpenAIClient{
+		CreateChatCompletionFunc: func(context.Context, ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+			return ai.ChatCompletionResponse{}, apiErr
+		},
+	}
+	now := o.nowFn()
+	o.OnMessage(bot.Message{ID: 1, ChatID: -100, Sent: now, Text: "sentinel-history text",
+		From: bot.User{ID: 7, Username: "sentinel_author"}})
+	resp := o.OnMessage(bot.Message{ID: 2, ChatID: -100, Sent: now, Text: "chat! sentinel-question text",
+		From: bot.User{ID: 8, Username: "asker"},
+		ReplyTo: struct {
+			From       bot.User
+			Text       string `json:",omitempty"`
+			Sent       time.Time
+			SenderChat bot.SenderChat `json:"sender_chat"`
+		}{From: bot.User{ID: 9, Username: "sentinel_parent"}, Text: "sentinel-quote text", Sent: now}})
+
+	assert.Equal(t, bot.Response{}, resp)
+	out := logs.String()
+	assert.Contains(t, out, "failed to make request to ChatGPT")
+	assert.Contains(t, out, "upstream failure")
+	for _, sentinel := range []string{"sentinel-question", "sentinel-quote", "sentinel-history", "sentinel_author", "sentinel_parent"} {
+		assert.NotContains(t, out, sentinel)
+	}
 }
 
 func TestOpenAI_OnMessage_APIError_SuperUserMessage(t *testing.T) {

@@ -255,21 +255,21 @@ func TestOpenAI_OnMessage_RequestWithHistory(t *testing.T) {
 	assert.Equal(t, 0, len(o.history.messages))
 
 	{ // first request, empty answer
-		resp := o.OnMessage(bot.Message{Text: "message 1?", ID: 756})
+		resp := o.OnMessage(bot.Message{Text: "message 1?", ID: 756, ChatID: -100})
 		require.False(t, resp.Send)
 		assert.Equal(t, "", resp.Text)
 		assert.Equal(t, 1, len(o.history.messages))
 	}
 
 	{ // second request, empty answer because not question
-		resp := o.OnMessage(bot.Message{Text: "message 2", ID: 756})
+		resp := o.OnMessage(bot.Message{Text: "message 2", ID: 756, ChatID: -100})
 		require.False(t, resp.Send)
 		assert.Equal(t, "", resp.Text)
 		assert.Equal(t, 2, len(o.history.messages))
 	}
 
 	{ // third request, answered because question
-		resp := o.OnMessage(bot.Message{Text: "message 3?", ID: 756})
+		resp := o.OnMessage(bot.Message{Text: "message 3?", ID: 756, ChatID: -100})
 		require.True(t, resp.Send)
 		assert.Equal(t, "Mock response", resp.Text)
 		// history request isn't reply to any message
@@ -284,6 +284,61 @@ func TestOpenAI_OnMessage_RequestWithHistory(t *testing.T) {
 		assert.Equal(t, "message 3?", calls[0].ChatCompletionRequest.Messages[2].Content)
 	}
 
+}
+
+func TestOpenAI_OnMessage_PreservesGroupHistory(t *testing.T) {
+	groupMessages := []bot.Message{
+		{ID: 1, ChatID: -100, Text: "first group message"},
+		{ID: 2, ChatID: -100, Text: "second group message"},
+	}
+	tests := []struct {
+		name     string
+		message  bot.Message
+		repeats  int
+		wantSend bool
+	}{
+		{"idle ticks", bot.Message{Text: "idle"}, 5, false},
+		{"private question", bot.Message{ID: 3, ChatID: 100, Text: "What is a compiler?"}, 1, false},
+		{"private direct query", bot.Message{ID: 4, ChatID: 100, Text: "chat! What is a compiler?"}, 1, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &mocks.OpenAIClient{
+				CreateChatCompletionFunc: func(context.Context, ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+					return ai.ChatCompletionResponse{Choices: []ai.ChatCompletionChoice{{Message: ai.ChatCompletionMessage{Content: "A compiler translates code."}}}}, nil
+				},
+			}
+			params := getDefaultTestingConfig()
+			params.HistoryReplyProbability = 100
+			su := &bmocks.SuperUser{IsSuperFunc: func(string) bool { return false }}
+			o := NewOpenAI(params, &http.Client{Timeout: time.Second}, su)
+			o.client = client
+			for _, msg := range groupMessages {
+				require.False(t, o.OnMessage(msg).Send)
+			}
+			require.Empty(t, client.CreateChatCompletionCalls())
+
+			for range tt.repeats {
+				resp := o.OnMessage(tt.message)
+				assert.Equal(t, tt.wantSend, resp.Send)
+				if tt.wantSend {
+					assert.Equal(t, "A compiler translates code.", resp.Text)
+					assert.Equal(t, tt.message.ID, resp.ReplyTo)
+				}
+			}
+			calls := client.CreateChatCompletionCalls()
+			if tt.wantSend {
+				require.Len(t, calls, 1)
+				messages := calls[0].ChatCompletionRequest.Messages
+				require.NotEmpty(t, messages)
+				assert.Equal(t, "What is a compiler?", messages[len(messages)-1].Content)
+			} else {
+				assert.Empty(t, calls)
+			}
+			require.Equal(t, len(groupMessages), o.history.count)
+			assert.Equal(t, groupMessages, o.history.messages)
+		})
+	}
 }
 
 func TestOpenAI_OnMessage_shouldAnswerWithHistory(t *testing.T) {
@@ -590,7 +645,7 @@ func TestOpenAI_chatGPTRequestWithHistoryAndFocus(t *testing.T) {
 	o.history.Add(bot.Message{Text: "current question?", ID: 3})
 
 	// test direct request handling with history
-	respText, err := o.chatGPTRequestWithHistoryAndFocus("current question?", "test prompt", "test system prompt")
+	respText, err := o.chatGPTRequestWithHistoryAndFocus(bot.Message{Text: "current question?", ChatID: -100}, "test prompt", "test system prompt")
 	require.NoError(t, err)
 	assert.Equal(t, "Mock response", respText)
 
@@ -634,13 +689,13 @@ func TestOpenAI_OnMessage_WithDirectHistoryUsage(t *testing.T) {
 	o.client = mockOpenAIClient
 
 	// first message - indirect, should be stored but not trigger response
-	firstMsg := bot.Message{Text: "This is context message", ID: 1}
+	firstMsg := bot.Message{Text: "This is context message", ID: 1, ChatID: -100}
 	resp := o.OnMessage(firstMsg)
 	require.False(t, resp.Send)
 	assert.Equal(t, 1, len(o.history.messages))
 
 	// second message - direct query with chat! prefix
-	secondMsg := bot.Message{Text: "chat! reference the previous message", ID: 2}
+	secondMsg := bot.Message{Text: "chat! reference the previous message", ID: 2, ChatID: -100}
 	resp = o.OnMessage(secondMsg)
 	require.True(t, resp.Send)
 	assert.Equal(t, "Mock response", resp.Text)

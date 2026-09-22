@@ -70,12 +70,13 @@ func NewOpenAI(params Params, httpClient *http.Client, superUser bot.SuperUser) 
 
 // OnMessage pass msg to all bots and collects responses
 func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
-	// always add message to history for context tracking
-	o.history.Add(msg)
+	if msg.ChatID < 0 {
+		o.history.Add(msg)
+	}
 
 	ok, reqText := o.request(msg.Text)
 	if !ok {
-		if !o.params.EnableAutoResponse || msg.Text == "idle" || len(msg.Text) < 8 {
+		if msg.ChatID >= 0 || !o.params.EnableAutoResponse || msg.Text == "idle" || len(msg.Text) < 8 {
 			// don't answer on short messages or "idle" command or if auto response is disabled
 			return bot.Response{}
 		}
@@ -112,7 +113,8 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 	}
 
 	// use chatGPTRequestWithHistoryAndFocus to include history while focusing on the current question
-	responseAI, err := o.chatGPTRequestWithHistoryAndFocus(reqText, o.params.Prompt, "Answer the question directly in at most 50 words. Provide concrete information only. Do not praise, do not editorialize, do not add follow-up questions, do not invite further chat. No emojis, neutral tone.")
+	msg.Text = reqText
+	responseAI, err := o.chatGPTRequestWithHistoryAndFocus(msg, o.params.Prompt, "Answer the question directly in at most 50 words. Provide concrete information only. Do not praise, do not editorialize, do not add follow-up questions, do not invite further chat. No emojis, neutral tone.")
 	if err != nil {
 		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
 		// return a more informative response about API errors to super users
@@ -292,7 +294,7 @@ func (o *OpenAI) chatGPTRequestWithHistory(sysPrompt string) (response string, e
 
 // chatGPTRequestWithHistoryAndFocus works like chatGPTRequest but includes conversation history
 // while making the current message more prominent for focused responses
-func (o *OpenAI) chatGPTRequestWithHistoryAndFocus(currentRequest, userPrompt, sysPrompt string) (response string, err error) {
+func (o *OpenAI) chatGPTRequestWithHistoryAndFocus(currentRequest bot.Message, userPrompt, sysPrompt string) (response string, err error) {
 	messages := make([]openai.ChatCompletionMessage, 0, len(o.history.messages)+2)
 
 	// add system prompt
@@ -301,20 +303,21 @@ func (o *OpenAI) chatGPTRequestWithHistoryAndFocus(currentRequest, userPrompt, s
 		Content: sysPrompt + " Use the conversation history for context, but focus on responding to the latest message.",
 	})
 
-	// add previous messages from history, except the last one which was just added
-	if len(o.history.messages) > 1 {
-		for _, message := range o.history.messages[:len(o.history.messages)-1] {
-			messages = append(messages, openai.ChatCompletionMessage{
-				Role:    openai.ChatMessageRoleUser,
-				Content: message.Text,
-			})
-		}
+	previous := o.history.messages
+	if currentRequest.ChatID < 0 && len(previous) > 0 {
+		previous = previous[:len(previous)-1]
+	}
+	for _, message := range previous {
+		messages = append(messages, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleUser,
+			Content: message.Text,
+		})
 	}
 
 	// process the current request with user prompt if provided
-	r := currentRequest
+	r := currentRequest.Text
 	if userPrompt != "" {
-		r = userPrompt + ".\n" + currentRequest
+		r = userPrompt + ".\n" + currentRequest.Text
 	}
 
 	// add current request as the final message to emphasize it

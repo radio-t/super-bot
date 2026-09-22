@@ -235,17 +235,17 @@ key or the state
 - Modify: `app/bot/openai/openai.go`
 - Modify: `app/bot/openai/openai_test.go`
 
-- [ ] give the existing auto and direct-history fixtures a group ChatID (they default to 0 at
+- [x] give the existing auto and direct-history fixtures a group ChatID (they default to 0 at
   `openai_test.go:258,265,272,633,639`)
-- [ ] write failing test: idle messages after real ones leave the real messages in history
-- [ ] write failing test: a private-chat message (positive ChatID) is not recorded and triggers
+- [x] write failing test: idle messages after real ones leave the real messages in history
+- [x] write failing test: a private-chat message (positive ChatID) is not recorded and triggers
   no OpenAI call on the auto path
-- [ ] write failing test: after a direct query from a private chat, the stored group history is
+- [x] write failing test: after a direct query from a private chat, the stored group history is
   unchanged (the `[:len-1]` tail drop at `openai.go:307` must not act on a message never recorded)
-- [ ] run tests, confirm the new ones fail
-- [ ] record into history only when `msg.ChatID < 0`; skip the auto path for non-group messages;
+- [x] run tests, confirm the new ones fail
+- [x] record into history only when `msg.ChatID < 0`; skip the auto path for non-group messages;
   drop the history tail only when the current message was recorded
-- [ ] run tests - must pass before next task
+- [x] run tests - must pass before next task
 
 ### Task 3: jev client package
 

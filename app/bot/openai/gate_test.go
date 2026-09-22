@@ -118,13 +118,13 @@ func TestOpenAI_shouldJoin(t *testing.T) {
 		spam       float64
 		want       bool
 	}{
-		{"at positive boundaries", 0.8, 0.7, 0.299, true},
-		{"below invites", 0.799, 1, 0, false},
-		{"above invites", 0.801, 1, 0, true},
-		{"below answerable", 1, 0.699, 0, false},
-		{"above answerable", 1, 0.701, 0, true},
-		{"spam boundary veto", 1, 1, 0.3, false},
-		{"spam above boundary", 1, 1, 0.301, false},
+		{"at positive boundaries", invitesThreshold, answerableThreshold, spamThreshold - 0.001, true},
+		{"below invites", invitesThreshold - 0.001, 1, 0, false},
+		{"above invites", invitesThreshold + 0.001, 1, 0, true},
+		{"below answerable", 1, answerableThreshold - 0.001, 0, false},
+		{"above answerable", 1, answerableThreshold + 0.001, 0, true},
+		{"spam boundary veto", 1, 1, spamThreshold, false},
+		{"spam above boundary", 1, 1, spamThreshold + 0.001, false},
 		{"invalid invites", 1.01, 1, 0, false},
 		{"invalid spam", 1, 1, -0.01, false},
 		{"NaN", math.NaN(), 1, 0, false},
@@ -500,7 +500,7 @@ func TestGateReplay_ProductionPipeline(t *testing.T) {
 	assert.Equal(t, state, view.State)
 
 	client.AskFunc = func(context.Context, any, map[string]jev.Question) (jev.Response, error) {
-		return testGateResponse(0.799, 1, 0), nil
+		return testGateResponse(invitesThreshold-0.001, 1, 0), nil
 	}
 	result, err = replay.run(item)
 	require.NoError(t, err)

@@ -542,17 +542,27 @@ excluded from correctness metrics, and make the live test fail. Never pool strat
 **Files:**
 - Modify: `app/bot/openai/gate.go` (tuned constants and question texts)
 
-- [ ] build the case set outside the repo from the reporter logs and docker logs: a representative
+- [x] build the case set outside the repo from the reporter logs and docker logs: a representative
   random stratum, the 94 past replies as a challenge stratum, and a spam stratum; split dev and
   held-out by day and by conversation; no case shows later messages or the historical bot reply
-- [ ] Claude Code and codex label each case independently with the frozen rubric: "should this
+  (254 cases from the raw Telegram JSON in the debug log: 120 random, 94 past replies, 40 deleted
+  messages; dev 137, holdout 117)
+- [x] Claude Code and codex label each case independently with the frozen rubric: "should this
   bot, text-only and uninvited, answer now"; disagreements and a sample of agreements, weighted
-  to accepted cases, go to the user
-- [ ] tune question texts and thresholds on dev only, freeze them, then report held-out results
-  per stratum before and after
-- [ ] generate replies for a small held-out set of accepted cases with `gpt-6-luna`/medium and
+  to accepted cases, go to the user (251/254 agree; final yes only when both said yes, 9 total;
+  3 codex-only yes labels are listed in the PR report for the user)
+- [x] tune question texts and thresholds on dev only, freeze them, then report held-out results
+  per stratum before and after (initial wording at 0.8/0.7/0.3: dev 2 accepts, both false; frozen
+  wording at 0.7/0.65/0.3: dev 1 true accept, 0 false, random 0/64; holdout run once: 0 accepts,
+  0 false, 0/6 yes caught, random 0/56. Zero accepts shows abstention on this sample, not
+  precision. ⚠️ Known limitation: `answerable` is stricter than the rubric; a later retune needs
+  fresh labeled data, never this holdout; the DEBUG near-miss log is the input for it)
+- [x] generate replies for a small held-out set of accepted cases with `gpt-6-luna`/medium and
   inspect them against their context; gate metrics alone do not show the answers read naturally
-- [ ] run the normal test suite - must pass before next task
+  (skipped: holdout had no accepted cases, so naturalness of gate-accepted replies is unvalidated.
+  A substitute run on the 9 agreed-yes cases, which the gate did not necessarily accept, gave
+  concrete, on-topic replies under 50 words)
+- [x] run the normal test suite - must pass before next task
 
 ### Task 9: Backlog item for the tool harness
 

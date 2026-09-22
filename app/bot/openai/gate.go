@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	invitesThreshold    = 0.8
-	answerableThreshold = 0.7
+	invitesThreshold    = 0.7
+	answerableThreshold = 0.65
 	spamThreshold       = 0.3
 	autoReplyCooldown   = 15 * time.Minute
 	autoReplyDailyCap   = 10
@@ -23,10 +23,14 @@ const (
 	invitesTrue  = "A genuine, still-open request for information that welcomes an uninvolved participant's answer, even without a question mark."
 	invitesFalse = "A plain statement, banter, rhetorical question, already answered request, or a question aimed at a specific person's own experience. " +
 		"Being in a reply thread alone does not make the answer false."
-	answerableQuestion = "Can `message` be answered briefly and concretely using only the supplied text and general knowledge?"
-	answerableTrue     = "The question and its subject are sufficiently clear from `message`, its quoted parent and `history`; a short factual or technical answer is possible."
-	answerableFalse    = "Answering needs an unseen link's contents, image, voice message, missing or materially truncated discussion, " +
-		"live lookup, or knowledge of the author's private environment. An unrelated link or media item alone is not a reason to reject."
+	answerableQuestion = "Can `message` be answered briefly and concretely by someone who has only general, stable knowledge " +
+		"and the supplied text, with no personal experience, no browsing and no knowledge of recent events?"
+	answerableTrue = "The question and its subject are clear from `message`, its quoted parent and `history`, and the supplied text " +
+		"plus stable general knowledge fully addresses it."
+	answerableFalse = "The message polls other people's personal experience or opinions (has anyone tried, how is it for you, what do you use), " +
+		"or the answer requires information not available in the supplied text: a specific item mentioned elsewhere (that link, that skill, " +
+		"that post), recent news, releases, prices or status, an unseen link, image or voice message, missing discussion, " +
+		"or the author's private environment. An unrelated link or media item alone is not a reason to reject."
 	spamQuestion    = "Does `message` contain unsolicited advertising, recruitment, job offers, paid-service promotion or other solicitation?"
 	spamTrue        = "The message solicits customers, recruits, payments, subscriptions or promotional engagement."
 	spamFalse       = "Ordinary conversation or a genuine question, including discussion of products, prices, paid services or employment without solicitation."

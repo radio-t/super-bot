@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -13,13 +12,19 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/radio-t/super-bot/app/bot"
+	"github.com/radio-t/super-bot/app/bot/openai/jev"
 )
 
 //go:generate moq --out mocks/openai_client.go --pkg mocks --skip-ensure . openAIClient:OpenAIClient
+//go:generate moq --out mocks/jev_client.go --pkg mocks --skip-ensure . jevClient:JevClient
 
 // openAIClient is interface for OpenAI client with the possibility to mock it
 type openAIClient interface {
 	CreateChatCompletion(context.Context, openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
+}
+
+type jevClient interface {
+	Ask(ctx context.Context, state any, questions map[string]jev.Question) (jev.Response, error)
 }
 
 // Params contains parameters for OpenAI bot
@@ -28,14 +33,15 @@ type Params struct {
 	// https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
 	MaxTokensResponse int // hard limit for the number of tokens in the response
 	// the OpenAI has a limit for the number of tokens in the request + response (4097)
-	MaxTokensRequest        int // max request length in tokens
-	MaxSymbolsRequest       int // fallback: Max request length in symbols, if tokenizer was failed
-	Prompt                  string
-	EnableAutoResponse      bool
-	HistorySize             int
-	HistoryReplyProbability int // percentage of the probability to reply with history
-	Model                   string
-	ReasoningEffort         string // reasoning_effort for reasoning models (minimal, low, medium, high); empty means API default
+	MaxTokensRequest   int // max request length in tokens
+	MaxSymbolsRequest  int // fallback: Max request length in symbols, if tokenizer was failed
+	Prompt             string
+	EnableAutoResponse bool
+	HistorySize        int
+	Model              string
+	ReasoningEffort    string // reasoning_effort for reasoning models (minimal, low, medium, high); empty means API default
+	// Jev decides whether to reply automatically; nil disables unsolicited replies.
+	Jev jevClient
 }
 
 // OpenAI bot, returns responses from ChatGPT via OpenAI API
@@ -45,8 +51,8 @@ type OpenAI struct {
 	params    Params
 	superUser bot.SuperUser
 
-	history LimitedMessageHistory
-	rand    func(n int64) int64 // tests may change it
+	history    LimitedMessageHistory
+	autoLimits autoReplyLimits
 
 	nowFn  func() time.Time // for testing
 	lastDT time.Time
@@ -65,42 +71,52 @@ func NewOpenAI(params Params, httpClient *http.Client, superUser bot.SuperUser) 
 	history := NewLimitedMessageHistory(params.HistorySize)
 
 	return &OpenAI{client: client, params: params, superUser: superUser,
-		history: history, rand: rand.Int63n, nowFn: time.Now}
+		history: history, nowFn: time.Now}
 }
 
 // OnMessage pass msg to all bots and collects responses
 func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
-	// always add message to history for context tracking
-	o.history.Add(msg)
-
-	ok, reqText := o.request(msg.Text)
-	if !ok {
-		if !o.params.EnableAutoResponse || msg.Text == "idle" || len(msg.Text) < 8 {
-			// don't answer on short messages or "idle" command or if auto response is disabled
-			return bot.Response{}
-		}
-
-		// all the non-matching requests processed for the reactions based on the history.
-		if !o.shouldAnswerWithHistory(msg) {
-			return bot.Response{}
-		}
-
-		responseAI, err := o.chatGPTRequestWithHistory("Reply in Russian, at most 50 words. Add only one concrete, substantive remark about the topic — a specific fact, detail, or trade-off. Do not greet, do not praise, do not give generic opinions, do not ask questions, do not invite chat. No emojis, no exclamations, neutral tone. If you have nothing concrete to add, reply with an empty string.")
-		if err != nil {
-			log.Printf("[WARN] failed to make context request to ChatGPT error=%v", err)
-			return bot.Response{}
-		}
-		if strings.TrimSpace(responseAI) == "" {
-			log.Printf("[DEBUG] OpenAI bot has nothing substantive to add, skipping")
-			return bot.Response{}
-		}
-		log.Printf("[DEBUG] OpenAI bot answer with history: %q", responseAI)
-		return bot.Response{
-			Text: responseAI,
-			Send: true,
-		}
+	if msg.ChatID < 0 {
+		o.history.Add(msg)
 	}
 
+	ok, reqText := o.request(msg.Text)
+	if ok {
+		return o.answerDirect(msg, reqText)
+	}
+	return o.autoReply(msg)
+}
+
+func (o *OpenAI) autoReply(msg bot.Message) bot.Response {
+	if !o.params.EnableAutoResponse || o.params.Jev == nil || msg.ChatID >= 0 || msg.Text == "idle" || len(msg.Text) < 8 {
+		return bot.Response{}
+	}
+	now := o.nowFn()
+	if !o.autoLimits.allowed(now) {
+		return bot.Response{}
+	}
+	snapshot := o.history.snapshot(msg, now)
+	if snapshot.oversized {
+		return bot.Response{}
+	}
+	o.autoLimits.noteJevCall(now)
+	if !o.shouldJoin(snapshot) {
+		return bot.Response{}
+	}
+	response, err := o.chatGPTRequestWithHistory(snapshot, autoReplyPrompt)
+	if err != nil {
+		log.Printf("[WARN] failed to make context request to ChatGPT error=%v", err)
+		return bot.Response{}
+	}
+	if strings.TrimSpace(response) == "" {
+		return bot.Response{}
+	}
+	o.autoLimits.mark(o.nowFn())
+	log.Printf("[DEBUG] OpenAI bot answer with history: %q", response)
+	return bot.Response{Text: response, Send: true, ReplyTo: msg.ID}
+}
+
+func (o *OpenAI) answerDirect(msg bot.Message, reqText string) bot.Response {
 	if ok, banMessage := o.checkRequest(msg, reqText); !ok {
 		return bot.Response{
 			Text:        banMessage,
@@ -112,9 +128,9 @@ func (o *OpenAI) OnMessage(msg bot.Message) (response bot.Response) {
 	}
 
 	// use chatGPTRequestWithHistoryAndFocus to include history while focusing on the current question
-	responseAI, err := o.chatGPTRequestWithHistoryAndFocus(reqText, o.params.Prompt, "Answer the question directly in at most 50 words. Provide concrete information only. Do not praise, do not editorialize, do not add follow-up questions, do not invite further chat. No emojis, neutral tone.")
+	responseAI, err := o.chatGPTRequestWithHistoryAndFocus(o.history.snapshot(msg, o.nowFn()), reqText, "Answer the question directly in at most 50 words. Provide concrete information only. Do not praise, do not editorialize, do not add follow-up questions, do not invite further chat. No emojis, neutral tone.")
 	if err != nil {
-		log.Printf("[WARN] failed to make request to ChatGPT '%s', error=%v", reqText, err)
+		log.Printf("[WARN] failed to make request to ChatGPT, error=%v", err)
 		// return a more informative response about API errors to super users
 		if o.superUser.IsSuper(msg.From.Username) {
 			apiErrMsg := "OpenAI API error occurred. Please check logs for details."
@@ -259,71 +275,18 @@ func (o *OpenAI) chatGPTRequest(request, userPrompt, sysPrompt string) (response
 	})
 }
 
-func (o *OpenAI) shouldAnswerWithHistory(msg bot.Message) bool {
-	if o.history.count < o.history.limit {
-		return false
-	}
-
-	if msg.Text != "" && msg.Text[len(msg.Text)-1:] != "?" { // don't try to answer to short messages, like wtf?
-		return false
-	}
-
-	// by default 10% chance to answer with ChatGPT for question
-	return o.rand(100) < int64(o.params.HistoryReplyProbability)
-}
-
-func (o *OpenAI) chatGPTRequestWithHistory(sysPrompt string) (response string, err error) {
-	messages := make([]openai.ChatCompletionMessage, 0, len(o.history.messages)+1)
-
-	messages = append(messages, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleSystem,
-		Content: sysPrompt,
-	})
-
-	for _, message := range o.history.messages {
-		messages = append(messages, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleUser,
-			Content: message.Text,
-		})
-	}
-
-	return o.chatGPTRequestInternal(messages)
+func (o *OpenAI) chatGPTRequestWithHistory(s historySnapshot, sysPrompt string) (response string, err error) {
+	return o.chatGPTRequestInternal(s.chatMessages(sysPrompt, s.current.text.value))
 }
 
 // chatGPTRequestWithHistoryAndFocus works like chatGPTRequest but includes conversation history
 // while making the current message more prominent for focused responses
-func (o *OpenAI) chatGPTRequestWithHistoryAndFocus(currentRequest, userPrompt, sysPrompt string) (response string, err error) {
-	messages := make([]openai.ChatCompletionMessage, 0, len(o.history.messages)+2)
-
-	// add system prompt
-	messages = append(messages, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleSystem,
-		Content: sysPrompt + " Use the conversation history for context, but focus on responding to the latest message.",
-	})
-
-	// add previous messages from history, except the last one which was just added
-	if len(o.history.messages) > 1 {
-		for _, message := range o.history.messages[:len(o.history.messages)-1] {
-			messages = append(messages, openai.ChatCompletionMessage{
-				Role:    openai.ChatMessageRoleUser,
-				Content: message.Text,
-			})
-		}
+func (o *OpenAI) chatGPTRequestWithHistoryAndFocus(s historySnapshot, reqText, sysPrompt string) (response string, err error) {
+	if o.params.Prompt != "" {
+		reqText = o.params.Prompt + ".\n" + reqText
 	}
-
-	// process the current request with user prompt if provided
-	r := currentRequest
-	if userPrompt != "" {
-		r = userPrompt + ".\n" + currentRequest
-	}
-
-	// add current request as the final message to emphasize it
-	messages = append(messages, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleUser,
-		Content: r,
-	})
-
-	return o.chatGPTRequestInternal(messages)
+	sysPrompt += " Use the conversation history for context, but focus on responding to the latest message."
+	return o.chatGPTRequestInternal(s.chatMessages(sysPrompt, reqText))
 }
 
 func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage) (response string, err error) {
@@ -331,7 +294,7 @@ func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage)
 		Model:    o.params.Model,
 		Messages: messages,
 	}
-	// reasoning models (o1, o3, o4, gpt-5) require max_completion_tokens; others use max_tokens
+	// reasoning models (o1, o3, o4, gpt-5, gpt-6) require max_completion_tokens; others use max_tokens
 	if isReasoningModel(o.params.Model) {
 		req.MaxCompletionTokens = o.params.MaxTokensResponse
 		if o.params.ReasoningEffort != "" {
@@ -344,8 +307,9 @@ func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage)
 	}
 	resp, err := o.client.CreateChatCompletion(context.Background(), req)
 	if err != nil {
-		reqDetails := fmt.Sprintf("request: %v, model: %s, max_tokens: %d", messages, o.params.Model, o.params.MaxTokensResponse)
-		return "", fmt.Errorf("OpenAI request failed %s: %w", reqDetails, err)
+		// message content stays out of the error: callers log it, and it carries chat text and authors
+		return "", fmt.Errorf("OpenAI request failed, model: %s, messages: %d, max_tokens: %d: %w",
+			o.params.Model, len(messages), o.params.MaxTokensResponse, err)
 	}
 	// openAI platform supports to return multiple chat completion choices
 	// but we use only the first one
@@ -377,13 +341,14 @@ func (o *OpenAI) CreateChatCompletion(ctx context.Context, req openai.ChatComple
 }
 
 // isReasoningModel reports whether the model requires max_completion_tokens
-// instead of max_tokens. Covers o1/o3/o4 reasoning models and the gpt-5 family.
+// instead of max_tokens. Covers o1/o3/o4 reasoning models and the gpt-5/gpt-6 families.
 func isReasoningModel(model string) bool {
 	m := strings.ToLower(model)
 	return strings.HasPrefix(m, "o1") ||
 		strings.HasPrefix(m, "o3") ||
 		strings.HasPrefix(m, "o4") ||
-		strings.Contains(m, "gpt-5")
+		strings.Contains(m, "gpt-5") ||
+		strings.Contains(m, "gpt-6")
 }
 
 // UserNameOrDisplayName username or display name or "пользователь"

@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	bmocks "github.com/radio-t/super-bot/app/bot/mocks"
+	"github.com/radio-t/super-bot/app/bot/openai/jev"
 	"github.com/radio-t/super-bot/app/bot/openai/mocks"
 )
 
@@ -26,14 +29,13 @@ func TestOpenAI_Help(t *testing.T) {
 
 func getDefaultTestingConfig() Params {
 	return Params{
-		AuthToken:               "ss-mockToken",
-		MaxTokensResponse:       100,
-		Prompt:                  "",
-		HistorySize:             2,
-		HistoryReplyProbability: 10,
-		EnableAutoResponse:      true,
-		MaxTokensRequest:        3000,
-		MaxSymbolsRequest:       12000,
+		AuthToken:          "ss-mockToken",
+		MaxTokensResponse:  100,
+		Prompt:             "",
+		HistorySize:        2,
+		EnableAutoResponse: true,
+		MaxTokensRequest:   3000,
+		MaxSymbolsRequest:  12000,
 	}
 }
 
@@ -101,7 +103,11 @@ func TestOpenAI_OnMessage(t *testing.T) {
 			if tt.prompt != "" {
 				expRequest = tt.prompt + ".\n" + tt.request
 			}
-			assert.Equal(t, expRequest, calls[0].ChatCompletionRequest.Messages[1].Content)
+			author := "user1"
+			if tt.username != "" {
+				author = "@" + tt.username
+			}
+			assert.Equal(t, author+": "+expRequest, calls[0].ChatCompletionRequest.Messages[1].Content)
 		})
 	}
 }
@@ -249,175 +255,96 @@ func TestOpenAI_OnMessage_RequestWithHistory(t *testing.T) {
 
 	o := NewOpenAI(getDefaultTestingConfig(), &http.Client{Timeout: 10 * time.Second}, su)
 	o.client = mockOpenAIClient
-	// always pass the probability check
-	o.rand = func(n int64) int64 { return 1 }
+	o.params.Jev = &mocks.JevClient{AskFunc: func(_ context.Context, state any, _ map[string]jev.Question) (jev.Response, error) {
+		invites := 0.0
+		if state.(jevState).Message.Text == "message 3?" {
+			invites = 1
+		}
+		return testGateResponse(invites, 1, 0), nil
+	}}
 	// history is limited  to 2 messages for easier testing
 	assert.Equal(t, 0, len(o.history.messages))
 
 	{ // first request, empty answer
-		resp := o.OnMessage(bot.Message{Text: "message 1?", ID: 756})
+		resp := o.OnMessage(bot.Message{Text: "message 1?", ID: 1, ChatID: -100, Sent: time.Now()})
 		require.False(t, resp.Send)
 		assert.Equal(t, "", resp.Text)
 		assert.Equal(t, 1, len(o.history.messages))
 	}
 
 	{ // second request, empty answer because not question
-		resp := o.OnMessage(bot.Message{Text: "message 2", ID: 756})
+		resp := o.OnMessage(bot.Message{Text: "message 2", ID: 2, ChatID: -100, Sent: time.Now()})
 		require.False(t, resp.Send)
 		assert.Equal(t, "", resp.Text)
 		assert.Equal(t, 2, len(o.history.messages))
 	}
 
 	{ // third request, answered because question
-		resp := o.OnMessage(bot.Message{Text: "message 3?", ID: 756})
+		resp := o.OnMessage(bot.Message{Text: "message 3?", ID: 3, ChatID: -100, Sent: time.Now()})
 		require.True(t, resp.Send)
 		assert.Equal(t, "Mock response", resp.Text)
-		// history request isn't reply to any message
-		assert.Equal(t, 0, resp.ReplyTo)
+		assert.Equal(t, 3, resp.ReplyTo)
 		assert.Equal(t, 2, len(o.history.messages))
 
 		calls := mockOpenAIClient.CreateChatCompletionCalls()
 		assert.Equal(t, 1, len(calls))
 		// first message is system role setup
 		assert.Equal(t, 3, len(calls[0].ChatCompletionRequest.Messages))
-		assert.Equal(t, "message 2", calls[0].ChatCompletionRequest.Messages[1].Content)
-		assert.Equal(t, "message 3?", calls[0].ChatCompletionRequest.Messages[2].Content)
+		assert.Contains(t, calls[0].ChatCompletionRequest.Messages[1].Content, "user1: message 2")
+		assert.Contains(t, calls[0].ChatCompletionRequest.Messages[2].Content, "user2: message 3?")
 	}
 
 }
 
-func TestOpenAI_OnMessage_shouldAnswerWithHistory(t *testing.T) {
-	mockOpenAIClient := &mocks.OpenAIClient{
-		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
-			jsonResponse, err := os.ReadFile("testdata/chat_completion_response.json")
-			require.NoError(t, err)
-			var response ai.ChatCompletionResponse
-			err = json.Unmarshal(jsonResponse, &response)
-			return response, err
-		},
+func TestOpenAI_OnMessage_PreservesGroupHistory(t *testing.T) {
+	groupMessages := []bot.Message{
+		{ID: 1, ChatID: -100, Text: "first group message"},
+		{ID: 2, ChatID: -100, Text: "second group message"},
 	}
-
-	su := &bmocks.SuperUser{IsSuperFunc: func(userName string) bool {
-		if userName == "super" || userName == "admin" {
-			return true
-		}
-		return false
-	}}
-
-	o := NewOpenAI(getDefaultTestingConfig(), &http.Client{Timeout: 10 * time.Second}, su)
-	o.client = mockOpenAIClient
-	// always pass the probability check
-	o.rand = func(n int64) int64 { return 1 }
-
-	// history is limited  to 2 messages for easier testing
-	o.history.Add(bot.Message{Text: "message 1", ID: 756})
-	o.history.Add(bot.Message{Text: "message 2", ID: 756})
-
-	tbl := []struct {
+	tests := []struct {
 		name     string
-		message  string
-		expected bool
+		message  bot.Message
+		repeats  int
+		wantSend bool
 	}{
-		{"Regular message", "message 3", false},
-		{"Question", "question 1?", true},
+		{"idle ticks", bot.Message{Text: "idle"}, 5, false},
+		{"private question", bot.Message{ID: 3, ChatID: 100, Text: "What is a compiler?"}, 1, false},
+		{"private direct query", bot.Message{ID: 4, ChatID: 100, Text: "chat! What is a compiler?"}, 1, true},
 	}
-
-	for _, tt := range tbl {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := o.shouldAnswerWithHistory(bot.Message{ID: 2, Text: tt.message})
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
+			client := &mocks.OpenAIClient{
+				CreateChatCompletionFunc: func(context.Context, ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+					return ai.ChatCompletionResponse{Choices: []ai.ChatCompletionChoice{{Message: ai.ChatCompletionMessage{Content: "A compiler translates code."}}}}, nil
+				},
+			}
+			params := getDefaultTestingConfig()
+			su := &bmocks.SuperUser{IsSuperFunc: func(string) bool { return false }}
+			o := NewOpenAI(params, &http.Client{Timeout: time.Second}, su)
+			o.client = client
+			for _, msg := range groupMessages {
+				require.False(t, o.OnMessage(msg).Send)
+			}
+			require.Empty(t, client.CreateChatCompletionCalls())
 
-func TestOpenAI_OnMessage_shouldAnswerWithHistory_NotEnoughMessages(t *testing.T) {
-	mockOpenAIClient := &mocks.OpenAIClient{
-		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
-			jsonResponse, err := os.ReadFile("testdata/chat_completion_response.json")
-			require.NoError(t, err)
-			var response ai.ChatCompletionResponse
-			err = json.Unmarshal(jsonResponse, &response)
-			return response, err
-		},
-	}
-
-	su := &bmocks.SuperUser{IsSuperFunc: func(userName string) bool {
-		if userName == "super" || userName == "admin" {
-			return true
-		}
-		return false
-	}}
-
-	o := NewOpenAI(getDefaultTestingConfig(), &http.Client{Timeout: 10 * time.Second}, su)
-	o.client = mockOpenAIClient
-	// always pass the probability check
-	o.rand = func(n int64) int64 { return 1 }
-
-	// history is limited  to 2 messages for easier testing
-	o.history.Add(bot.Message{Text: "message 1", ID: 756})
-
-	tbl := []struct {
-		name     string
-		message  string
-		expected bool
-	}{
-		{"Regular message", "message 2", false},
-		{"Question", "question 1?", false},
-	}
-
-	for _, tt := range tbl {
-		t.Run(tt.name, func(t *testing.T) {
-			result := o.shouldAnswerWithHistory(bot.Message{ID: 2, Text: tt.message})
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestOpenAI_OnMessage_shouldAnswerWithHistory_Random(t *testing.T) {
-	mockOpenAIClient := &mocks.OpenAIClient{
-		CreateChatCompletionFunc: func(ctx context.Context, r ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
-			jsonResponse, err := os.ReadFile("testdata/chat_completion_response.json")
-			require.NoError(t, err)
-			var response ai.ChatCompletionResponse
-			err = json.Unmarshal(jsonResponse, &response)
-			return response, err
-		},
-	}
-
-	su := &bmocks.SuperUser{IsSuperFunc: func(userName string) bool {
-		if userName == "super" || userName == "admin" {
-			return true
-		}
-		return false
-	}}
-
-	o := NewOpenAI(getDefaultTestingConfig(), &http.Client{Timeout: 10 * time.Second}, su)
-	o.client = mockOpenAIClient
-
-	// history is limited  to 2 messages for easier testing
-	o.history.Add(bot.Message{Text: "message 1", ID: 756})
-	o.history.Add(bot.Message{Text: "message 2", ID: 756})
-
-	tbl := []struct {
-		name       string
-		message    string
-		randResult int64
-		expected   bool
-	}{
-		{"Question, random positive", "Question 1?", 1, true},
-		{"Question, random negative", "Question 2?", 99, false},
-		{"Regular, random positive", "Message 1", 1, false},
-		{"Regular, random negative", "Message 2", 99, false},
-	}
-
-	for _, tt := range tbl {
-		t.Run(tt.name, func(t *testing.T) {
-			// 1 is always pass the probability check
-			// 99 is always fail the probability check
-			o.rand = func(n int64) int64 { return tt.randResult }
-
-			result := o.shouldAnswerWithHistory(bot.Message{ID: 2, Text: tt.message})
-			assert.Equal(t, tt.expected, result)
+			for range tt.repeats {
+				resp := o.OnMessage(tt.message)
+				assert.Equal(t, tt.wantSend, resp.Send)
+				if tt.wantSend {
+					assert.Equal(t, "A compiler translates code.", resp.Text)
+					assert.Equal(t, tt.message.ID, resp.ReplyTo)
+				}
+			}
+			calls := client.CreateChatCompletionCalls()
+			if tt.wantSend {
+				require.Len(t, calls, 1)
+				messages := calls[0].ChatCompletionRequest.Messages
+				require.NotEmpty(t, messages)
+				assert.Equal(t, "user1: What is a compiler?", messages[len(messages)-1].Content)
+			} else {
+				assert.Empty(t, calls)
+			}
+			assert.Equal(t, groupMessages, o.history.messages)
 		})
 	}
 }
@@ -503,6 +430,8 @@ func TestIsReasoningModel(t *testing.T) {
 		{"", false},
 		{"gpt-5", true},
 		{"gpt-5-mini", true},
+		{"gpt-5.6-luna", true},
+		{"gpt-6-luna", true},
 		{"GPT-5-MINI", true},
 		{"gpt-5-nano-2025", true},
 		{"o1", true},
@@ -528,6 +457,8 @@ func TestOpenAI_chatGPTRequestInternal_ReasoningEffort(t *testing.T) {
 		wantCompletion bool // true expects max_completion_tokens, false expects max_tokens
 	}{
 		{"reasoning model with effort", "gpt-5-mini", "low", "low", true},
+		{"luna with medium effort", "gpt-6-luna", "medium", "medium", true},
+		{"gpt-5.6 luna with medium effort", "gpt-5.6-luna", "medium", "medium", true},
 		{"reasoning model without effort", "gpt-5-mini", "", "", true},
 		{"non-reasoning model ignores effort", "gpt-4o-mini", "low", "", false},
 	}
@@ -581,12 +512,15 @@ func TestOpenAI_chatGPTRequestWithHistoryAndFocus(t *testing.T) {
 	o.client = mockOpenAIClient
 
 	// add some messages to history
-	o.history.Add(bot.Message{Text: "first message", ID: 1})
-	o.history.Add(bot.Message{Text: "second message", ID: 2})
-	o.history.Add(bot.Message{Text: "current question?", ID: 3})
+	now := time.Now()
+	o.history.Add(bot.Message{Text: "first message", ID: 1, ChatID: -100, Sent: now.Add(-2 * time.Minute)})
+	o.history.Add(bot.Message{Text: "second message", ID: 2, ChatID: -100, Sent: now.Add(-time.Minute)})
+	cur := bot.Message{Text: "current question?", ID: 3, ChatID: -100, Sent: now}
+	o.history.Add(cur)
+	o.params.Prompt = "test prompt"
 
 	// test direct request handling with history
-	respText, err := o.chatGPTRequestWithHistoryAndFocus("current question?", "test prompt", "test system prompt")
+	respText, err := o.chatGPTRequestWithHistoryAndFocus(o.history.snapshot(cur, now), "current question?", "test system prompt")
 	require.NoError(t, err)
 	assert.Equal(t, "Mock response", respText)
 
@@ -604,11 +538,11 @@ func TestOpenAI_chatGPTRequestWithHistoryAndFocus(t *testing.T) {
 
 	// check previous messages are included
 	assert.Equal(t, ai.ChatMessageRoleUser, messages[1].Role)
-	assert.Equal(t, "second message", messages[1].Content)
+	assert.Contains(t, messages[1].Content, "user1: second message")
 
 	// check that the final message is the current request with prompt
 	assert.Equal(t, ai.ChatMessageRoleUser, messages[2].Role)
-	assert.Equal(t, "test prompt.\ncurrent question?", messages[2].Content)
+	assert.Contains(t, messages[2].Content, "user2: test prompt.\ncurrent question?")
 }
 
 func TestOpenAI_OnMessage_WithDirectHistoryUsage(t *testing.T) {
@@ -630,13 +564,13 @@ func TestOpenAI_OnMessage_WithDirectHistoryUsage(t *testing.T) {
 	o.client = mockOpenAIClient
 
 	// first message - indirect, should be stored but not trigger response
-	firstMsg := bot.Message{Text: "This is context message", ID: 1}
+	firstMsg := bot.Message{Text: "This is context message", ID: 1, ChatID: -100, Sent: time.Now()}
 	resp := o.OnMessage(firstMsg)
 	require.False(t, resp.Send)
 	assert.Equal(t, 1, len(o.history.messages))
 
 	// second message - direct query with chat! prefix
-	secondMsg := bot.Message{Text: "chat! reference the previous message", ID: 2}
+	secondMsg := bot.Message{Text: "chat! reference the previous message", ID: 2, ChatID: -100, Sent: time.Now()}
 	resp = o.OnMessage(secondMsg)
 	require.True(t, resp.Send)
 	assert.Equal(t, "Mock response", resp.Text)
@@ -657,6 +591,68 @@ func TestOpenAI_OnMessage_WithDirectHistoryUsage(t *testing.T) {
 	// last message should be the current request
 	assert.Equal(t, ai.ChatMessageRoleUser, messages[len(messages)-1].Role)
 	assert.Contains(t, messages[len(messages)-1].Content, "reference the previous message")
+}
+
+func TestOpenAI_OnMessage_HistoryIsolation(t *testing.T) {
+	tests := []struct {
+		name   string
+		chatID int64
+		text   string
+		direct bool
+	}{
+		{"private direct", 100, "chat! What is a compiler?", true},
+		{"group direct", -100, "chat! What is a compiler?", true},
+		{"group auto", -100, "What is a compiler?", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			now := time.Date(2026, 9, 22, 12, 0, 0, 0, time.UTC)
+			params := getDefaultTestingConfig()
+			params.HistorySize = 3
+			params.Jev = &mocks.JevClient{AskFunc: func(context.Context, any, map[string]jev.Question) (jev.Response, error) {
+				return testGateResponse(1, 1, 0), nil
+			}}
+			params.Prompt = "Be specific"
+			client := &mocks.OpenAIClient{
+				CreateChatCompletionFunc: func(context.Context, ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+					return ai.ChatCompletionResponse{Choices: []ai.ChatCompletionChoice{{Message: ai.ChatCompletionMessage{Content: "A compiler translates code."}}}}, nil
+				},
+			}
+			su := &bmocks.SuperUser{IsSuperFunc: func(string) bool { return false }}
+			o := NewOpenAI(params, &http.Client{Timeout: time.Second}, su)
+			o.client, o.nowFn = client, func() time.Time { return now }
+			o.history.Add(bot.Message{ID: 1, ChatID: -200, Sent: now.Add(-2 * time.Minute), Text: "other-chat-secret"})
+			o.history.Add(bot.Message{ID: 2, ChatID: -100, Sent: now.Add(-time.Minute), Text: "same-chat-context"})
+			cur := bot.Message{ID: 3, ChatID: tt.chatID, Sent: now, Text: tt.text, From: bot.User{ID: 99111999, Username: "asker"}}
+			cur.ReplyTo.From = bot.User{ID: 88222888, Username: "parent"}
+			cur.ReplyTo.Text = "quoted-parent-context"
+
+			require.True(t, o.OnMessage(cur).Send)
+			calls := client.CreateChatCompletionCalls()
+			require.Len(t, calls, 1)
+			messages := calls[0].ChatCompletionRequest.Messages
+			var texts []string
+			for _, message := range messages {
+				texts = append(texts, message.Content)
+			}
+			request := strings.Join(texts, "\n")
+			assert.NotContains(t, request, "other-chat-secret")
+			if tt.chatID > 0 {
+				assert.NotContains(t, request, "same-chat-context")
+			} else {
+				assert.Contains(t, request, "same-chat-context")
+			}
+			assert.Contains(t, request, "quoted-parent-context")
+			assert.Contains(t, request, "@parent")
+			assert.Contains(t, messages[len(messages)-1].Content, "@asker: ")
+			assert.Contains(t, messages[len(messages)-1].Content, "What is a compiler?")
+			assert.NotContains(t, request, "chat!")
+			assert.NotContains(t, request, "99111999")
+			if tt.direct {
+				assert.Contains(t, messages[len(messages)-1].Content, "Be specific.\nWhat is a compiler?")
+			}
+		})
+	}
 }
 
 func TestOpenAI_chatGPTRequestInternal_APIError(t *testing.T) {
@@ -697,10 +693,47 @@ func TestOpenAI_chatGPTRequestInternal_APIError(t *testing.T) {
 	require.Error(t, err)
 	// check that our error contains the original error info
 	assert.Contains(t, err.Error(), "OpenAI request failed")
+	assert.Contains(t, err.Error(), "messages: 2")
+	assert.NotContains(t, err.Error(), "Test user message")
+	assert.ErrorIs(t, err, apiErr)
 
 	// verify API was called
 	calls := mockOpenAIClient.CreateChatCompletionCalls()
 	require.Equal(t, 1, len(calls))
+}
+
+func TestOpenAI_OnMessage_APIError_LogsNoChatContent(t *testing.T) {
+	var logs strings.Builder
+	defer log.SetOutput(log.Writer())
+	log.SetOutput(&logs)
+
+	apiErr := &ai.APIError{Type: "server_error", Message: "upstream failure"}
+	su := &bmocks.SuperUser{IsSuperFunc: func(string) bool { return false }}
+	o := NewOpenAI(getDefaultTestingConfig(), &http.Client{Timeout: 10 * time.Second}, su)
+	o.client = &mocks.OpenAIClient{
+		CreateChatCompletionFunc: func(context.Context, ai.ChatCompletionRequest) (ai.ChatCompletionResponse, error) {
+			return ai.ChatCompletionResponse{}, apiErr
+		},
+	}
+	now := o.nowFn()
+	o.OnMessage(bot.Message{ID: 1, ChatID: -100, Sent: now, Text: "sentinel-history text",
+		From: bot.User{ID: 7, Username: "sentinel_author"}})
+	resp := o.OnMessage(bot.Message{ID: 2, ChatID: -100, Sent: now, Text: "chat! sentinel-question text",
+		From: bot.User{ID: 8, Username: "asker"},
+		ReplyTo: struct {
+			From       bot.User
+			Text       string `json:",omitempty"`
+			Sent       time.Time
+			SenderChat bot.SenderChat `json:"sender_chat"`
+		}{From: bot.User{ID: 9, Username: "sentinel_parent"}, Text: "sentinel-quote text", Sent: now}})
+
+	assert.Equal(t, bot.Response{}, resp)
+	out := logs.String()
+	assert.Contains(t, out, "failed to make request to ChatGPT")
+	assert.Contains(t, out, "upstream failure")
+	for _, sentinel := range []string{"sentinel-question", "sentinel-quote", "sentinel-history", "sentinel_author", "sentinel_parent"} {
+		assert.NotContains(t, out, sentinel)
+	}
 }
 
 func TestOpenAI_OnMessage_APIError_SuperUserMessage(t *testing.T) {

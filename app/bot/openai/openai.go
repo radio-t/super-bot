@@ -331,7 +331,7 @@ func (o *OpenAI) chatGPTRequestInternal(messages []openai.ChatCompletionMessage)
 		Model:    o.params.Model,
 		Messages: messages,
 	}
-	// reasoning models (o1, o3, o4, gpt-5) require max_completion_tokens; others use max_tokens
+	// reasoning models (o1, o3, o4, gpt-5, gpt-6) require max_completion_tokens; others use max_tokens
 	if isReasoningModel(o.params.Model) {
 		req.MaxCompletionTokens = o.params.MaxTokensResponse
 		if o.params.ReasoningEffort != "" {
@@ -377,13 +377,14 @@ func (o *OpenAI) CreateChatCompletion(ctx context.Context, req openai.ChatComple
 }
 
 // isReasoningModel reports whether the model requires max_completion_tokens
-// instead of max_tokens. Covers o1/o3/o4 reasoning models and the gpt-5 family.
+// instead of max_tokens. Covers o1/o3/o4 reasoning models and the gpt-5/gpt-6 families.
 func isReasoningModel(model string) bool {
 	m := strings.ToLower(model)
 	return strings.HasPrefix(m, "o1") ||
 		strings.HasPrefix(m, "o3") ||
 		strings.HasPrefix(m, "o4") ||
-		strings.Contains(m, "gpt-5")
+		strings.Contains(m, "gpt-5") ||
+		strings.Contains(m, "gpt-6")
 }
 
 // UserNameOrDisplayName username or display name or "пользователь"

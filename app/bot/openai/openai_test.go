@@ -503,6 +503,8 @@ func TestIsReasoningModel(t *testing.T) {
 		{"", false},
 		{"gpt-5", true},
 		{"gpt-5-mini", true},
+		{"gpt-5.6-luna", true},
+		{"gpt-6-luna", true},
 		{"GPT-5-MINI", true},
 		{"gpt-5-nano-2025", true},
 		{"o1", true},
@@ -528,6 +530,8 @@ func TestOpenAI_chatGPTRequestInternal_ReasoningEffort(t *testing.T) {
 		wantCompletion bool // true expects max_completion_tokens, false expects max_tokens
 	}{
 		{"reasoning model with effort", "gpt-5-mini", "low", "low", true},
+		{"luna with medium effort", "gpt-6-luna", "medium", "medium", true},
+		{"gpt-5.6 luna with medium effort", "gpt-5.6-luna", "medium", "medium", true},
 		{"reasoning model without effort", "gpt-5-mini", "", "", true},
 		{"non-reasoning model ignores effort", "gpt-4o-mini", "low", "", false},
 	}

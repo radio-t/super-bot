@@ -252,9 +252,7 @@ func main() {
 	}
 	go rtjc.Listen(ctx)
 
-	if err := tgListener.Do(ctx); err != nil {
-		log.Fatalf("[ERROR] telegram listener failed, %v", err)
-	}
+	log.Fatalf("[ERROR] telegram listener failed, %v", tgListener.Do(ctx))
 }
 
 func export() {

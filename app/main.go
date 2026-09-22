@@ -23,6 +23,7 @@ import (
 
 	"github.com/radio-t/super-bot/app/bot"
 	"github.com/radio-t/super-bot/app/bot/openai"
+	"github.com/radio-t/super-bot/app/bot/openai/jev"
 	"github.com/radio-t/super-bot/app/events"
 	"github.com/radio-t/super-bot/app/reporter"
 	"github.com/radio-t/super-bot/app/storage"
@@ -68,12 +69,17 @@ var opts struct {
 		MaxSymbolsRequest int    `long:"max-symbols-request" env:"MAX_SYMBOLS_REQUEST" default:"12000" description:"OpenAI max symbols in request for fallback logic"`
 		Prompt            string `long:"prompt" env:"PROMPT" default:"" description:"OpenAI prompt"`
 
-		EnableAutoResponse      bool `long:"auto-response" env:"AUTO_RESPONSE" description:"enable auto response from OpenAI"`
-		HistorySize             int  `long:"history-size" env:"HISTORY_SIZE" default:"5" description:"OpenAI history size for context answers"`
-		HistoryReplyProbability int  `long:"history-reply-probability" env:"HISTORY_REPLY_PROBABILITY" default:"10" description:"percentage of the probability to reply with history (0%-100%)"`
+		EnableAutoResponse bool `long:"auto-response" env:"AUTO_RESPONSE" description:"enable auto response from OpenAI"`
+		HistorySize        int  `long:"history-size" env:"HISTORY_SIZE" default:"10" description:"OpenAI history size for context answers"`
 
 		Timeout time.Duration `long:"timeout" env:"TIMEOUT" default:"120s" description:"OpenAI timeout in seconds"`
 	} `group:"openai" namespace:"openai" env-namespace:"OPENAI"`
+
+	Jev struct {
+		Key     string        `long:"key" env:"KEY" description:"Jev API key for unsolicited-reply decisions"`
+		Model   string        `long:"model" env:"MODEL" default:"jev-1.13.0" description:"Jev decision model"`
+		Timeout time.Duration `long:"timeout" env:"TIMEOUT" default:"2s" description:"Jev request timeout"`
+	} `group:"jev" namespace:"jev" env-namespace:"JEV"`
 
 	RemarkAPI            string `long:"remark-api" env:"REMARK_API" default:"https://remark42.radio-t.com/api/v1/find" description:"Remark API"`
 	UreadabilityAPI      string `long:"ur-api" env:"UREADABILITY_API" default:"https://ureadability.radio-t.com/api/content/v1/parser" description:"uReadability API"`
@@ -102,10 +108,24 @@ func main() {
 
 	setupLog(opts.Dbg)
 	log.Printf("[INFO] super users: %v", opts.SuperUsers)
-	log.Printf("[DEBUG] opts: %+v", opts)
+	log.Printf("[DEBUG] opts: %s", redactedOpts())
 	if opts.ExportNum > 0 {
 		export()
 		return
+	}
+	openAIParams := openai.Params{
+		Model:              opts.OpenAI.Model,
+		ReasoningEffort:    opts.OpenAI.ReasoningEffort,
+		AuthToken:          opts.OpenAI.AuthToken,
+		MaxTokensResponse:  opts.OpenAI.MaxTokensResponse,
+		MaxTokensRequest:   opts.OpenAI.MaxTokensRequest,
+		MaxSymbolsRequest:  opts.OpenAI.MaxSymbolsRequest,
+		Prompt:             opts.OpenAI.Prompt,
+		HistorySize:        opts.OpenAI.HistorySize,
+		EnableAutoResponse: opts.OpenAI.EnableAutoResponse,
+	}
+	if err := setJev(&openAIParams, jev.Params{Key: opts.Jev.Key, Model: opts.Jev.Model, Timeout: opts.Jev.Timeout}, opts.OpenAI.EnableAutoResponse); err != nil {
+		log.Fatalf("[ERROR] can't configure jev: %v", err)
 	}
 
 	tbAPI, err := tbapi.NewBotAPI(opts.Telegram.Token)
@@ -117,18 +137,7 @@ func main() {
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	// 5 seconds is not enough for OpenAI requests
 	httpClientOpenAI := makeOpenAIHttpClient()
-	openAIBot := openai.NewOpenAI(openai.Params{
-		Model:                   opts.OpenAI.Model,
-		ReasoningEffort:         opts.OpenAI.ReasoningEffort,
-		AuthToken:               opts.OpenAI.AuthToken,
-		MaxTokensResponse:       opts.OpenAI.MaxTokensResponse,
-		MaxTokensRequest:        opts.OpenAI.MaxTokensRequest,
-		MaxSymbolsRequest:       opts.OpenAI.MaxSymbolsRequest,
-		Prompt:                  opts.OpenAI.Prompt,
-		HistorySize:             opts.OpenAI.HistorySize,
-		HistoryReplyProbability: opts.OpenAI.HistoryReplyProbability,
-		EnableAutoResponse:      opts.OpenAI.EnableAutoResponse,
-	}, httpClientOpenAI, opts.SuperUsers)
+	openAIBot := openai.NewOpenAI(openAIParams, httpClientOpenAI, opts.SuperUsers)
 
 	multiBot := bot.MultiBot{
 		bot.NewBroadcastStatus(
@@ -294,6 +303,31 @@ func export() {
 	if err != nil {
 		log.Fatalf("[ERROR] export failed: %v", err)
 	}
+}
+
+func setJev(p *openai.Params, jp jev.Params, autoResp bool) error {
+	p.Jev = nil
+	if jp.Timeout <= 0 {
+		return fmt.Errorf("jev timeout must be positive")
+	}
+	if jp.Key == "" {
+		if autoResp {
+			log.Print("[WARN] unsolicited OpenAI replies disabled: JEV_KEY is empty")
+		}
+		return nil
+	}
+	p.Jev = jev.New(jp)
+	return nil
+}
+
+func redactedOpts() string {
+	redacted := opts
+	redacted.Telegram.Token = ""
+	redacted.MashapeToken = ""
+	redacted.OpenAI.AuthToken = ""
+	redacted.UreadabilityToken = ""
+	redacted.Jev.Key = ""
+	return fmt.Sprintf("%+v", redacted)
 }
 
 // makeOpenAIHttpClient creates http client with retry middleware

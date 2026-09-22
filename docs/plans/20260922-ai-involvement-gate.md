@@ -418,15 +418,15 @@ Methods (full signatures):
 
 Standalone helpers planned: `setJev`, `redactedOpts`, as above. Exports: none
 
-- [ ] write failing tests for `setJev`: key set, key empty (`p.Jev == nil`, not a typed nil),
+- [x] write failing tests for `setJev`: key set, key empty (`p.Jev == nil`, not a typed nil),
   zero and negative timeout, warning only when auto-response is on and the key is empty
-- [ ] write failing test: the options dump contains none of the five secrets (fake values)
-- [ ] run tests, confirm they fail
-- [ ] add the `jev` flag group; call `setJev`; log `redactedOpts()` instead of `opts`
-- [ ] remove `--openai.history-reply-probability`, `Params.HistoryReplyProbability`, the
+- [x] write failing test: the options dump contains none of the five secrets (fake values)
+- [x] run tests, confirm they fail
+- [x] add the `jev` flag group; call `setJev`; log `redactedOpts()` instead of `opts`
+- [x] remove `--openai.history-reply-probability`, `Params.HistoryReplyProbability`, the
   `main.go:129` call site and the `getDefaultTestingConfig` field (`openai_test.go:33`) together;
   raise the `--openai.history-size` default to 10
-- [ ] run tests - must pass before next task
+- [x] run tests - must pass before next task
 
 ### Task 7: Freeze the labeling contract and replay pipeline
 

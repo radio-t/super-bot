@@ -28,14 +28,13 @@ func TestOpenAI_Help(t *testing.T) {
 
 func getDefaultTestingConfig() Params {
 	return Params{
-		AuthToken:               "ss-mockToken",
-		MaxTokensResponse:       100,
-		Prompt:                  "",
-		HistorySize:             2,
-		HistoryReplyProbability: 10,
-		EnableAutoResponse:      true,
-		MaxTokensRequest:        3000,
-		MaxSymbolsRequest:       12000,
+		AuthToken:          "ss-mockToken",
+		MaxTokensResponse:  100,
+		Prompt:             "",
+		HistorySize:        2,
+		EnableAutoResponse: true,
+		MaxTokensRequest:   3000,
+		MaxSymbolsRequest:  12000,
 	}
 }
 

@@ -33,14 +33,13 @@ type Params struct {
 	// https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
 	MaxTokensResponse int // hard limit for the number of tokens in the response
 	// the OpenAI has a limit for the number of tokens in the request + response (4097)
-	MaxTokensRequest        int // max request length in tokens
-	MaxSymbolsRequest       int // fallback: Max request length in symbols, if tokenizer was failed
-	Prompt                  string
-	EnableAutoResponse      bool
-	HistorySize             int
-	HistoryReplyProbability int // percentage of the probability to reply with history
-	Model                   string
-	ReasoningEffort         string // reasoning_effort for reasoning models (minimal, low, medium, high); empty means API default
+	MaxTokensRequest   int // max request length in tokens
+	MaxSymbolsRequest  int // fallback: Max request length in symbols, if tokenizer was failed
+	Prompt             string
+	EnableAutoResponse bool
+	HistorySize        int
+	Model              string
+	ReasoningEffort    string // reasoning_effort for reasoning models (minimal, low, medium, high); empty means API default
 	// Jev decides whether to reply automatically; nil disables unsolicited replies.
 	Jev jevClient
 }

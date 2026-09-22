@@ -27,7 +27,15 @@
 - Error messages should be descriptive and actionable
 
 ## OpenAI Bot Implementation Notes
-- The OpenAI bot maintains message history to track conversation context
-- Direct queries (with chat!/gpt!/ai!/чат! prefixes) use history while focusing on the current message
-- The `chatGPTRequestWithHistoryAndFocus` function balances context awareness with response relevance
-- History size is configurable via the `--history-size` flag (default: 5 messages)
+- History records only group messages (`ChatID < 0`): idle ticks carry ChatID 0, private chats are positive
+- `LimitedMessageHistory.snapshot(cur, now)` builds the context for both OpenAI builders and jev: the current
+  message comes from the caller (never the buffer tail), preceding entries only from `cur.ChatID`, 30-minute
+  age limit, 1000/8000 rune caps; the current text is never truncated. Default history size is 10
+- Unsolicited replies go through `shouldJoin` (`gate.go`): three jev nouls (invites, answerable, spam) with
+  thresholds as constants; any jev error or invalid answer means no reply. `autoReplyLimits` holds the
+  15-minute cooldown, 10/day cap and 150 jev calls/hour, separate from `lastDT` (direct-request bans)
+- The jev client lives in `app/bot/openai/jev` because tests are `package openai` and import `mocks`; a mocked
+  interface using types from package `openai` would create an import cycle
+- Thresholds were tuned on labeled production cases (contract in `gate_test.go`, replay via
+  `JEV_LIVE_CASES`); retune only with fresh labeled data, never against the old holdout
+- `isReasoningModel` matches o1/o3/o4 and the gpt-5/gpt-6 families; those models reject `max_tokens`

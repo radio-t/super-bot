@@ -583,9 +583,9 @@ excluded from correctness metrics, and make the live test fail. Never pool strat
 - [x] grep the tree for the jev key prefix and for chat content: none present (a verbatim chat quote in the backlog item was replaced with a paraphrase)
 
 ### Task 11: [Final] Update documentation
-- [ ] update README.md: jev flags, unsolicited-reply behavior, removed probability flag
-- [ ] update CLAUDE.md with the gate and snapshot pattern
-- [ ] move this plan to `docs/plans/completed/`
+- [x] update README.md: jev flags, unsolicited-reply behavior, removed probability flag (the probability flag was never documented there)
+- [x] update CLAUDE.md with the gate and snapshot pattern
+- [x] move this plan to `docs/plans/completed/`
 
 ## Post-Completion
 *Items requiring manual intervention or external systems - no checkboxes, informational only*

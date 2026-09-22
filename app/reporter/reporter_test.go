@@ -1,18 +1,18 @@
 package reporter
 
 import (
-	"testing"
-	"github.com/radio-t/super-bot/app/bot"
-	"os"
-	"net/http"
-	"time"
-	"github.com/stretchr/testify/assert"
-	"strconv"
+	"bytes"
 	"fmt"
+	"github.com/radio-t/super-bot/app/bot"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
-	"bytes"
+	"net/http"
+	"os"
 	"path"
+	"strconv"
+	"testing"
+	"time"
 )
 
 var msg = bot.Message{ID: 101, Text: "1st"}

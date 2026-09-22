@@ -273,17 +273,18 @@ Exports (justification per item: who outside the package calls this?):
 - `Question`, `Answer`, `Response` and their fields, `(c *Client) Ask`: `app/bot/openai`
 - the endpoint URL is an unexported field set by `New`; tests in the package override it
 
-- [ ] write `httptest.Server` tests first: success with request schema and bearer auth checked
+- [x] write `httptest.Server` tests first: success with request schema and bearer auth checked
   (fake key), missing answer, wrong answer type, noul absent vs null vs 0 vs 1 vs out of range vs
   non-numeric, non-2xx with detail, malformed JSON, response slower than the client timeout,
   exactly one HTTP attempt on 429/529
-- [ ] write a failing test: a 422 whose detail echoes the state and the fake key produces an error
+- [x] write a failing test: a 422 whose detail echoes the state and the fake key produces an error
   string containing neither
-- [ ] run tests, confirm they fail
-- [ ] implement: own `http.Client` with `Timeout` from `Params` (no repeater), one attempt;
-  `Ask` enforces the timeout itself, callers pass a plain context
-- [ ] godoc on every exported type, field, function and method
-- [ ] run tests - must pass before next task
+- [x] run tests, confirm they fail (new package API was undefined before implementation)
+- [x] implement: own `http.Client` with `Timeout` from `Params` (no repeater), one attempt;
+  `Ask` enforces the timeout itself, callers pass a plain context. Redirects are not followed;
+  responses are capped at 64 KiB and sanitized error details at 256 runes
+- [x] godoc on every exported type, field, function and method
+- [x] run tests - must pass before next task
 
 ### Task 4: Structured history snapshot, wired into both OpenAI builders
 

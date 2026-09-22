@@ -575,12 +575,12 @@ excluded from correctness metrics, and make the live test fail. Never pool strat
   outcome); reporter logs lack parent message IDs
 
 ### Task 10: Verify acceptance criteria
-- [ ] verify all requirements from Overview are implemented
-- [ ] verify edge cases are handled
-- [ ] run full test suite: `go test ./... -race`
-- [ ] run linter: `golangci-lint run --max-issues-per-linter=0 --max-same-issues=0`
-- [ ] verify test coverage for `app/bot/openai` and `app/bot/openai/jev` is at least 80%
-- [ ] grep the tree for the jev key prefix and for chat content: none present
+- [x] verify all requirements from Overview are implemented
+- [x] verify edge cases are handled
+- [x] run full test suite: `go test ./... -race`
+- [x] run linter: `golangci-lint run --max-issues-per-linter=0 --max-same-issues=0`
+- [x] verify test coverage for `app/bot/openai` and `app/bot/openai/jev` is at least 80% (openai 81.7%, jev 100%)
+- [x] grep the tree for the jev key prefix and for chat content: none present (a verbatim chat quote in the backlog item was replaced with a paraphrase)
 
 ### Task 11: [Final] Update documentation
 - [ ] update README.md: jev flags, unsolicited-reply behavior, removed probability flag

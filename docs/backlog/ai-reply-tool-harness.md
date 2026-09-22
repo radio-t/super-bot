@@ -6,8 +6,8 @@ added: 2026-09-22
 # unsolicited replies cannot use context older than the snapshot window
 
 The jev-gated reply sees only the current chat's last 10 messages from the past 30 minutes. Some good
-requests depend on older discussion ("помню как-то давно бобук рекомендовал пост про выгорание, не
-подскажете?"), which the reporter archive could answer. The idea: a small tool harness (recent
+requests depend on older discussion, such as asking for a post a host recommended in the chat long ago,
+which the reporter archive could answer. The idea: a small tool harness (recent
 history, archive search, reply chain) behind the same gate. Postponed until the gated version has run
 in production and been observed.
 

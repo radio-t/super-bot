@@ -52,7 +52,7 @@ jobs:
         docker push radiot/super-bot:master
 
     - name: build and push tagged image
-      if: github.event_name == 'push' && github.event.ref_type == 'tag'
+      if: github.event_name == 'push' && github.ref_type == 'tag' && github.event.deleted == false
       run: |
         GIT_TAG="${GITHUB_REF#refs/tags/}"
         docker build -t radiot/super-bot:${GIT_TAG} .
